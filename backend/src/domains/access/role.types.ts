@@ -66,7 +66,6 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'tax:read',
     'features:read',
     'api_keys:read',
-    'api_keys:write',
     'webhooks:read',
     'webhooks:write',
     'compliance:export',
@@ -81,6 +80,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'features:read',
   ],
   sales: [
+    'ledger:read',
     'ledger:write',
     'invoices:read',
     'invoices:write',
@@ -95,9 +95,5 @@ export function getPermissionsForRole(role: Role): Permission[] {
 }
 
 export function roleHasPermission(role: Role, permission: Permission): boolean {
-  const perms = getPermissionsForRole(role);
-  if (perms.includes(permission)) return true;
-  // owner has all
-  if (role === 'owner') return true;
-  return false;
+  return getPermissionsForRole(role).includes(permission);
 }

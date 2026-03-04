@@ -2,7 +2,7 @@ import type { ITaxEngine, TaxableTransaction, TaxSummary } from './ITaxEngine';
 import { NigeriaTaxEngine } from './NigeriaTaxEngine';
 import { GhanaTaxEngine } from './GhanaTaxEngine';
 import { BeninTaxEngine } from './BeninTaxEngine';
-import { MockTaxEngine } from './MockTaxEngine';
+import { ValidationError } from '@/shared/errors/DomainError';
 
 /**
  * Routes to country-specific tax engine.
@@ -11,14 +11,13 @@ export class TaxEngineManager implements ITaxEngine {
   private nigeria = new NigeriaTaxEngine();
   private ghana = new GhanaTaxEngine();
   private benin = new BeninTaxEngine();
-  private mock = new MockTaxEngine();
 
   private getEngine(countryCode: string): ITaxEngine {
     const code = (countryCode || '').toUpperCase();
     if (code === 'NG') return this.nigeria;
     if (code === 'GH') return this.ghana;
     if (code === 'BJ') return this.benin;
-    return this.mock;
+    throw new ValidationError(`Unsupported country code: ${code}. Supported: NG, GH, BJ`);
   }
 
   async calculateVAT(
@@ -34,7 +33,6 @@ export class TaxEngineManager implements ITaxEngine {
     this.nigeria.getSupportedCountries().forEach((c) => set.add(c));
     this.ghana.getSupportedCountries().forEach((c) => set.add(c));
     this.benin.getSupportedCountries().forEach((c) => set.add(c));
-    this.mock.getSupportedCountries().forEach((c) => set.add(c));
     return Array.from(set);
   }
 }

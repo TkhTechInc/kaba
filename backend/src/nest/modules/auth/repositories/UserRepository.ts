@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -21,7 +22,8 @@ function normalizePhone(phone: string): string {
 
 /** Derive userId from phone for consistent lookup. Same logic as auth. */
 export function getUserIdFromPhone(phone: string): string {
-  return `user_${normalizePhone(phone).slice(-8)}`;
+  const normalized = normalizePhone(phone);
+  return `user_${createHash('sha256').update(normalized).digest('hex').slice(0, 16)}`;
 }
 
 export class UserRepository {

@@ -34,11 +34,15 @@ export class GhanaTaxEngine implements ITaxEngine {
       }
     }
 
-    const netVAT = vatOnSales - vatOnPurchases;
+    vatOnSales = Math.round(vatOnSales * 100) / 100;
+    vatOnPurchases = Math.round(vatOnPurchases * 100) / 100;
+    totalSales = Math.round(totalSales * 100) / 100;
+    totalPurchases = Math.round(totalPurchases * 100) / 100;
+    const netVAT = Math.round((vatOnSales - vatOnPurchases) * 100) / 100;
     const currency = transactions[0]?.currency ?? 'GHS';
 
     return {
-      totalVAT: Math.max(0, netVAT),
+      totalVAT: Math.round(netVAT * 100) / 100,
       totalSales,
       totalPurchases,
       currency,

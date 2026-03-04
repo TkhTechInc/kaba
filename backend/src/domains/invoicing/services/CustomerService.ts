@@ -1,10 +1,11 @@
-import { Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { CustomerRepository, ListByBusinessResult } from '../repositories/CustomerRepository';
 import { Customer, CreateCustomerInput, UpdateCustomerInput } from '../models/Customer';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
 
+@Injectable()
 export class CustomerService {
   constructor(
     private readonly customerRepository: CustomerRepository,

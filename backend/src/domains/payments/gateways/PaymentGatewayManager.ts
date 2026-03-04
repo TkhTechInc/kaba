@@ -1,3 +1,4 @@
+import { Injectable } from '@nestjs/common';
 import type { IPaymentGateway, PaymentGatewayType } from '../interfaces/IPaymentGateway';
 import type { CreatePaymentIntentRequest, PaymentGatewayResponse } from '../models/Payment';
 import { MockPaymentGateway } from './MockPaymentGateway';
@@ -9,6 +10,7 @@ import { StripeGateway } from './StripeGateway';
  * Manages payment gateways and selects the appropriate one by currency.
  * Pattern copied from events project.
  */
+@Injectable()
 export class PaymentGatewayManager {
   private gateways: Map<PaymentGatewayType, IPaymentGateway> = new Map();
 
@@ -17,7 +19,9 @@ export class PaymentGatewayManager {
   }
 
   private initializeGateways(): void {
-    this.registerGateway(new MockPaymentGateway());
+    if (process.env['NODE_ENV'] !== 'production') {
+      this.registerGateway(new MockPaymentGateway());
+    }
 
     const stripeKey = process.env['STRIPE_SECRET_KEY'];
     if (stripeKey?.trim()) {

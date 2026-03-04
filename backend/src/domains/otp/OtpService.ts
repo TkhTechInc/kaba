@@ -25,6 +25,7 @@ export class OtpService {
     if (!record) return false;
     if (record.code !== code) return false;
     if (new Date(record.expiresAt) < new Date()) return false;
+    await this.otpRepo.delete(record.phone, record.sk);
     return true;
   }
 }

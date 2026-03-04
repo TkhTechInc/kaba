@@ -14,7 +14,6 @@ import { BusinessModule } from '@/domains/business/BusinessModule';
 import { AccessModule } from '@/domains/access/AccessModule';
 import { NotificationsModule } from '@/domains/notifications/NotificationsModule';
 import { OtpModule } from '@/domains/otp/OtpModule';
-import { VoiceModule } from '@/domains/voice/VoiceModule';
 import { VerificationModule } from '@/domains/verification/VerificationModule';
 
 @Module({
@@ -23,7 +22,7 @@ import { VerificationModule } from '@/domains/verification/VerificationModule';
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
-        secret: config.get<string>('jwt.secret') || 'dev-secret',
+        secret: config.get<string>('jwt.secret')!,
         signOptions: { expiresIn: (config.get<string>('jwt.expiresIn') || '24h') as '24h' },
       }),
     }),
@@ -31,7 +30,6 @@ import { VerificationModule } from '@/domains/verification/VerificationModule';
     AccessModule,
     NotificationsModule,
     OtpModule,
-    VoiceModule,
     VerificationModule,
   ],
   controllers: [AuthController],

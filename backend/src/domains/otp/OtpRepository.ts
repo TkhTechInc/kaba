@@ -1,5 +1,6 @@
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   GetCommand,
   PutCommand,
   QueryCommand,
@@ -71,6 +72,18 @@ export class OtpRepository {
       expiresAt: String(item.expiresAt),
       ttl: Number(item.ttl),
     };
+  }
+
+  async delete(phone: string, sk: string): Promise<void> {
+    const normalized = this.normalizePhone(phone);
+    if (!normalized) return;
+
+    await this.docClient.send(
+      new DeleteCommand({
+        TableName: this.tableName,
+        Key: { pk: `${PK_PREFIX}${normalized}`, sk },
+      }),
+    );
   }
 
   private normalizePhone(phone: string): string | null {

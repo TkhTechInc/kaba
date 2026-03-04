@@ -107,11 +107,12 @@ export class AuditRepository {
 
     const exprValues: Record<string, unknown> = {
       ':pk': pk,
-      ':skPrefix': skPrefix,
     };
     if (from && to) {
       exprValues[':skFrom'] = `${skPrefix}${from}`;
       exprValues[':skTo'] = `${skPrefix}${to}\uffff`;
+    } else {
+      exprValues[':skPrefix'] = skPrefix;
     }
 
     try {

@@ -54,7 +54,7 @@ export class QuickBooksApiStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'handler.handler',
       code: lambda.Code.fromAsset(apiLambdaAsset),
-      timeout: Duration.seconds(60),
+      timeout: Duration.seconds(29),
       memorySize: 1024,
       tracing: config.monitoring.enableXRay ? lambda.Tracing.ACTIVE : lambda.Tracing.DISABLED,
       environment: {
@@ -83,19 +83,27 @@ export class QuickBooksApiStack extends cdk.Stack {
       receiptsBucket.grantReadWrite(this.apiLambda);
     }
 
-    // SNS for SMS OTP (AWS SNS SMS)
+    // SNS for SMS OTP (AWS SNS SMS) — scoped to direct phone number publishes only
     this.apiLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['sns:Publish'],
         resources: ['*'],
+        conditions: {
+          Null: { 'sns:PhoneNumber': 'false' },
+        },
       })
     );
 
     // EventBridge PutEvents for ledger.entry.created (default event bus)
+    const defaultEventBusArn = this.formatArn({
+      service: 'events',
+      resource: 'event-bus',
+      resourceName: 'default',
+    });
     this.apiLambda.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ['events:PutEvents'],
-        resources: ['*'],
+        resources: [defaultEventBusArn],
       })
     );
 
@@ -115,10 +123,11 @@ export class QuickBooksApiStack extends cdk.Stack {
     });
 
     // Own RestApi to avoid cyclic dependency (Method + Lambda in same stack)
+    const localhostOrigins = environment !== 'prod'
+      ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3008']
+      : [];
     const corsOrigins = [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:3008',
+      ...localhostOrigins,
       ...(config.frontendUrl ? [config.frontendUrl] : []),
     ].filter(Boolean);
     const restApi = new apigateway.RestApi(this, 'Api', {

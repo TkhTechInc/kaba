@@ -5,7 +5,7 @@ import { FeatureService } from '@/domains/features/FeatureService';
 import { WHATSAPP_PROVIDER } from '@/domains/notifications/notification.tokens';
 import type { IWhatsAppProvider } from '@/domains/notifications/IWhatsAppProvider';
 import { SmsService } from '@/domains/notifications/SmsService';
-import { ValidationError } from '@/shared/errors/DomainError';
+import { ValidationError, NotFoundError } from '@/shared/errors/DomainError';
 import type { Debt, CreateDebtInput } from '../models/Debt';
 import type { ListDebtsResult } from '../repositories/DebtRepository';
 
@@ -43,10 +43,18 @@ export class DebtService {
   }
 
   async getById(businessId: string, id: string): Promise<Debt | null> {
+    const business = await this.businessRepo.getOrCreate(businessId, 'free');
+    if (!this.featureService.isEnabled('debt_tracker', business.tier)) {
+      throw new ValidationError('Debt tracker is not available for your plan');
+    }
     return this.debtRepo.getById(businessId, id);
   }
 
   async markPaid(businessId: string, id: string): Promise<Debt | null> {
+    const business = await this.businessRepo.getOrCreate(businessId, 'free');
+    if (!this.featureService.isEnabled('debt_tracker', business.tier)) {
+      throw new ValidationError('Debt tracker is not available for your plan');
+    }
     return this.debtRepo.updateStatus(businessId, id, 'paid');
   }
 
@@ -58,7 +66,7 @@ export class DebtService {
 
     const debt = await this.debtRepo.getById(businessId, id);
     if (!debt) {
-      throw new ValidationError('Debt not found');
+      throw new NotFoundError('Debt', id);
     }
     if (!debt.phone?.trim()) {
       throw new ValidationError('No phone number for this debtor. Add a phone number to send reminders.');
@@ -80,6 +88,6 @@ export class DebtService {
   }
 
   private formatReminderMessage(debt: Debt): string {
-    return `Reminder: ${debt.debtorName} owes ${debt.currency} ${debt.amount.toLocaleString()}. Due: ${debt.dueDate}. Please pay at your earliest convenience.`;
+    return `Reminder: ${debt.debtorName} owes ${debt.currency} ${debt.amount.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}. Due: ${debt.dueDate}. Please pay at your earliest convenience.`;
   }
 }

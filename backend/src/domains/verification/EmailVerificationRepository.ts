@@ -1,5 +1,6 @@
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   GetCommand,
   PutCommand,
   QueryCommand,
@@ -46,6 +47,19 @@ export class EmailVerificationRepository {
           expiresAt,
           ttl,
         },
+      }),
+    );
+  }
+
+  async delete(email: string): Promise<void> {
+    const normalized = normalizeEmail(email);
+    const record = await this.getLatest(normalized);
+    if (!record) return;
+
+    await this.docClient.send(
+      new DeleteCommand({
+        TableName: this.tableName,
+        Key: { pk: record.pk, sk: record.sk },
       }),
     );
   }

@@ -51,9 +51,10 @@ export class ReconciliationService {
     const parsed = await this.parser.parse(smsText);
 
     const type = parsed.type === 'credit' ? 'sale' : 'expense';
-    const description =
-      parsed.description ?? parsed.reference
-        ? `Mobile money: ${parsed.reference ?? ''}`
+    const description = parsed.description
+      ? parsed.description
+      : parsed.reference
+        ? `Mobile money: ${parsed.reference}`
         : 'Mobile money transaction';
 
     const entry = await this.ledgerService.createEntry(

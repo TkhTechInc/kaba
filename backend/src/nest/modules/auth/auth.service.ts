@@ -124,6 +124,7 @@ export class AuthService {
     if (new Date(record.expiresAt) < new Date()) {
       throw new UnauthorizedException('Verification code has expired');
     }
+    await this.emailVerificationRepo.delete(normalizedEmail);
 
     const existing = await this.userRepo.getByEmail(normalizedEmail);
     if (existing) {

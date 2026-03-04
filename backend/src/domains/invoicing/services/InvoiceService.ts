@@ -1,4 +1,4 @@
-import { Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { InvoiceRepository, ListByBusinessResult } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { Invoice, CreateInvoiceInput } from '../models/Invoice';
@@ -8,6 +8,7 @@ import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
 
+@Injectable()
 export class InvoiceService {
   constructor(
     private readonly invoiceRepository: InvoiceRepository,

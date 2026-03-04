@@ -17,15 +17,12 @@ export function configuration() {
   environment: nodeEnv,
   region: process.env['AWS_REGION'] || 'af-south-1',
   cors: {
-    origins: (process.env['CORS_ORIGINS'] || '')
-      .split(',')
-      .filter(Boolean)
-      .concat([
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:3002',
-        'http://localhost:3008',
-      ]),
+    origins: [
+      ...(process.env['CORS_ORIGINS'] || '').split(',').filter(Boolean),
+      ...(nodeEnv !== 'production'
+        ? ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3008']
+        : []),
+    ],
   },
   dynamodb: {
     ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-Ledger-dev',

@@ -166,7 +166,7 @@ export class LedgerRepository {
         new QueryCommand({
           TableName: this.tableName,
           KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-          FilterExpression: '#dt >= :from AND #dt <= :to',
+          FilterExpression: '#dt >= :from AND #dt <= :to AND attribute_not_exists(deletedAt)',
           ExpressionAttributeNames: { '#dt': 'date' },
           ExpressionAttributeValues: {
             ':pk': businessId,
@@ -216,10 +216,11 @@ export class LedgerRepository {
   /** Soft-delete ledger entry (compliance erasure). */
   async softDelete(businessId: string, id: string): Promise<boolean> {
     const now = new Date().toISOString();
-    try {
-      // Fetch the entry first so we can reverse its contribution to the running balance.
-      const entry = await this.getById(businessId, id);
+    // Fetch entry first to get amount/currency for balance reversal
+    const entry = await this.getById(businessId, id);
+    if (!entry || entry.deletedAt) return false;
 
+    try {
       await this.docClient.send(
         new UpdateCommand({
           TableName: this.tableName,
@@ -229,17 +230,18 @@ export class LedgerRepository {
           ConditionExpression: 'attribute_exists(sk) AND attribute_not_exists(deletedAt)',
         }),
       );
-
-      // Reverse the balance contribution atomically.
-      if (entry && !entry.deletedAt) {
-        const delta = entry.type === 'sale' ? -entry.amount : entry.amount;
-        await this.updateRunningBalance(businessId, delta, entry.currency);
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        // Another concurrent request already deleted this entry and reversed the balance
+        return false;
       }
-
-      return true;
-    } catch (e) {
       throw new DatabaseError('Soft-delete ledger entry failed', e);
     }
+
+    // We won the race — only we should reverse the balance
+    const delta = entry.type === 'sale' ? -entry.amount : entry.amount;
+    await this.updateRunningBalance(businessId, delta, entry.currency);
+    return true;
   }
 
   /**
