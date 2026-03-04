@@ -3,8 +3,27 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures, invalidateFeaturesCache } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
+import {
+  formatPriceWithCurrency,
+  getCurrencySymbol,
+} from "@/lib/format-number";
 import { updateBusinessTier, type Tier } from "@/services/business.service";
 import { useState } from "react";
+
+/** Monthly price per tier. Key = currency code, value = price per tier. */
+const PLAN_PRICES: Record<string, Record<Tier, number | null>> = {
+  NGN: { free: 0, starter: 5000, pro: 15000, enterprise: 50000 },
+  GHS: { free: 0, starter: 50, pro: 150, enterprise: 500 },
+  XOF: { free: 0, starter: 2500, pro: 7500, enterprise: 25000 },
+  XAF: { free: 0, starter: 2500, pro: 7500, enterprise: 25000 },
+  USD: { free: 0, starter: 5, pro: 15, enterprise: 50 },
+  EUR: { free: 0, starter: 5, pro: 15, enterprise: 50 },
+};
+
+function formatPrice(amount: number | null, currency: string): string {
+  if (amount === null || amount === 0) return "Free";
+  return formatPriceWithCurrency(amount, currency, "/month");
+}
 
 const TIERS: { id: Tier; name: string; features: string[] }[] = [
   {
@@ -56,7 +75,7 @@ function tierIndex(t: Tier): number {
 
 export default function SettingsPage() {
   const { token, businessId } = useAuth();
-  const { tier, refetch } = useFeatures(businessId);
+  const { tier, currency, loading, refetch } = useFeatures(businessId);
   const { hasPermission } = usePermissions(businessId);
   const canUpgrade = hasPermission("business:tier");
   const [updating, setUpdating] = useState<Tier | null>(null);
@@ -99,6 +118,12 @@ export default function SettingsPage() {
           <span className="font-medium capitalize text-dark dark:text-white">
             {tier ?? "—"}
           </span>
+          {currency && (
+            <>
+              {" · "}
+              Prices in {currency}
+            </>
+          )}
         </p>
 
         {error && (
@@ -118,8 +143,15 @@ export default function SettingsPage() {
           {TIERS.map((plan) => {
             const current = (tier ?? "free") === plan.id;
             const isHigher = tierIndex(plan.id) > tierIndex((tier ?? "free") as Tier);
-            const loading = updating === plan.id;
+            const isUpdating = updating === plan.id;
             const showButton = canUpgrade && isHigher;
+
+            const prices = currency
+              ? PLAN_PRICES[currency] ?? PLAN_PRICES.NGN
+              : null;
+            const price = prices?.[plan.id] ?? null;
+            const priceStr =
+              loading || !currency ? "—" : formatPrice(price, currency);
 
             return (
               <div
@@ -130,14 +162,19 @@ export default function SettingsPage() {
                     : "border-gray-200 dark:border-gray-700"
                 }`}
               >
-                <h3 className="mb-2 font-semibold capitalize text-dark dark:text-white">
-                  {plan.name}
-                  {current && (
-                    <span className="ml-2 text-xs font-normal text-primary">
-                      (current)
-                    </span>
-                  )}
-                </h3>
+                <div className="mb-2 flex items-baseline justify-between gap-2">
+                  <h3 className="font-semibold capitalize text-dark dark:text-white">
+                    {plan.name}
+                    {current && (
+                      <span className="ml-2 text-xs font-normal text-primary">
+                        (current)
+                      </span>
+                    )}
+                  </h3>
+                  <span className="text-sm font-medium text-dark dark:text-white">
+                    {priceStr}
+                  </span>
+                </div>
                 <ul className="mb-4 flex-1 space-y-1 text-sm text-dark-4 dark:text-dark-6">
                   {plan.features.map((f) => (
                     <li key={f}>• {f}</li>
@@ -147,7 +184,7 @@ export default function SettingsPage() {
                   {showButton ? (
                     <button
                       onClick={() => handleUpgrade(plan.id)}
-                      disabled={loading}
+                      disabled={isUpdating}
                       className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                     >
                       {loading ? "Upgrading…" : "Upgrade"}

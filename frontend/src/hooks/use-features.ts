@@ -80,8 +80,48 @@ export function useFeatures(businessId: string | null) {
   }, [businessId, accessToken]);
 
   useEffect(() => {
-    fetchFeatures();
-  }, [fetchFeatures]);
+    let cancelled = false;
+    const run = async () => {
+      if (!businessId?.trim()) {
+        if (!cancelled) setData(null);
+        return;
+      }
+      const cached = getCached(businessId);
+      if (cached) {
+        if (!cancelled) setData(cached);
+        return;
+      }
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+      try {
+        const res = await apiGet<FeaturesResponse>(
+          `/api/v1/features?businessId=${encodeURIComponent(businessId)}`,
+          { token: accessToken ?? undefined }
+        );
+        if (!cancelled) {
+          if (res.success && res.data) {
+            setCached(businessId, res.data);
+            setData(res.data);
+          } else {
+            setData(null);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e instanceof Error ? e : new Error(String(e)));
+          setData(null);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId, accessToken]);
 
   const isEnabled = useCallback(
     (key: string): boolean => {
@@ -103,7 +143,8 @@ export function useFeatures(businessId: string | null) {
     () => ({
       tier: data?.tier ?? null,
       onboardingComplete: data?.onboardingComplete ?? false,
-      currency: data?.currency ?? "NGN",
+      /** null while loading; "NGN" only when loaded but business has no currency set */
+      currency: data ? (data.currency ?? "NGN") : null,
       enabled: data?.enabled ?? {},
       limits: data?.limits ?? {},
       isEnabled,
