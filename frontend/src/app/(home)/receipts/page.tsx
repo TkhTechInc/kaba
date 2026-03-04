@@ -29,6 +29,9 @@ export default function ReceiptsPage() {
   const [useS3, setUseS3] = useState(true);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [sendPhone, setSendPhone] = useState("");
+  const [sendStatus, setSendStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [sendError, setSendError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const api = useMemo(() => createReceiptsApi(token), [token]);
@@ -53,6 +56,8 @@ export default function ReceiptsPage() {
     setPreview(null);
     setSaveStatus("idle");
     setSaveError(null);
+    setSendStatus("idle");
+    setSendError(null);
     setError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -81,6 +86,38 @@ export default function ReceiptsPage() {
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Failed to save");
       setSaveStatus("error");
+    }
+  };
+
+  const handleSendReceipt = async () => {
+    if (!result || !businessId || !sendPhone.trim()) return;
+    setSendStatus("sending");
+    setSendError(null);
+    try {
+      const res = await api.sendPdf(businessId, sendPhone.trim(), {
+        vendor: result.extracted.vendor,
+        date: result.extracted.date,
+        total: result.extracted.total ?? 0,
+        currency: result.extracted.currency,
+        items:
+          result.extracted.lineItems.length > 0
+            ? result.extracted.lineItems.map((item) => ({
+                description: item.description,
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                total: item.total,
+              }))
+            : undefined,
+      });
+      if (res.success) {
+        setSendStatus("sent");
+      } else {
+        setSendError("Failed to send");
+        setSendStatus("error");
+      }
+    } catch (e) {
+      setSendError(e instanceof Error ? e.message : "Failed to send");
+      setSendStatus("error");
     }
   };
 
@@ -310,6 +347,44 @@ export default function ReceiptsPage() {
                     >
                       View in Ledger →
                     </a>
+                  )}
+                </div>
+              )}
+              {features.isEnabled("receipt_pdf_whatsapp") && (
+                <div className="flex flex-wrap items-end gap-2">
+                  <div>
+                    <label className="mb-1 block text-body-sm font-medium text-dark dark:text-white">
+                      Customer phone
+                    </label>
+                    <input
+                      type="tel"
+                      value={sendPhone}
+                      onChange={(e) => setSendPhone(e.target.value)}
+                      placeholder="+233..."
+                      className="rounded-lg border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleSendReceipt}
+                    disabled={
+                      sendStatus === "sending" ||
+                      (result.extracted.total ?? 0) <= 0 ||
+                      !sendPhone.trim()
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                  >
+                    {sendStatus === "sending" && (
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                    )}
+                    {sendStatus === "sent"
+                      ? "✓ Sent"
+                      : sendStatus === "sending"
+                        ? "Sending…"
+                        : "Send receipt"}
+                  </button>
+                  {sendStatus === "error" && sendError && (
+                    <span className="text-sm text-red">{sendError}</span>
                   )}
                 </div>
               )}
