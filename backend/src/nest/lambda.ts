@@ -1,0 +1,80 @@
+import 'reflect-metadata';
+import helmet from 'helmet';
+import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
+import serverlessExpress from '@codegenie/serverless-express';
+import { AppModule } from './app.module';
+import { Callback, Context, Handler } from 'aws-lambda';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
+import { ConfigService } from '@nestjs/config';
+
+let server: Handler;
+
+async function ensureJwtSecret(): Promise<void> {
+  if (process.env['JWT_SECRET']) return;
+  const secretName = process.env['JWT_SECRET_SECRET_NAME'];
+  if (!secretName) return;
+  const client = new SecretsManagerClient({ region: process.env['AWS_REGION'] || 'af-south-1' });
+  const res = await client.send(new GetSecretValueCommand({ SecretId: secretName }));
+  const raw = res.SecretString;
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw) as { jwt_secret?: string };
+    if (data.jwt_secret) process.env['JWT_SECRET'] = data.jwt_secret;
+  } catch {
+    // ignore parse errors
+  }
+}
+
+async function bootstrap(): Promise<Handler> {
+  try {
+    await ensureJwtSecret();
+    const app = await NestFactory.create<NestExpressApplication>(AppModule, { abortOnError: false });
+
+    app.use(helmet({ contentSecurityPolicy: false }));
+
+    let corsOrigins: string[] | undefined;
+    try {
+      const configService = app.get(ConfigService);
+      corsOrigins = configService?.get<string[]>('cors.origins');
+    } catch {
+      corsOrigins = (process.env['CORS_ORIGINS'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (!corsOrigins?.length) corsOrigins = undefined;
+    app.enableCors({
+      origin: corsOrigins?.length ? corsOrigins : true,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+    });
+
+    app.useBodyParser('json', { limit: '1mb' });
+    app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
+
+    await app.init();
+
+    const expressApp = app.getHttpAdapter().getInstance();
+    const srv = serverlessExpress({ app: expressApp });
+    return srv;
+  } catch (err) {
+    console.error('[boot] FAILED:', err);
+    throw err;
+  }
+}
+
+export const handler: Handler = async (event: any, context: Context, callback: Callback) => {
+  // Strip API Gateway stage from path (e.g. /dev/api/v1/... -> /api/v1/...)
+  if (event.path) {
+    event.path = event.path.replace(/^\/(dev|staging|prod)/, '') || '/';
+  }
+  // When using {proxy+}, serverless-express prefers pathParameters.proxy over event.path.
+  // pathParameters.proxy only contains the segment after /api/v1/ (e.g. "auth/send-otp"),
+  // but NestJS expects the full path /api/v1/auth/send-otp. Clear proxy so it falls back to event.path.
+  if (event.pathParameters?.proxy != null) {
+    delete event.pathParameters.proxy;
+  }
+  if (!server) {
+    server = await bootstrap();
+  }
+  return server(event, context, callback);
+};

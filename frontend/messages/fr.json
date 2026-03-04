@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "signIn": "Connexion",
+    "signUp": "S'inscrire",
+    "phoneNumber": "Numéro de téléphone",
+    "verificationCode": "Code de vérification",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "confirmPassword": "Confirmer le mot de passe",
+    "sendOtp": "Envoyer le code",
+    "createAccount": "Créer un compte",
+    "forgotPassword": "Mot de passe oublié ?"
+  },
+  "common": {
+    "skipToContent": "Aller au contenu principal",
+    "readAloud": "Lire à voix haute"
+  }
+}

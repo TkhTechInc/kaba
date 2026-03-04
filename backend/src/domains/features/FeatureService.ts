@@ -1,0 +1,70 @@
+import { Injectable, Optional, Inject } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Tier, FeatureKey, FeatureConfigMap } from './feature.types';
+
+const DEFAULT_FEATURES: FeatureConfigMap = {
+  ledger: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'], limits: { free: 50, starter: 500, pro: 5000, enterprise: 100000 } },
+  invoicing: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  payment_links: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  receipts: { enabled: true, tiers: ['pro', 'enterprise'] },
+  receipts_s3: { enabled: true, tiers: ['pro', 'enterprise'] },
+  reports: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'] },
+  reports_pdf: { enabled: true, tiers: ['pro', 'enterprise'] },
+  ai_query: { enabled: true, tiers: ['starter', 'pro', 'enterprise'], limits: { starter: 10, pro: 100, enterprise: 1000 } },
+  ai_voice: { enabled: true, tiers: ['pro', 'enterprise'] },
+  ai_loan_readiness: { enabled: true, tiers: ['pro', 'enterprise'] },
+  sms_receipts: { enabled: true, tiers: ['pro', 'enterprise'] },
+  tax: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  webhooks: { enabled: true, tiers: ['pro', 'enterprise'] },
+  api_keys: { enabled: true, tiers: ['pro', 'enterprise'] },
+  debt_tracker: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  debt_reminders: { enabled: true, tiers: ['pro', 'enterprise'], limits: { pro: 50, enterprise: 500 } },
+  receipt_pdf_whatsapp: { enabled: true, tiers: ['pro', 'enterprise'] },
+  inventory_lite: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  mobile_money_recon: { enabled: true, tiers: ['pro', 'enterprise'], limits: { pro: 100, enterprise: 1000 } },
+  sales_role: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'] },
+  credit_ready_pdf: { enabled: true, tiers: ['pro', 'enterprise'] },
+  tax_ohada: { enabled: true, tiers: ['pro', 'enterprise'] },
+  whatsapp_bot: { enabled: true, tiers: ['enterprise'] },
+  image_compression: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'] },
+};
+
+@Injectable()
+export class FeatureService {
+  private readonly features: FeatureConfigMap;
+
+  constructor(@Optional() @Inject(ConfigService) config: ConfigService | null) {
+    const overrides = config?.get<Partial<FeatureConfigMap>>('features') || {};
+    this.features = { ...DEFAULT_FEATURES, ...overrides };
+  }
+
+  /** Check if a feature is enabled for the given tier. */
+  isEnabled(featureKey: FeatureKey, tier: Tier): boolean {
+    const feature = this.features[featureKey];
+    if (!feature || !feature.enabled) return false;
+    return feature.tiers.includes(tier);
+  }
+
+  /** Check if usage is within limit for the feature/tier. Returns true if within limit or no limit. */
+  isWithinLimit(
+    featureKey: FeatureKey,
+    tier: Tier,
+    currentUsage: number,
+  ): boolean {
+    const feature = this.features[featureKey];
+    if (!feature?.limits) return true;
+    const limit = feature.limits[tier];
+    if (limit == null) return true;
+    return currentUsage < limit;
+  }
+
+  /** Get the limit for a feature/tier, or undefined if unlimited. */
+  getLimit(featureKey: FeatureKey, tier: Tier): number | undefined {
+    return this.features[featureKey]?.limits?.[tier];
+  }
+
+  /** Get all features (for admin/config display). */
+  getAllFeatures(): FeatureConfigMap {
+    return { ...this.features };
+  }
+}

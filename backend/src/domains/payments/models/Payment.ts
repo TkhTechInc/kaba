@@ -1,0 +1,35 @@
+/**
+ * Payment domain types for QuickBooks West Africa.
+ * Minimal types for IPaymentGateway interface.
+ */
+
+export interface CreatePaymentIntentRequest {
+  businessId: string;
+  invoiceId: string;
+  amount: number;
+  currency: string;
+  customerId?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface ConfirmPaymentRequest {
+  paymentIntentId: string;
+  paymentMethodId?: string;
+  metadata?: Record<string, string>;
+}
+
+export interface PaymentGatewayResponse {
+  success: boolean;
+  gatewayTransactionId: string;
+  gatewayResponse: unknown;
+  /** For redirect flows: URL to send the user to complete payment. */
+  paymentUrl?: string;
+  error?: string;
+}
+
+export interface PaymentGatewayEvent {
+  id: string;
+  type: string;
+  data: { object: unknown };
+  [key: string]: unknown;
+}

@@ -1,0 +1,18 @@
+{
+  "auth": {
+    "signIn": "Sign In",
+    "signUp": "Sign Up",
+    "phoneNumber": "Phone number",
+    "verificationCode": "Verification code",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "sendOtp": "Send OTP",
+    "createAccount": "Create account",
+    "forgotPassword": "Forgot Password?"
+  },
+  "common": {
+    "skipToContent": "Skip to main content",
+    "readAloud": "Read aloud"
+  }
+}

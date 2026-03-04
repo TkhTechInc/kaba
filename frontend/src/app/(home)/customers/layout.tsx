@@ -1,0 +1,15 @@
+"use client";
+
+import { PermissionGuard } from "@/components/Auth/PermissionGuard";
+
+export default function CustomersLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <PermissionGuard permission="invoices:read" show403>
+      {children}
+    </PermissionGuard>
+  );
+}

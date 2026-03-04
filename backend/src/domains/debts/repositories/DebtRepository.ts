@@ -1,0 +1,225 @@
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  GetCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { Debt, CreateDebtInput } from '../models/Debt';
+import { DatabaseError } from '@/shared/errors/DomainError';
+import { v4 as uuidv4 } from 'uuid';
+
+const SK_PREFIX = 'DEBT#';
+
+export interface ListDebtsResult {
+  items: Debt[];
+  total: number;
+  page: number;
+  limit: number;
+  lastEvaluatedKey?: Record<string, unknown>;
+}
+
+export class DebtRepository {
+  constructor(
+    private readonly docClient: DynamoDBDocumentClient,
+    private readonly tableName: string,
+  ) {}
+
+  async create(input: CreateDebtInput): Promise<Debt> {
+    const now = new Date().toISOString();
+    const id = uuidv4();
+    const status = this.getStatus(input.dueDate);
+    const debt: Debt = {
+      id,
+      businessId: input.businessId,
+      debtorName: input.debtorName,
+      amount: input.amount,
+      currency: input.currency,
+      dueDate: input.dueDate,
+      status,
+      customerId: input.customerId,
+      phone: input.phone,
+      notes: input.notes,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const item = this.mapToDynamoDB(debt);
+    try {
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+          ConditionExpression: 'attribute_not_exists(sk)',
+        }),
+      );
+      return debt;
+    } catch (e) {
+      throw new DatabaseError('Create debt failed', e);
+    }
+  }
+
+  async getById(businessId: string, id: string): Promise<Debt | null> {
+    try {
+      const result = await this.docClient.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
+        }),
+      );
+      if (!result.Item) return null;
+      return this.mapFromDynamoDB(result.Item);
+    } catch (e) {
+      throw new DatabaseError('Get debt failed', e);
+    }
+  }
+
+  async listByBusiness(
+    businessId: string,
+    page: number = 1,
+    limit: number = 20,
+    status?: Debt['status'],
+    exclusiveStartKey?: Record<string, unknown>,
+  ): Promise<ListDebtsResult> {
+    try {
+      const params: Record<string, unknown> = {
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+        },
+        Limit: limit,
+        ScanIndexForward: false,
+        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+      };
+
+      if (status) {
+        params.FilterExpression = '#st = :status';
+        params.ExpressionAttributeNames = { '#st': 'status' };
+        (params.ExpressionAttributeValues as Record<string, unknown>)[':status'] = status;
+      }
+
+      const result = await this.docClient.send(new QueryCommand(params as import('@aws-sdk/lib-dynamodb').QueryCommandInput));
+      const items = (result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>));
+
+      return {
+        items,
+        total: items.length,
+        page,
+        limit,
+        lastEvaluatedKey: result.LastEvaluatedKey,
+      };
+    } catch (e) {
+      throw new DatabaseError('List debts failed', e);
+    }
+  }
+
+  /**
+   * List all unpaid debts (pending or overdue) for aging report.
+   * Fetches all matching items by paginating through results.
+   */
+  async listByBusinessForAging(businessId: string): Promise<Debt[]> {
+    const all: Debt[] = [];
+    let exclusiveStartKey: Record<string, unknown> | undefined;
+
+    try {
+      do {
+        const params: Record<string, unknown> = {
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: '#st IN (:pending, :overdue)',
+          ExpressionAttributeNames: { '#st': 'status' },
+          ExpressionAttributeValues: {
+            ':pk': businessId,
+            ':skPrefix': SK_PREFIX,
+            ':pending': 'pending',
+            ':overdue': 'overdue',
+          },
+          Limit: 500,
+          ScanIndexForward: false,
+          ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+        };
+
+        const result = await this.docClient.send(
+          new QueryCommand(params as import('@aws-sdk/lib-dynamodb').QueryCommandInput),
+        );
+        const items = (result.Items ?? []).map((i) =>
+          this.mapFromDynamoDB(i as Record<string, unknown>),
+        );
+        all.push(...items);
+        exclusiveStartKey = result.LastEvaluatedKey;
+      } while (exclusiveStartKey);
+
+      return all;
+    } catch (e) {
+      throw new DatabaseError('List debts for aging failed', e);
+    }
+  }
+
+  async updateStatus(businessId: string, id: string, status: Debt['status']): Promise<Debt | null> {
+    const existing = await this.getById(businessId, id);
+    if (!existing) return null;
+
+    const now = new Date().toISOString();
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
+          UpdateExpression: 'SET #st = :status, updatedAt = :now',
+          ExpressionAttributeNames: { '#st': 'status' },
+          ExpressionAttributeValues: { ':status': status, ':now': now },
+        }),
+      );
+      return { ...existing, status, updatedAt: now };
+    } catch (e) {
+      throw new DatabaseError('Update debt status failed', e);
+    }
+  }
+
+  private getStatus(dueDate: string): Debt['status'] {
+    const due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+    return due < today ? 'overdue' : 'pending';
+  }
+
+  private mapToDynamoDB(debt: Debt): Record<string, unknown> {
+    return {
+      pk: debt.businessId,
+      sk: `${SK_PREFIX}${debt.id}`,
+      entityType: 'DEBT',
+      id: debt.id,
+      businessId: debt.businessId,
+      debtorName: debt.debtorName,
+      amount: debt.amount,
+      currency: debt.currency,
+      dueDate: debt.dueDate,
+      status: debt.status,
+      customerId: debt.customerId,
+      phone: debt.phone,
+      notes: debt.notes,
+      createdAt: debt.createdAt,
+      updatedAt: debt.updatedAt,
+    };
+  }
+
+  private mapFromDynamoDB(item: Record<string, unknown>): Debt {
+    return {
+      id: String(item.id ?? ''),
+      businessId: String(item.businessId ?? item.pk ?? ''),
+      debtorName: String(item.debtorName ?? ''),
+      amount: Number(item.amount ?? 0),
+      currency: String(item.currency ?? 'NGN'),
+      dueDate: String(item.dueDate ?? ''),
+      status: (item.status as Debt['status']) ?? 'pending',
+      customerId: item.customerId != null ? String(item.customerId) : undefined,
+      phone: item.phone != null ? String(item.phone) : undefined,
+      notes: item.notes != null ? String(item.notes) : undefined,
+      createdAt: String(item.createdAt ?? ''),
+      updatedAt: String(item.updatedAt ?? ''),
+    };
+  }
+}
