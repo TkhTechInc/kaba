@@ -204,7 +204,7 @@ export default function ProductsPage() {
     if (!businessId || !forecastModal) return;
     try {
       const r = await api.createRestockLoan(businessId, forecastModal.productId);
-      setForecastModal((prev) => prev ? { ...prev, loanOffer: r.data } : null);
+      setForecastModal((prev) => prev ? { ...prev, loanOffer: r } : null);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to create loan offer");
     }
@@ -216,6 +216,17 @@ export default function ProductsPage() {
         <Breadcrumb pageName="Products" />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to manage products.</p>
+        </div>
+      </>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="Products" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </>
     );

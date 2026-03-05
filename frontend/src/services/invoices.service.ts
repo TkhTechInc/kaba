@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export interface InvoiceItem {
   description: string;
@@ -66,13 +67,67 @@ export function createInvoicesApi(token: string | null) {
         params: { businessId, page: String(page), limit: String(limit) },
       }),
 
-    create: (body: CreateInvoiceInput) =>
-      api.post<Invoice>("/api/v1/invoices", body, { token: token ?? undefined }),
+    getById: (invoiceId: string, businessId: string) =>
+      api.get<Invoice>(`/api/v1/invoices/${invoiceId}`, {
+        token: token ?? undefined,
+        params: { businessId },
+      }),
 
-    generatePaymentLink: (invoiceId: string, businessId: string) =>
-      api.post<{ paymentUrl: string }>(`/api/v1/invoices/${invoiceId}/payment-link`, {
+    create: async (body: CreateInvoiceInput) => {
+      const optimistic: Invoice = {
+        id: "pending-" + Date.now(),
+        businessId: body.businessId,
+        customerId: body.customerId,
+        amount: body.amount,
+        currency: body.currency,
+        items: body.items,
+        dueDate: body.dueDate,
+        status: body.status,
+        createdAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Invoice>(
+        "/api/v1/invoices",
+        "POST",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
+
+    update: async (invoiceId: string, businessId: string, body: Partial<CreateInvoiceInput>) => {
+      const optimistic: Invoice = {
+        id: invoiceId,
         businessId,
-      }, { token: token ?? undefined }),
+        customerId: body.customerId ?? "",
+        amount: body.amount ?? 0,
+        currency: body.currency ?? "",
+        items: body.items ?? [],
+        dueDate: body.dueDate ?? "",
+        status: body.status ?? "",
+        createdAt: new Date().toISOString(),
+        ...body,
+      };
+      const result = await offlineMutation<Invoice>(
+        `/api/v1/invoices/${invoiceId}?businessId=${encodeURIComponent(businessId)}`,
+        "PATCH",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
+
+    generatePaymentLink: async (invoiceId: string, businessId: string) => {
+      const result = await offlineMutation<{ paymentUrl: string }>(
+        `/api/v1/invoices/${invoiceId}/payment-link`,
+        "POST",
+        { businessId },
+        token,
+        { paymentUrl: "pending" }
+      );
+      return result.data;
+    },
 
     listCustomers: (businessId: string, page = 1, limit = 100) =>
       api.get<ListCustomersResult>("/api/v1/customers", {
@@ -80,15 +135,28 @@ export function createInvoicesApi(token: string | null) {
         params: { businessId, page: String(page), limit: String(limit) },
       }),
 
-    createCustomer: (body: {
+    createCustomer: async (body: {
       businessId: string;
       name: string;
       email: string;
       phone?: string;
-    }) =>
-      api.post<Customer>("/api/v1/customers", body, {
-        token: token ?? undefined,
-      }),
+    }) => {
+      const optimistic: Customer = {
+        id: "pending-" + Date.now(),
+        businessId: body.businessId,
+        name: body.name,
+        email: body.email,
+        phone: body.phone,
+      };
+      const result = await offlineMutation<Customer>(
+        "/api/v1/customers",
+        "POST",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
     listPendingApproval: (businessId: string) =>
       api.get<{ items: Invoice[] }>("/api/v1/invoices/pending-approval", {
@@ -96,10 +164,27 @@ export function createInvoicesApi(token: string | null) {
         params: { businessId },
       }),
 
-    approveInvoice: (invoiceId: string, businessId: string) =>
-      api.post<Invoice>(`/api/v1/invoices/${invoiceId}/approve`, { businessId }, {
-        token: token ?? undefined,
-      }),
+    approveInvoice: async (invoiceId: string, businessId: string) => {
+      const optimistic: Invoice = {
+        id: invoiceId,
+        businessId,
+        customerId: "",
+        amount: 0,
+        currency: "",
+        items: [],
+        dueDate: "",
+        status: "approved",
+        createdAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Invoice>(
+        `/api/v1/invoices/${invoiceId}/approve`,
+        "POST",
+        { businessId },
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
     listByStatus: (businessId: string, status: string, limit = 20) =>
       api.get<{ items: Invoice[] }>("/api/v1/invoices", {

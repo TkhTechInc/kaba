@@ -103,6 +103,24 @@ export default function SettingsPage() {
 
   return (
     <div>
+      <nav className="mb-6 flex flex-wrap gap-2" aria-label="Settings navigation">
+        {[
+          { label: "Plans", href: "/settings" },
+          { label: "Team", href: "/settings/team" },
+          { label: "Preferences", href: "/settings/preferences" },
+          { label: "API Keys", href: "/settings/api-keys" },
+          { label: "Webhooks", href: "/settings/webhooks" },
+          { label: "Compliance", href: "/settings/compliance" },
+        ].map(({ label, href }) => (
+          <Link
+            key={href}
+            href={href}
+            className="rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white dark:hover:border-primary dark:hover:text-primary"
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
       <h1 className="mb-4 text-heading-4 font-bold text-dark dark:text-white">
         Settings
       </h1>
@@ -118,6 +136,15 @@ export default function SettingsPage() {
           <span className="font-medium text-dark dark:text-white">Team</span>
           <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
             Manage who has access to this business
+          </p>
+        </Link>
+        <Link
+          href="/settings/preferences"
+          className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:border-primary/50 hover:bg-primary/5 dark:border-gray-700 dark:bg-gray-dark dark:hover:border-primary/50 dark:hover:bg-primary/10"
+        >
+          <span className="font-medium text-dark dark:text-white">Preferences</span>
+          <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
+            Notifications, language, and timezone
           </p>
         </Link>
       </div>

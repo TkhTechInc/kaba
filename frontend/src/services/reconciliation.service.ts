@@ -1,4 +1,4 @@
-import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export interface MobileMoneyReconResult {
   entry: {
@@ -24,10 +24,29 @@ export interface MobileMoneyReconResult {
 
 export function createReconciliationApi(token: string | null) {
   return {
-    reconcileMobileMoney: (businessId: string, smsText: string) =>
-      api.post<MobileMoneyReconResult>("/api/v1/reconciliation/mobile-money", {
-        businessId,
-        smsText,
-      }, { token: token ?? undefined }),
+    reconcileMobileMoney: async (businessId: string, smsText: string) => {
+      const optimistic: MobileMoneyReconResult = {
+        entry: {
+          id: "pending-" + Date.now(),
+          businessId,
+          type: "sale",
+          amount: 0,
+          currency: "",
+          description: "",
+          category: "",
+          date: new Date().toISOString().slice(0, 10),
+          createdAt: new Date().toISOString(),
+        },
+        parsed: { amount: 0, currency: "", date: "", type: "credit" },
+      };
+      const result = await offlineMutation<MobileMoneyReconResult>(
+        "/api/v1/reconciliation/mobile-money",
+        "POST",
+        { businessId, smsText },
+        token,
+        optimistic
+      );
+      return result.data;
+    },
   };
 }

@@ -45,6 +45,9 @@ import { OnboardingModule } from '@/domains/onboarding/OnboardingModule';
 import { VoiceModule } from '@/domains/voice/VoiceModule';
 import { DashboardModule } from '@/domains/dashboard/DashboardModule';
 import { DebtModule } from '@/domains/debts/DebtModule';
+import { TrustModule } from '@/domains/trust/TrustModule';
+import { UssdModule } from '@/domains/ussd/UssdModule';
+import { IdempotencyModule } from '@/domains/idempotency/IdempotencyModule';
 import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
 
 @Module({
@@ -74,6 +77,9 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     VoiceModule,
     DashboardModule,
     DebtModule,
+    TrustModule,
+    UssdModule,
+    IdempotencyModule,
   ],
   controllers: [HealthController],
   providers: [

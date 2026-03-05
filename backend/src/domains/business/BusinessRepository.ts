@@ -20,6 +20,9 @@ export interface UpdateOnboardingInput {
   phone?: string;
   fiscalYearStart?: number;
   onboardingComplete?: boolean;
+  trustScore?: number;
+  trustScoredAt?: string;
+  marketDayCycle?: number;
 }
 
 const SK_META = 'META';
@@ -179,6 +182,33 @@ export class BusinessRepository {
     }
   }
 
+  async updateTrustScore(businessId: string, score: number): Promise<Business> {
+    const now = new Date().toISOString();
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: SK_META },
+          UpdateExpression: 'SET trustScore = :score, trustScoredAt = :scoredAt, updatedAt = :now',
+          ExpressionAttributeValues: {
+            ':score': score,
+            ':scoredAt': now,
+            ':now': now,
+          },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        throw new Error(`Business ${businessId} not found`);
+      }
+      throw new DatabaseError('Update trust score failed', e);
+    }
+    const updated = await this.getById(businessId);
+    if (!updated) throw new DatabaseError('Business not found after trust score update', null);
+    return updated;
+  }
+
   private mapToDynamoDB(b: Business): Record<string, unknown> {
     return {
       pk: b.id,
@@ -197,6 +227,9 @@ export class BusinessRepository {
       phone: b.phone,
       fiscalYearStart: b.fiscalYearStart,
       onboardingComplete: b.onboardingComplete,
+      trustScore: b.trustScore ?? undefined,
+      trustScoredAt: b.trustScoredAt ?? undefined,
+      marketDayCycle: b.marketDayCycle ?? undefined,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
       ...(b.lockedPeriods?.length ? { lockedPeriods: b.lockedPeriods } : {}),
@@ -208,8 +241,10 @@ export class BusinessRepository {
     if (item.lockedPeriods) {
       // DynamoDB stores string sets as DocumentClient Set objects
       const raw = item.lockedPeriods;
-      if (raw && typeof raw === 'object' && 'values' in raw) {
-        lockedPeriods = Array.from((raw as { values: string[] }).values);
+      if (raw instanceof Set) {
+        lockedPeriods = Array.from(raw) as string[];
+      } else if (raw && typeof raw === 'object' && 'values' in raw) {
+        lockedPeriods = Array.from((raw as { values: Iterable<string> }).values);
       } else if (Array.isArray(raw)) {
         lockedPeriods = raw as string[];
       }
@@ -230,6 +265,9 @@ export class BusinessRepository {
       fiscalYearStart: item.fiscalYearStart != null ? Number(item.fiscalYearStart) : undefined,
       onboardingComplete: item.onboardingComplete === true,
       lockedPeriods,
+      trustScore: item.trustScore != null ? Number(item.trustScore) : undefined,
+      trustScoredAt: item.trustScoredAt != null ? String(item.trustScoredAt) : undefined,
+      marketDayCycle: item.marketDayCycle != null ? Number(item.marketDayCycle) : undefined,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
     };

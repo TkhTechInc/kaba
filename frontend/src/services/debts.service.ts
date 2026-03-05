@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export type DebtStatus = "pending" | "paid" | "overdue";
 
@@ -53,17 +54,62 @@ export function createDebtsApi(token: string | null) {
         },
       }),
 
-    create: (body: CreateDebtInput) =>
-      api.post<Debt>("/api/v1/debts", body, { token: token ?? undefined }),
+    create: async (body: CreateDebtInput) => {
+      const optimistic: Debt = {
+        id: "pending-" + Date.now(),
+        businessId: body.businessId,
+        debtorName: body.debtorName,
+        amount: body.amount,
+        currency: body.currency,
+        dueDate: body.dueDate,
+        status: "pending",
+        customerId: body.customerId,
+        phone: body.phone,
+        notes: body.notes,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Debt>(
+        "/api/v1/debts",
+        "POST",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    markPaid: (businessId: string, id: string) =>
-      api.post<Debt>(`/api/v1/debts/${id}/mark-paid?businessId=${encodeURIComponent(businessId)}`, {}, {
-        token: token ?? undefined,
-      }),
+    markPaid: async (businessId: string, id: string) => {
+      const optimistic: Debt = {
+        id,
+        businessId,
+        debtorName: "",
+        amount: 0,
+        currency: "",
+        dueDate: "",
+        status: "paid",
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Debt>(
+        `/api/v1/debts/${id}/mark-paid?businessId=${encodeURIComponent(businessId)}`,
+        "POST",
+        {},
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    sendReminder: (businessId: string, id: string) =>
-      api.post<SendReminderResult>(`/api/v1/debts/${id}/remind?businessId=${encodeURIComponent(businessId)}`, {}, {
-        token: token ?? undefined,
-      }),
+    sendReminder: async (businessId: string, id: string) => {
+      const result = await offlineMutation<SendReminderResult>(
+        `/api/v1/debts/${id}/remind?businessId=${encodeURIComponent(businessId)}`,
+        "POST",
+        {},
+        token,
+        { sent: false, channel: undefined }
+      );
+      return result.data;
+    },
   };
 }

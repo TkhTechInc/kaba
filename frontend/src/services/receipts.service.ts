@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export interface ReceiptLineItem {
   description: string;
@@ -37,20 +38,34 @@ export function createReceiptsApi(token: string | null) {
         params: { businessId, contentType },
       }),
 
-    process: (businessId: string, body: { s3Key?: string; imageBase64?: string; currency?: string }) =>
-      api.post<ProcessReceiptResult>("/api/v1/receipts/process", { businessId, ...body }, {
-        token: token ?? undefined,
-      }),
+    process: async (businessId: string, body: { s3Key?: string; imageBase64?: string; currency?: string }) => {
+      const optimistic: ProcessReceiptResult = {
+        extracted: { lineItems: [], currency: body.currency },
+        suggestedCategory: "",
+      };
+      const result = await offlineMutation<ProcessReceiptResult>(
+        "/api/v1/receipts/process",
+        "POST",
+        { businessId, ...body },
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    sendPdf: (
+    sendPdf: async (
       businessId: string,
       phone: string,
       payload: SendReceiptPdfPayload,
-    ) =>
-      api.post<{ success: boolean; messageId?: string }>(
+    ) => {
+      const result = await offlineMutation<{ success: boolean; messageId?: string }>(
         "/api/v1/receipts/send-pdf",
+        "POST",
         { businessId, phone, ...payload },
-        { token: token ?? undefined },
-      ),
+        token,
+        { success: true, messageId: "pending" }
+      );
+      return result.data;
+    },
   };
 }

@@ -27,7 +27,10 @@ export type FeatureKey =
   | 'credit_ready_pdf'
   | 'tax_ohada'
   | 'whatsapp_bot'
-  | 'image_compression';
+  | 'image_compression'
+  | 'trust_score'
+  | 'trust_share'
+  | 'trust_lookup';
 
 export interface FeatureConfig {
   enabled: boolean;

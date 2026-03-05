@@ -8,6 +8,8 @@ export interface QueuedRequest {
   method: string;
   body: string; // JSON stringified
   headers: Record<string, string>;
+  /** Idempotency key for safe replay; sent as X-Idempotency-Key */
+  idempotencyKey?: string;
   createdAt: number;
   retries: number;
 }

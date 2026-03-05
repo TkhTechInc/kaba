@@ -50,6 +50,21 @@ export class ReceiptStorageService {
     return { key, url };
   }
 
+  /** Upload invoice PDF to S3 and return presigned download URL for WhatsApp sendMedia. */
+  async uploadInvoicePdf(businessId: string, buffer: Buffer): Promise<{ key: string; url: string }> {
+    const key = `invoices/${businessId}/pdfs/${uuidv4()}.pdf`;
+    await this.s3.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: 'application/pdf',
+      }),
+    );
+    const url = await this.getDownloadUrl(key);
+    return { key, url };
+  }
+
   /** Get presigned URL to read a stored receipt. */
   async getDownloadUrl(key: string): Promise<string> {
     const command = new GetObjectCommand({ Bucket: this.bucket, Key: key });

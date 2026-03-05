@@ -1,5 +1,9 @@
 import { enqueueRequest } from "./offline-queue";
 
+function generateIdempotencyKey(): string {
+  return crypto.randomUUID();
+}
+
 /**
  * Wraps a mutation fetch. If offline, queues the request and resolves with
  * a synthetic optimistic response so the UI can continue.
@@ -15,13 +19,20 @@ export async function offlineMutation<T = unknown>(
     ? url
     : `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001"}${url}`;
 
-  if (!navigator.onLine) {
+  if (typeof window !== "undefined" && navigator && !navigator.onLine) {
     await enqueueRequest({
       url: fullUrl,
       method,
       body: JSON.stringify(body),
       headers: token ? { Authorization: `Bearer ${token}` } : {},
+      idempotencyKey: generateIdempotencyKey(),
     });
+    // Trigger background sync so the SW can wake the drain when connectivity restores
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready
+        .then((reg) => (reg as ServiceWorkerRegistration & { sync?: { register(tag: string): Promise<void> } }).sync?.register('kaba-sync'))
+        .catch(() => {});
+    }
     return { data: optimisticResponse as T, queued: true };
   }
 

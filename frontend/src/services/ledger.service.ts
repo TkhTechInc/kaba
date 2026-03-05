@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export type LedgerEntryType = "sale" | "expense";
 
@@ -47,8 +48,27 @@ export function createLedgerApi(token: string | null) {
         params: { businessId, page: String(page), limit: String(limit) },
       }),
 
-    createEntry: (body: CreateLedgerEntryInput) =>
-      api.post<LedgerEntry>("/api/v1/ledger/entries", body, { token: token ?? undefined }),
+    createEntry: async (body: CreateLedgerEntryInput) => {
+      const optimistic: LedgerEntry = {
+        id: "pending-" + Date.now(),
+        businessId: body.businessId,
+        type: body.type,
+        amount: body.amount,
+        currency: body.currency,
+        description: body.description ?? "",
+        category: body.category ?? "",
+        date: body.date,
+        createdAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<LedgerEntry>(
+        "/api/v1/ledger/entries",
+        "POST",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
     getBalance: (businessId: string) =>
       api.get<BalanceResult>("/api/v1/ledger/balance", {

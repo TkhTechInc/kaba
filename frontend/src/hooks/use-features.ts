@@ -2,6 +2,12 @@
 
 import { apiGet } from "@/lib/api-client";
 import { useAuthOptional } from "@/contexts/auth-context";
+import {
+  getCached as getOfflineCached,
+  setCached as setOfflineCached,
+  deleteCached as deleteOfflineCached,
+  featuresCacheKey,
+} from "@/lib/offline-cache";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type Tier = "free" | "starter" | "pro" | "enterprise";
@@ -18,33 +24,41 @@ export type FeaturesResponse = {
   };
 };
 
-const CACHE = new Map<string, { data: FeaturesResponse["data"]; at: number }>();
+const MEM_CACHE = new Map<string, { data: FeaturesResponse["data"]; at: number }>();
 const CACHE_TTL_MS = 60_000;
 
-function getCached(businessId: string): FeaturesResponse["data"] | null {
-  const entry = CACHE.get(businessId);
+function getMemCached(businessId: string): FeaturesResponse["data"] | null {
+  const entry = MEM_CACHE.get(businessId);
   if (!entry) return null;
   if (Date.now() - entry.at > CACHE_TTL_MS) {
-    CACHE.delete(businessId);
+    MEM_CACHE.delete(businessId);
     return null;
   }
   return entry.data;
 }
 
-function setCached(businessId: string, data: FeaturesResponse["data"]) {
-  CACHE.set(businessId, { data, at: Date.now() });
+function setMemCached(businessId: string, data: FeaturesResponse["data"]) {
+  MEM_CACHE.set(businessId, { data, at: Date.now() });
+}
+
+function setBothCaches(businessId: string, data: FeaturesResponse["data"]) {
+  setMemCached(businessId, data);
+  setOfflineCached(featuresCacheKey(businessId), data);
 }
 
 /** Invalidate cached features for a business (e.g. after tier change). */
 export function invalidateFeaturesCache(businessId: string) {
-  CACHE.delete(businessId);
+  MEM_CACHE.delete(businessId);
+  deleteOfflineCached(featuresCacheKey(businessId));
 }
 
 export function useFeatures(businessId: string | null) {
   const auth = useAuthOptional();
   const accessToken = auth?.token ?? null;
-  const [data, setData] = useState<FeaturesResponse["data"] | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Initialize from in-memory cache if available to avoid "not available on your plan" flash on first render
+  const initialCached = businessId?.trim() ? getMemCached(businessId) : null;
+  const [data, setData] = useState<FeaturesResponse["data"] | null>(initialCached);
+  const [loading, setLoading] = useState(!initialCached && !!businessId?.trim());
   const [error, setError] = useState<Error | null>(null);
 
   const fetchFeatures = useCallback(async () => {
@@ -53,9 +67,18 @@ export function useFeatures(businessId: string | null) {
       return;
     }
 
-    const cached = getCached(businessId);
-    if (cached) {
-      setData(cached);
+    const memCached = getMemCached(businessId);
+    if (memCached) {
+      setData(memCached);
+      return;
+    }
+
+    if (!navigator.onLine) {
+      const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
+        featuresCacheKey(businessId)
+      );
+      setData(offlineCached);
+      setLoading(false);
       return;
     }
 
@@ -67,14 +90,17 @@ export function useFeatures(businessId: string | null) {
         { token: accessToken ?? undefined }
       );
       if (res.success && res.data) {
-        setCached(businessId, res.data);
+        setBothCaches(businessId, res.data);
         setData(res.data);
       } else {
         setData(null);
       }
     } catch (e) {
+      const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
+        featuresCacheKey(businessId)
+      );
+      setData(offlineCached ?? null);
       setError(e instanceof Error ? e : new Error(String(e)));
-      setData(null);
     } finally {
       setLoading(false);
     }
@@ -84,12 +110,28 @@ export function useFeatures(businessId: string | null) {
     let cancelled = false;
     const run = async () => {
       if (!businessId?.trim()) {
-        if (!cancelled) setData(null);
+        if (!cancelled) {
+          setData(null);
+          setLoading(false);
+        }
         return;
       }
-      const cached = getCached(businessId);
-      if (cached) {
-        if (!cancelled) setData(cached);
+      const memCached = getMemCached(businessId);
+      if (memCached) {
+        if (!cancelled) {
+          setData(memCached);
+          setLoading(false);
+        }
+        return;
+      }
+      if (!navigator.onLine) {
+        const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
+          featuresCacheKey(businessId)
+        );
+        if (!cancelled) {
+          setData(offlineCached ?? null);
+          setLoading(false);
+        }
         return;
       }
       if (!cancelled) {
@@ -103,16 +145,19 @@ export function useFeatures(businessId: string | null) {
         );
         if (!cancelled) {
           if (res.success && res.data) {
-            setCached(businessId, res.data);
+            setBothCaches(businessId, res.data);
             setData(res.data);
           } else {
             setData(null);
           }
         }
       } catch (e) {
+        const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
+          featuresCacheKey(businessId)
+        );
         if (!cancelled) {
+          setData(offlineCached ?? null);
           setError(e instanceof Error ? e : new Error(String(e)));
-          setData(null);
         }
       } finally {
         if (!cancelled) setLoading(false);

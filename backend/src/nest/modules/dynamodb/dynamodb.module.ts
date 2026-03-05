@@ -21,7 +21,11 @@ export const DYNAMODB_DOC_CLIENT = 'DYNAMODB_DOC_CLIENT';
       provide: DYNAMODB_DOC_CLIENT,
       useFactory: (client: DynamoDBClient) => {
         return DynamoDBDocumentClient.from(client, {
-          marshallOptions: { convertEmptyValues: true, removeUndefinedValues: true },
+          marshallOptions: {
+            convertEmptyValues: true,
+            removeUndefinedValues: true,
+            convertClassInstanceToMap: true,
+          },
         });
       },
       inject: [DYNAMODB_CLIENT],

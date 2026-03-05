@@ -62,7 +62,7 @@ async function bootstrap(): Promise<Handler> {
       origin: corsOrigins?.length ? corsOrigins : true,
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],
     });
 
     app.useBodyParser('json', { limit: '1mb' });

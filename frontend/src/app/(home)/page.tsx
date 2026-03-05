@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { OverviewCardsGroupClient } from "./_components/overview-cards/overview-cards-client";
 import { DashboardChartsGate } from "./_components/dashboard-charts-gate";
 import { DashboardPaymentsOverview } from "./_components/dashboard-payments-overview";
@@ -11,30 +12,30 @@ export default async function Home() {
     <>
       <OverviewCardsGroupClient />
       <div className="mt-4 flex flex-wrap gap-3">
-        <a
+        <Link
           href="/invoices"
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           + New Invoice
-        </a>
-        <a
+        </Link>
+        <Link
           href="/ledger"
           className="inline-flex items-center gap-2 rounded-lg border border-stroke bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:bg-gray-dark dark:text-white dark:hover:bg-dark-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           + Record Transaction
-        </a>
-        <a
+        </Link>
+        <Link
           href="/receipts"
           className="inline-flex items-center gap-2 rounded-lg border border-stroke bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:bg-gray-dark dark:text-white dark:hover:bg-dark-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           Upload Receipt
-        </a>
-        <a
+        </Link>
+        <Link
           href="/reports"
           className="inline-flex items-center gap-2 rounded-lg border border-stroke bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:bg-gray-dark dark:text-white dark:hover:bg-dark-2 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           View Reports
-        </a>
+        </Link>
       </div>
       <DashboardChartsGate>
         <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-9 2xl:gap-7.5">

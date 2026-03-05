@@ -10,8 +10,10 @@ import { WebhookService } from '@/domains/webhooks/WebhookService';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
 import { ProductRepository } from '@/domains/inventory/repositories/ProductRepository';
+import type { ICategorySuggester } from '../interfaces/ICategorySuggester';
 
 export const EVENT_BRIDGE_CLIENT = 'EVENT_BRIDGE_CLIENT';
+export const CATEGORY_SUGGESTER = 'CATEGORY_SUGGESTER';
 
 export interface BalanceResult {
   businessId: string;
@@ -38,6 +40,7 @@ export class LedgerService {
     private readonly webhookService: WebhookService,
     @Inject(EVENT_BRIDGE_CLIENT) private readonly eventBridge: EventBridgeClient,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
+    @Optional() @Inject(CATEGORY_SUGGESTER) private readonly categorySuggester?: ICategorySuggester,
   ) {}
 
   async createEntry(input: CreateLedgerEntryInput, userId?: string): Promise<LedgerEntry> {

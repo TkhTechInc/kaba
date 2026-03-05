@@ -9,6 +9,7 @@ import { InventoryServiceStack } from './stacks/InventoryServiceStack';
 import { AuditLogsStack } from './stacks/AuditLogsStack';
 import { UsersServiceStack } from './stacks/UsersServiceStack';
 import { QuickBooksApiStack } from './stacks/QuickBooksApiStack';
+import { IdempotencyStack } from './stacks/IdempotencyStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 
 const app = new cdk.App();
@@ -90,6 +91,13 @@ const usersStack = new UsersServiceStack(app, `QuickBooks-UsersService-${environ
   config: envConfig,
 });
 
+const idempotencyStack = new IdempotencyStack(app, `QuickBooks-Idempotency-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'QuickBooks West Africa - Idempotency DynamoDB table',
+  config: envConfig,
+});
+
 const apiStack = new QuickBooksApiStack(app, `QuickBooks-Api-${environment}`, {
   ...commonProps,
   environment,
@@ -100,6 +108,7 @@ const apiStack = new QuickBooksApiStack(app, `QuickBooks-Api-${environment}`, {
   inventoryTable: inventoryStack.inventoryTable,
   auditLogsTable: auditLogsStack.auditLogsTable,
   usersTable: usersStack.usersTable,
+  idempotencyTable: idempotencyStack.idempotencyTable,
   receiptsBucket: receiptsStack.receiptsBucket,
   region: envConfig.region,
 });
@@ -110,5 +119,6 @@ apiStack.addDependency(invoicesStack);
 apiStack.addDependency(inventoryStack);
 apiStack.addDependency(auditLogsStack);
 apiStack.addDependency(usersStack);
+apiStack.addDependency(idempotencyStack);
 
 app.synth();

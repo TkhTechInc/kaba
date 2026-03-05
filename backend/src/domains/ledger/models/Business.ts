@@ -37,6 +37,12 @@ export interface Business {
    * Once locked, entries in that period cannot be deleted — only reversed.
    */
   lockedPeriods?: string[];
+  /** 0–100 Sika Trust Score for this business (merchant-level). */
+  trustScore?: number;
+  /** ISO timestamp of when trustScore was last calculated. */
+  trustScoredAt?: string;
+  /** Market day cycle in days (e.g. 5 for a 5-day periodic market). Used for Market Day Awareness in scoring. */
+  marketDayCycle?: number;
   createdAt: string;
   updatedAt: string;
 }

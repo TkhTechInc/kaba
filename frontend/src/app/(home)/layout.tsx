@@ -6,9 +6,14 @@ import { Header } from "@/components/Layouts/header";
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { SkipLink } from "@/components/A11y/SkipLink";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { useAuth } from "@/contexts/auth-context";
+import { useSyncManager } from "@/hooks/use-sync-manager";
 import type { PropsWithChildren } from "react";
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
+  const { token } = useAuth();
+  useSyncManager(token);
+
   return (
     <AuthGuard>
       <OnboardingGuard>

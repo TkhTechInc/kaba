@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "@/contexts/locale-context";
+import { getAllQueued } from "@/lib/offline-queue";
 
 export function OfflineBanner() {
   const [offline, setOffline] = useState(false);
+  const [queuedCount, setQueuedCount] = useState(0);
   const { t } = useLocale();
 
   useEffect(() => {
@@ -19,6 +21,11 @@ export function OfflineBanner() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!offline) return;
+    getAllQueued().then((items) => setQueuedCount(items.length)).catch(() => {});
+  }, [offline]);
+
   if (!offline) return null;
 
   return (
@@ -29,6 +36,12 @@ export function OfflineBanner() {
     >
       <span aria-hidden="true">📶</span>
       {t("common.offline")}
+      {queuedCount > 0 && (
+        <span>
+          {" — "}
+          {queuedCount} action{queuedCount !== 1 ? "s" : ""} will sync when back online
+        </span>
+      )}
     </div>
   );
 }

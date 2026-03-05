@@ -15,7 +15,8 @@ export type ApiKeyScope =
   | 'webhooks:read'
   | 'webhooks:write'
   | 'api_keys:read'
-  | 'api_keys:write';
+  | 'api_keys:write'
+  | 'trust:read';
 
 export interface ApiKey {
   id: string;

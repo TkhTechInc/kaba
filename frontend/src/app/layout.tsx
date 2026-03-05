@@ -14,8 +14,17 @@ export const metadata: Metadata = {
     template: "%s | Kaba",
     default: "Kaba",
   },
-  description:
-    "MSME accounting SaaS for West Africa.",
+  description: "MSME accounting SaaS for West Africa.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Kaba",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  themeColor: "#5750F1",
 };
 
 export default function RootLayout({ children }: PropsWithChildren) {
@@ -30,7 +39,9 @@ export default function RootLayout({ children }: PropsWithChildren) {
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                if (window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1') {
+                var isLocalhost = window.location.hostname.includes('localhost') || window.location.hostname === '127.0.0.1';
+                var swEnabledOnLocalhost = '${process.env.NEXT_PUBLIC_ENABLE_SW_LOCALHOST || ""}' === 'true';
+                if (isLocalhost && !swEnabledOnLocalhost) {
                   navigator.serviceWorker.getRegistrations().then(function(regs) {
                     regs.forEach(function(r) { r.unregister(); });
                   });

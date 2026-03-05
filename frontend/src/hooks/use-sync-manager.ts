@@ -24,6 +24,7 @@ export function useSyncManager(token: string | null) {
             ...item.headers,
           };
           if (token) headers["Authorization"] = `Bearer ${token}`;
+          if (item.idempotencyKey) headers["X-Idempotency-Key"] = item.idempotencyKey;
           const res = await fetch(item.url, {
             method: item.method,
             headers,

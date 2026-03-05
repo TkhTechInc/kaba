@@ -21,6 +21,7 @@ import {
 } from "@/services/invoices.service";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 const CURRENCIES = [
   { value: "NGN", label: "NGN" },
@@ -102,6 +103,11 @@ export default function InvoicesPage() {
   const addItem = () => {
     const qty = parseFloat(form.itemQty) || 1;
     const price = parseFloat(form.itemPrice) || 0;
+    if (price <= 0) {
+      setError("Unit price must be greater than zero");
+      return;
+    }
+    setError(null);
     const amount = qty * price;
     setForm((f) => ({
       ...f,
@@ -124,6 +130,11 @@ export default function InvoicesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!businessId || !form.customerId || form.items.length === 0) return;
+    const total = form.items.reduce((s, i) => s + i.amount, 0);
+    if (total <= 0) {
+      setError("Add at least one line item with a price greater than zero");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     const payload: CreateInvoiceInput = {
@@ -169,7 +180,7 @@ export default function InvoicesPage() {
       .generatePaymentLink(id, businessId)
       .then((r) => {
         setPaymentLinkId(id);
-        setPaymentLinkUrl(r.data.paymentUrl);
+        setPaymentLinkUrl(r.paymentUrl);
       })
       .catch((e) => setError(e.message));
   };
@@ -180,6 +191,17 @@ export default function InvoicesPage() {
         <Breadcrumb pageName="Invoices" />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to view invoices.</p>
+        </div>
+      </>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="Invoices" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </>
     );
@@ -232,7 +254,7 @@ export default function InvoicesPage() {
                       <TableHead scope="col">Customer</TableHead>
                       <TableHead scope="col">Status</TableHead>
                       <TableHead scope="col" className="text-right">Amount</TableHead>
-                      <TableHead scope="col"></TableHead>
+                      <TableHead scope="col">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -291,14 +313,23 @@ export default function InvoicesPage() {
                             {inv.currency} {standardFormat(inv.amount)}
                           </TableCell>
                           <TableCell>
-                            <button
-                              type="button"
-                              onClick={() => generatePaymentLink(inv.id)}
-                              className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded"
-                              aria-label={`Generate payment link for invoice ${inv.id}`}
-                            >
-                              Payment link
-                            </button>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Link
+                                href={`/invoices/${inv.id}`}
+                                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded text-sm font-medium"
+                              >
+                                Edit
+                              </Link>
+                              <span className="text-dark-4">|</span>
+                              <button
+                                type="button"
+                                onClick={() => generatePaymentLink(inv.id)}
+                                className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded text-sm"
+                                aria-label={`Generate payment link for invoice ${inv.id}`}
+                              >
+                                Payment link
+                              </button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -351,7 +382,10 @@ export default function InvoicesPage() {
             onSubmit={handleSubmit}
             className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark"
           >
-            <h3 className="mb-4 font-semibold text-dark dark:text-white">Create Invoice</h3>
+            <h3 className="mb-1 font-semibold text-dark dark:text-white">Create Invoice</h3>
+            <p className="mb-4 text-sm text-dark-6">
+              Add a customer, line items with prices, then create. Each line needs a description, quantity, and unit price.
+            </p>
             {error && (
               <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">{error}</div>
             )}
@@ -368,7 +402,7 @@ export default function InvoicesPage() {
                   }
                   onAddCustomer={(c) => setCustomers((prev) => [c, ...prev])}
                   createCustomer={(body) =>
-                    api.createCustomer(body) as Promise<{ data: Customer }>
+                    api.createCustomer(body)
                   }
                   businessId={businessId}
                   placeholder="Search or select customer"
@@ -436,8 +470,11 @@ export default function InvoicesPage() {
                 </div>
               </div>
               <div className="border-t border-stroke pt-4 dark:border-dark-3">
-                <p className="mb-2 text-body-sm font-medium text-dark dark:text-white">
-                  Line items
+                <p className="mb-1 text-body-sm font-medium text-dark dark:text-white">
+                  Line items (required)
+                </p>
+                <p className="mb-3 text-xs text-dark-6">
+                  Add each product or service. Unit price must be greater than zero.
                 </p>
                 {form.items.length > 0 && (
                   <ul className="mb-3 space-y-1 text-sm text-dark-6">
@@ -450,25 +487,32 @@ export default function InvoicesPage() {
                     ))}
                   </ul>
                 )}
+                {form.items.length > 0 && (
+                  <p className="mb-3 text-sm font-medium text-dark dark:text-white">
+                    Subtotal: {form.currency} {standardFormat(form.items.reduce((s, i) => s + i.amount, 0))}
+                  </p>
+                )}
                 <div className="space-y-2">
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <input
                       type="text"
-                      placeholder="Description"
+                      placeholder="Description (e.g. Consulting)"
                       value={form.itemDesc}
                       onChange={(e) => setForm((f) => ({ ...f, itemDesc: e.target.value }))}
-                      className="flex-1 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+                      className="min-w-[140px] flex-1 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                     />
                     <input
                       type="number"
                       placeholder="Qty"
+                      min={1}
                       value={form.itemQty}
                       onChange={(e) => setForm((f) => ({ ...f, itemQty: e.target.value }))}
-                      className="w-20 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+                      className="w-16 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                     />
                     <input
                       type="number"
-                      placeholder="Price"
+                      placeholder="Unit price"
+                      step={0.01}
                       value={form.itemPrice}
                       onChange={(e) => setForm((f) => ({ ...f, itemPrice: e.target.value }))}
                       className="w-24 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
@@ -477,7 +521,7 @@ export default function InvoicesPage() {
                   <button
                     type="button"
                     onClick={addItem}
-                    className="w-full rounded border border-dashed border-stroke py-2 text-sm text-dark-4 hover:border-primary hover:text-primary dark:border-dark-3 dark:text-dark-6 dark:hover:border-primary dark:hover:text-primary"
+                    className="w-full rounded border border-dashed border-stroke py-2.5 text-sm text-dark-4 hover:border-primary hover:text-primary dark:border-dark-3 dark:text-dark-6 dark:hover:border-primary dark:hover:text-primary"
                   >
                     + Add line item
                   </button>
@@ -486,7 +530,7 @@ export default function InvoicesPage() {
             </div>
             <button
               type="submit"
-              disabled={submitting || form.items.length === 0}
+              disabled={submitting || form.items.length === 0 || form.items.reduce((s, i) => s + i.amount, 0) <= 0}
               className="mt-6 w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               aria-busy={submitting}
             >

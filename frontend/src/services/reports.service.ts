@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export interface PLReport {
   revenue?: number;
@@ -115,11 +116,16 @@ export function createReportsApi(token: string | null) {
         { token: token ?? undefined }
       ),
 
-    lockPeriod: (businessId: string, year: number, month: number) =>
-      api.post<{ period: string; locked: boolean }>(
-        '/api/v1/ledger/lock-period',
+    lockPeriod: async (businessId: string, year: number, month: number) => {
+      const period = `${year}-${String(month).padStart(2, "0")}`;
+      const result = await offlineMutation<{ period: string; locked: boolean }>(
+        "/api/v1/ledger/lock-period",
+        "POST",
         { businessId, year, month },
-        { token: token ?? undefined }
-      ),
+        token,
+        { period, locked: true }
+      );
+      return result.data;
+    },
   };
 }

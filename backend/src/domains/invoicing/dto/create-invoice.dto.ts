@@ -18,11 +18,11 @@ export class InvoiceItemDto {
   quantity!: number;
 
   @IsNumber()
-  @Min(0)
+  @Min(0.01, { message: 'Unit price must be greater than zero' })
   unitPrice!: number;
 
   @IsNumber()
-  @Min(0)
+  @Min(0.01, { message: 'Line item amount must be greater than zero' })
   amount!: number;
 }
 
@@ -34,7 +34,7 @@ export class CreateInvoiceDto {
   customerId!: string;
 
   @IsNumber()
-  @Min(0)
+  @Min(0.01, { message: 'Invoice total amount must be greater than zero' })
   amount!: number;
 
   @IsString()

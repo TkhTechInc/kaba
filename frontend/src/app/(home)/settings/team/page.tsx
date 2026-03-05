@@ -108,6 +108,23 @@ export default function TeamPage() {
 
   return (
     <div>
+      <nav className="mb-6 flex flex-wrap gap-2" aria-label="Settings navigation">
+        {[
+          { label: "Plans", href: "/settings" },
+          { label: "Team", href: "/settings/team" },
+          { label: "API Keys", href: "/settings/api-keys" },
+          { label: "Webhooks", href: "/settings/webhooks" },
+          { label: "Compliance", href: "/settings/compliance" },
+        ].map(({ label, href }) => (
+          <Link
+            key={href}
+            href={href}
+            className="rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-dark hover:border-primary hover:text-primary dark:border-dark-3 dark:text-white dark:hover:border-primary dark:hover:text-primary"
+          >
+            {label}
+          </Link>
+        ))}
+      </nav>
       <div className="mb-4 flex items-center gap-2 text-sm text-dark-4 dark:text-dark-6">
         <Link href="/settings" className="hover:text-primary">
           Settings

@@ -44,3 +44,13 @@ export interface CreateInvoiceInput {
   earlyPaymentDiscountPercent?: number;
   earlyPaymentDiscountDays?: number;
 }
+
+export interface UpdateInvoiceInput {
+  customerId?: string;
+  amount?: number;
+  currency?: string;
+  items?: InvoiceItem[];
+  dueDate?: string;
+  earlyPaymentDiscountPercent?: number;
+  earlyPaymentDiscountDays?: number;
+}

@@ -1,0 +1,212 @@
+"use client";
+
+import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useAuth } from "@/contexts/auth-context";
+import { useFeatures } from "@/hooks/use-features";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
+import { standardFormat } from "@/lib/format-number";
+import { createTaxApi } from "@/services/tax.service";
+import type { VATSummary } from "@/services/tax.service";
+import { useEffect, useState } from "react";
+
+const DEFAULT_DAYS = 30;
+
+function getDefaultDates() {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - DEFAULT_DAYS);
+  return {
+    fromDate: from.toISOString().slice(0, 10),
+    toDate: to.toISOString().slice(0, 10),
+  };
+}
+
+const COUNTRY_OPTIONS = [
+  { code: "NG", label: "Nigeria" },
+  { code: "GH", label: "Ghana" },
+  { code: "BJ", label: "Benin" },
+];
+
+export default function TaxReportPage() {
+  const { token, businessId } = useAuth();
+  const features = useFeatures(businessId);
+  const [dates, setDates] = useState(getDefaultDates);
+  const [countryCode, setCountryCode] = useState("NG");
+  const [vat, setVat] = useState<VATSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const api = createTaxApi(token);
+
+  useEffect(() => {
+    if (!businessId) return;
+    setLoading(true);
+    setError(null);
+    api
+      .getVAT(businessId, dates.fromDate, dates.toDate, countryCode)
+      .then((res) => setVat(res.data))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [businessId, dates.fromDate, dates.toDate, countryCode]);
+
+  if (!businessId) {
+    return (
+      <>
+        <Breadcrumb pageName="Tax / VAT" />
+        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-dark-6">Select a business to view tax reports.</p>
+        </div>
+      </>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="Tax / VAT" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </>
+    );
+  }
+
+  if (!features.isEnabled("tax")) {
+    return (
+      <>
+        <Breadcrumb pageName="Tax / VAT" />
+        <UpgradePrompt feature="Tax / VAT reports" />
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Breadcrumb pageName="Tax / VAT" />
+
+      <div className="mb-6 flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-body-sm font-medium text-dark dark:text-white">
+            From
+          </label>
+          <input
+            type="date"
+            value={dates.fromDate}
+            onChange={(e) =>
+              setDates((d) => ({ ...d, fromDate: e.target.value }))
+            }
+            className="rounded-lg border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-body-sm font-medium text-dark dark:text-white">
+            To
+          </label>
+          <input
+            type="date"
+            value={dates.toDate}
+            onChange={(e) =>
+              setDates((d) => ({ ...d, toDate: e.target.value }))
+            }
+            className="rounded-lg border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <label className="text-body-sm font-medium text-dark dark:text-white">
+            Country
+          </label>
+          <select
+            value={countryCode}
+            onChange={(e) => setCountryCode(e.target.value)}
+            className="rounded-lg border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+          >
+            {COUNTRY_OPTIONS.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg bg-red/10 p-4 text-red">{error}</div>
+      )}
+
+      {loading ? (
+        <div className="rounded-lg border border-stroke bg-white p-12 text-center dark:border-dark-3 dark:bg-gray-dark">
+          Loading VAT summary...
+        </div>
+      ) : vat ? (
+        <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="border-b border-stroke px-6 py-4 dark:border-dark-3">
+            <h3 className="font-semibold text-dark dark:text-white">
+              VAT Summary (
+              {vat.period?.start ?? dates.fromDate} –{" "}
+              {vat.period?.end ?? dates.toDate})
+            </h3>
+          </div>
+          <div className="p-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
+              <div>
+                <p className="text-sm text-dark-6">Total VAT</p>
+                <p className="text-lg font-semibold text-dark dark:text-white">
+                  {vat.currency} {standardFormat(vat.totalVAT)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-dark-6">Total Sales</p>
+                <p className="text-lg font-semibold text-green-600">
+                  {vat.currency} {standardFormat(vat.totalSales)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-dark-6">Total Purchases</p>
+                <p className="text-lg font-semibold text-red">
+                  {vat.currency} {standardFormat(vat.totalPurchases)}
+                </p>
+              </div>
+            </div>
+
+            {vat.breakdown && vat.breakdown.length > 0 && (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Rate</TableHead>
+                    <TableHead className="text-right">Base</TableHead>
+                    <TableHead className="text-right">VAT Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vat.breakdown.map((row, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{row.rate}%</TableCell>
+                      <TableCell className="text-right">
+                        {vat.currency} {standardFormat(row.base)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {vat.currency} {standardFormat(row.amount)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-dark-6">No VAT data for this period.</p>
+        </div>
+      )}
+    </>
+  );
+}

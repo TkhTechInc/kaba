@@ -4,8 +4,10 @@ import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 
 export interface CreditScoreBreakdown {
   transactionFrequency: number;
-  debtRepaymentRatio: number;
+  repaymentVelocity: number;
+  debtRepaymentRatio: number; // alias for repaymentVelocity — backward compat
   volumeConsistency: number;
+  transactionRecency: number;
 }
 
 export interface CreditScoreResult {
@@ -24,12 +26,6 @@ export class CreditScoreService {
     private readonly debtRepository: DebtRepository,
   ) {}
 
-  /**
-   * Compute a 0–100 Trust Score for a customer based on:
-   *  - Transaction frequency  (weight: 40%) — how often they transact
-   *  - Debt repayment ratio   (weight: 40%) — paid debts / total debts
-   *  - Volume consistency     (weight: 20%) — low stddev of monthly amounts = reliable buyer
-   */
   async getCreditScore(
     businessId: string,
     customerId: string,
@@ -41,34 +37,52 @@ export class CreditScoreService {
       this.debtRepository.listByBusiness(businessId, 1, 500),
     ]);
 
-    // Filter ledger entries for this customer (those linked via customerId or invoice ref)
-    // We use all sale entries for the business as a proxy when no direct customerId link exists
+    // LedgerEntry has no customerId field; use all non-deleted sale entries as the
+    // business-level signal for this customer's general creditworthiness.
     const customerEntries = ledgerEntries.filter(
-      (e) => e.type === 'sale' && !e.deletedAt
+      (e) => e.type === 'sale' && !e.deletedAt,
     );
 
     const periodDays = Math.max(
       1,
       Math.ceil(
-        (new Date(toDate).getTime() - new Date(fromDate).getTime()) / (24 * 60 * 60 * 1000)
-      )
+        (new Date(toDate).getTime() - new Date(fromDate).getTime()) /
+          (24 * 60 * 60 * 1000),
+      ),
     );
 
-    // --- Transaction Frequency score (0–100) ---
-    // Target: ≥1 transaction/day = 100, 0 = 0
+    // --- Transaction Frequency (25%) ---
     const txCount = customerEntries.length;
     const txPerDay = txCount / periodDays;
     const frequencyScore = Math.min(100, Math.round(txPerDay * 100));
 
-    // --- Debt Repayment Ratio score (0–100) ---
+    // --- Repayment Velocity (35%) ---
+    // For each paid debt: compute days between payment and due date.
+    // +7 days early → 100, on-time (0) → 70, -30 days (30 days late) → 0.
     const customerDebts = allDebts.items.filter((d) => d.customerId === customerId);
-    const totalDebts = customerDebts.length;
-    const paidDebts = customerDebts.filter((d) => d.status === 'paid').length;
-    const repaymentRatio = totalDebts === 0 ? 1 : paidDebts / totalDebts;
-    const repaymentScore = Math.round(repaymentRatio * 100);
+    const paidDebts = customerDebts.filter((d) => d.status === 'paid');
 
-    // --- Volume Consistency score (0–100) ---
-    // Group sale amounts by month; compute coefficient of variation (lower = more consistent)
+    let repaymentVelocityScore: number;
+    if (paidDebts.length === 0) {
+      // No paid debts: treat no-debt history as neutral if no debts exist,
+      // or penalise if there are outstanding debts.
+      repaymentVelocityScore = customerDebts.length === 0 ? 70 : 0;
+    } else {
+      const velocityScores = paidDebts.map((d) => {
+        const due = new Date(d.dueDate).getTime();
+        const paid = new Date(d.updatedAt).getTime();
+        const daysDiff = (due - paid) / (24 * 60 * 60 * 1000); // positive = paid early
+        if (daysDiff >= 7) return 100;
+        if (daysDiff >= 0) return 70 + Math.round((daysDiff / 7) * 30);
+        // late: 0 at 30 days late, linear between 0 and -30
+        return Math.max(0, Math.round(70 + (daysDiff / 30) * 70));
+      });
+      repaymentVelocityScore = Math.round(
+        velocityScores.reduce((s, v) => s + v, 0) / velocityScores.length,
+      );
+    }
+
+    // --- Volume Consistency (20%) ---
     const monthlyAmounts: Record<string, number> = {};
     for (const entry of customerEntries) {
       const month = entry.date.slice(0, 7);
@@ -77,11 +91,26 @@ export class CreditScoreService {
     const amounts = Object.values(monthlyAmounts);
     const consistencyScore = this.computeConsistencyScore(amounts);
 
+    // --- Transaction Recency (20%) ---
+    // Compare tx count in the last 30 days of the period vs the first 30 days.
+    const toTime = new Date(toDate).getTime();
+    const fromTime = new Date(fromDate).getTime();
+    const last30Cutoff = new Date(toTime - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const first30Cutoff = new Date(fromTime + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    const recentCount = customerEntries.filter((e) => e.date >= last30Cutoff).length;
+    const earlyCount = customerEntries.filter((e) => e.date <= first30Cutoff).length;
+    const recencyScore = Math.min(
+      100,
+      Math.round((recentCount / Math.max(earlyCount, 1)) * 100),
+    );
+
     // --- Weighted trust score ---
     const trustScore = Math.round(
-      frequencyScore * 0.4 +
-      repaymentScore * 0.4 +
-      consistencyScore * 0.2
+      frequencyScore * 0.25 +
+      repaymentVelocityScore * 0.35 +
+      consistencyScore * 0.2 +
+      recencyScore * 0.2,
     );
 
     let recommendation: 'approve' | 'review' | 'deny';
@@ -94,8 +123,10 @@ export class CreditScoreService {
       trustScore,
       breakdown: {
         transactionFrequency: frequencyScore,
-        debtRepaymentRatio: repaymentScore,
+        repaymentVelocity: repaymentVelocityScore,
+        debtRepaymentRatio: repaymentVelocityScore,
         volumeConsistency: consistencyScore,
+        transactionRecency: recencyScore,
       },
       recommendation,
       period: { start: fromDate, end: toDate },
@@ -103,20 +134,15 @@ export class CreditScoreService {
     };
   }
 
-  /** Returns 0–100 consistency score. 100 = perfectly consistent; 0 = extreme variation. */
   private computeConsistencyScore(amounts: number[]): number {
     if (amounts.length === 0) return 0;
-    if (amounts.length === 1) return 50; // single data point — neutral
-
+    if (amounts.length === 1) return 50;
     const mean = amounts.reduce((s, a) => s + a, 0) / amounts.length;
     if (mean === 0) return 0;
-
     const variance =
       amounts.reduce((s, a) => s + Math.pow(a - mean, 2), 0) / amounts.length;
     const stddev = Math.sqrt(variance);
-    const cv = stddev / mean; // coefficient of variation
-
-    // cv = 0 → perfectly consistent → 100; cv ≥ 1 → highly variable → 0
+    const cv = stddev / mean;
     return Math.max(0, Math.round((1 - Math.min(cv, 1)) * 100));
   }
 }

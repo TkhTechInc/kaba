@@ -8,6 +8,7 @@ import { DebtModule } from '@/domains/debts/DebtModule';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 import { ReportService } from './ReportService';
+import { ReportCsvService } from './ReportCsvService';
 import { PdfExportService } from './PdfExportService';
 import { ReportController } from './ReportController';
 import { ConsolidatedReportService } from './ConsolidatedReportService';
@@ -17,6 +18,7 @@ import { CreditScoreService } from './CreditScoreService';
   imports: [AccessModule, BusinessModule, DebtModule],
   controllers: [ReportController],
   providers: [
+    ReportCsvService,
     PdfExportService,
     {
       provide: LedgerRepository,

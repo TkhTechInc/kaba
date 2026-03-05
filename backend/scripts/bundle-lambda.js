@@ -7,8 +7,12 @@ const path = require('path');
 
 const rootDir = path.join(__dirname, '..');
 const apiLambdaDir = path.join(rootDir, 'dist/api-lambda');
+const recurringLambdaDir = path.join(rootDir, 'dist/recurring-invoice-lambda');
 if (!fs.existsSync(apiLambdaDir)) {
   fs.mkdirSync(apiLambdaDir, { recursive: true });
+}
+if (!fs.existsSync(recurringLambdaDir)) {
+  fs.mkdirSync(recurringLambdaDir, { recursive: true });
 }
 
 // Remove leftover trace files from previous debug builds
@@ -58,6 +62,20 @@ esbuild
   })
   .then(() => {
     console.log('Nest API Lambda bundled: dist/api-lambda/handler.js');
+    return esbuild.build({
+      entryPoints: [
+        path.join(rootDir, 'src/infrastructure/handlers/recurring-invoice.ts'),
+      ],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/recurring-invoice-lambda/handler.js'),
+      external: externals,
+    });
+  })
+  .then(() => {
+    console.log('Recurring invoice Lambda bundled: dist/recurring-invoice-lambda/handler.js');
   })
   .catch((err) => {
     console.error('Bundle failed:', err.message);

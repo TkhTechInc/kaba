@@ -8,7 +8,7 @@ import {
   PaymentGatewayResponse,
 } from '../models/Payment';
 
-export type PaymentGatewayType = 'mock' | 'stripe' | 'kkiapay' | 'momo';
+export type PaymentGatewayType = 'mock' | 'stripe' | 'kkiapay' | 'momo' | 'paystack';
 
 export interface IPaymentGateway {
   readonly gatewayType: PaymentGatewayType;

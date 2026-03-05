@@ -1,10 +1,12 @@
-const CACHE_NAME = 'kaba-v1';
+const CACHE_NAME = 'kaba-v2';
 const STATIC_ASSETS = [
   '/',
   '/favicon.ico',
   '/images/logo/logo.svg',
   '/images/logo/logo-dark.svg',
   '/images/logo/logo-icon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
 ];
 
 // Install: pre-cache static assets
@@ -28,6 +30,7 @@ self.addEventListener('activate', (event) => {
 // Fetch strategy:
 // - GET /api/* → network first, fallback cache
 // - POST/PUT/DELETE /api/* → network only (mutations go via sync queue in app)
+// - /_next/static/* → cache first (immutable Next.js build assets)
 // - Everything else → cache first (static shell)
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -48,6 +51,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Cache-first for all non-API requests, including /_next/static/ build assets
   event.respondWith(
     caches.match(request).then((cached) => cached || fetch(request))
   );

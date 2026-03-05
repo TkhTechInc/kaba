@@ -4,6 +4,7 @@ import type { CreatePaymentIntentRequest, PaymentGatewayResponse } from '../mode
 import { MockPaymentGateway } from './MockPaymentGateway';
 import { KkiaPayGateway } from './KkiaPayGateway';
 import { MomoGateway } from './MomoGateway';
+import { PaystackGateway } from './PaystackGateway';
 import { StripeGateway } from './StripeGateway';
 
 /**
@@ -22,8 +23,8 @@ const COUNTRY_GATEWAY_PRIORITY: Record<string, PaymentGatewayType[]> = {
   BF: ['kkiapay', 'momo', 'stripe', 'mock'],
   // Ghana — MoMo primary (GHS)
   GH: ['momo', 'kkiapay', 'stripe', 'mock'],
-  // Nigeria — Stripe (NGN) or Paystack when added
-  NG: ['stripe', 'momo', 'mock'],
+  // Nigeria — Paystack primary (NGN), then Stripe, MoMo
+  NG: ['paystack', 'stripe', 'momo', 'mock'],
   // Cameroon, Gabon, etc. — XAF
   CM: ['kkiapay', 'momo', 'stripe', 'mock'],
   GA: ['kkiapay', 'momo', 'stripe', 'mock'],
@@ -65,6 +66,11 @@ export class PaymentGatewayManager {
     const momoSubKey = process.env['MOMO_SUBSCRIPTION_KEY'];
     if (momoApiKey?.trim() && momoSubKey?.trim()) {
       this.registerGateway(new MomoGateway(momoApiKey, momoSubKey, process.env['MOMO_WEBHOOK_SECRET'] ?? '', process.env['MOMO_BASE_URL']));
+    }
+
+    const paystackKey = process.env['PAYSTACK_SECRET_KEY'];
+    if (paystackKey?.trim()) {
+      this.registerGateway(new PaystackGateway(paystackKey, process.env['PAYSTACK_WEBHOOK_SECRET'] ?? ''));
     }
   }
 
@@ -131,6 +137,6 @@ export class PaymentGatewayManager {
 
   /** True if at least one real (non-mock) gateway is configured. */
   hasRealGateway(): boolean {
-    return this.gateways.has('stripe') || this.gateways.has('kkiapay') || this.gateways.has('momo');
+    return this.gateways.has('stripe') || this.gateways.has('kkiapay') || this.gateways.has('momo') || this.gateways.has('paystack');
   }
 }

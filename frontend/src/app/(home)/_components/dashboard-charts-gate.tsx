@@ -18,9 +18,9 @@ export function DashboardChartsGate({ children }: PropsType) {
   const { businessId } = useAuth();
   const features = useFeatures(businessId);
 
-  if (!businessId || !features.isEnabled("reports")) {
-    return null;
-  }
+  if (!businessId) return null;
+  if (features.loading) return null;
+  if (!features.isEnabled("reports")) return null;
 
   return <>{children}</>;
 }

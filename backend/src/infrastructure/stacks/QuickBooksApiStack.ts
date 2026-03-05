@@ -28,6 +28,7 @@ export interface QuickBooksApiStackProps extends cdk.StackProps {
   inventoryTable: dynamodb.ITable;
   auditLogsTable: dynamodb.ITable;
   usersTable: dynamodb.ITable;
+  idempotencyTable: dynamodb.ITable;
   region: string;
   receiptsBucket?: s3.IBucket;
 }
@@ -38,7 +39,7 @@ export class QuickBooksApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: QuickBooksApiStackProps) {
     super(scope, id, props);
 
-    const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, region, receiptsBucket } = props;
+    const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, idempotencyTable, region, receiptsBucket } = props;
     const resourcePrefix = `QuickBooks-Api-${environment}`;
 
     // SECURITY: JWT secret from Secrets Manager. Lambda resolves at runtime via JWT_SECRET_SECRET_NAME.
@@ -46,9 +47,10 @@ export class QuickBooksApiStack extends cdk.Stack {
     const jwtSecretName = `quickbooks/${environment}/jwt-secret`;
     const jwtSecret = secretsmanager.Secret.fromSecretNameV2(this, 'JwtSecret', jwtSecretName);
 
-    // Lambda asset: pre-bundled NestJS (npm run bundle -> dist/api-lambda)
+    // Lambda assets: pre-bundled NestJS (npm run bundle -> dist/api-lambda)
     // __dirname is src/infrastructure/stacks (ts-node) or dist/infrastructure/stacks (compiled)
     const apiLambdaAsset = path.join(__dirname, '../../../dist/api-lambda');
+    const recurringLambdaAsset = path.join(__dirname, '../../../dist/recurring-invoice-lambda');
 
     this.apiLambda = new lambda.Function(this, 'ApiLambda', {
       functionName: `${resourcePrefix}-handler`,
@@ -68,6 +70,7 @@ export class QuickBooksApiStack extends cdk.Stack {
         DYNAMODB_INVENTORY_TABLE: inventoryTable.tableName,
         DYNAMODB_AUDIT_LOGS_TABLE: auditLogsTable.tableName,
         DYNAMODB_USERS_TABLE: usersTable.tableName,
+        DYNAMODB_IDEMPOTENCY_TABLE: idempotencyTable.tableName,
         S3_RECEIPTS_BUCKET: receiptsBucket?.bucketName ?? '',
         SMS_ENABLED: config.sms?.enabled ? 'true' : 'false',
         SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
@@ -89,6 +92,28 @@ export class QuickBooksApiStack extends cdk.Stack {
 
     jwtSecret.grantRead(this.apiLambda);
 
+    // Recurring invoice Lambda: runs daily at 6am UTC to process due schedules
+    const recurringInvoiceLambda = new lambda.Function(this, 'RecurringInvoiceLambda', {
+      functionName: `${resourcePrefix}-recurring-invoice`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(recurringLambdaAsset),
+      timeout: Duration.minutes(5),
+      memorySize: 256,
+      environment: {
+        DYNAMODB_INVOICES_TABLE: invoicesTable.tableName,
+      },
+    });
+    invoicesTable.grantReadWriteData(recurringInvoiceLambda);
+
+    // EventBridge rule: daily at 6am UTC
+    new events.Rule(this, 'RecurringInvoiceScheduleRule', {
+      ruleName: `${resourcePrefix}-recurring-invoice-daily`,
+      description: 'Process due recurring invoice schedules daily at 6am UTC',
+      schedule: events.Schedule.cron({ minute: '0', hour: '6', day: '*', month: '*', year: '*' }),
+      targets: [new targets.LambdaFunction(recurringInvoiceLambda)],
+    });
+
     // OpenRouter API key for AI (when provider=openrouter). Create secret before deploy.
     if (config.ai?.provider === 'openrouter') {
       const openRouterSecretName = `quickbooks/${environment}/openrouter-api-key`;
@@ -104,6 +129,7 @@ export class QuickBooksApiStack extends cdk.Stack {
     inventoryTable.grantReadWriteData(this.apiLambda);
     auditLogsTable.grantReadWriteData(this.apiLambda);
     usersTable.grantReadWriteData(this.apiLambda);
+    idempotencyTable.grantReadWriteData(this.apiLambda);
 
     if (receiptsBucket) {
       receiptsBucket.grantReadWrite(this.apiLambda);
@@ -163,7 +189,7 @@ export class QuickBooksApiStack extends cdk.Stack {
       defaultCorsPreflightOptions: {
         allowOrigins: corsOrigins,
         allowMethods: apigateway.Cors.ALL_METHODS,
-        allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],
         allowCredentials: true,
       },
     });

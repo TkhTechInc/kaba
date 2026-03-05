@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
 import { InvoiceService } from './services/InvoiceService';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
+import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { GetInvoiceQueryDto } from './dto/get-invoice-query.dto';
 import { GeneratePaymentLinkDto } from './dto/payment-link.dto';
+import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
 import { FeatureGuard } from '@/nest/common/guards/feature.guard';
@@ -59,14 +61,14 @@ export class InvoiceController {
       const result = await this.invoiceService.listByStatus(
         query.businessId,
         query.status as import('./models/Invoice').InvoiceStatus,
-        query.limit ?? 20
+        Number(query.limit) || 20
       );
       return { success: true, data: { items: result.items } };
     }
     const result = await this.invoiceService.list(
       query.businessId,
-      query.page ?? 1,
-      query.limit ?? 20
+      Number(query.page) || 1,
+      Number(query.limit) || 20
     );
     return {
       success: true,
@@ -107,6 +109,30 @@ export class InvoiceController {
     return { success: true, data: invoice };
   }
 
+  @Patch(':id')
+  @RequirePermission('invoices:write')
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateInvoiceDto & { businessId?: string },
+    @Query('businessId') businessId: string,
+    @AuditUserId() userId?: string,
+  ) {
+    const bid = dto.businessId ?? businessId;
+    if (!bid) {
+      return { success: false, error: 'businessId is required' };
+    }
+    const invoice = await this.invoiceService.update(bid, id, {
+      customerId: dto.customerId,
+      amount: dto.amount,
+      currency: dto.currency,
+      items: dto.items,
+      dueDate: dto.dueDate,
+      earlyPaymentDiscountPercent: dto.earlyPaymentDiscountPercent,
+      earlyPaymentDiscountDays: dto.earlyPaymentDiscountDays,
+    }, userId);
+    return { success: true, data: invoice };
+  }
+
   @Post(':id/payment-link')
   @Feature('payment_links')
   @RequirePermission('invoices:write')
@@ -116,5 +142,19 @@ export class InvoiceController {
   ) {
     const { paymentUrl } = await this.invoiceService.generatePaymentLink(dto.businessId, id);
     return { success: true, data: { paymentUrl } };
+  }
+
+  @Post(':id/send')
+  @RequirePermission('invoices:write')
+  async send(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
+    const result = await this.invoiceService.sendInvoice(dto.businessId, id);
+    return { success: true, data: { sent: result.sent, channel: result.channel } };
+  }
+
+  @Post(':id/send-whatsapp')
+  @RequirePermission('invoices:write')
+  async sendWhatsApp(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
+    const result = await this.invoiceService.sendInvoiceViaWhatsApp(dto.businessId, id);
+    return { success: result.success, messageId: result.messageId };
   }
 }

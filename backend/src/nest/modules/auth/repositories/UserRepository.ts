@@ -174,7 +174,7 @@ export class UserRepository {
   }
 
   private mapToDynamoDB(user: User): Record<string, unknown> {
-    return {
+    const item: Record<string, unknown> = {
       pk: `${PK_PREFIX}${user.id}`,
       sk: SK_META,
       id: user.id,
@@ -183,15 +183,21 @@ export class UserRepository {
       passwordHash: user.passwordHash,
       provider: user.provider,
       providerId: user.providerId,
+      name: user.name,
       role: user.role,
       emailVerified: user.emailVerified,
       phoneVerified: user.phoneVerified,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
     };
+    if (user.preferences && Object.keys(user.preferences).length > 0) {
+      item.preferences = user.preferences;
+    }
+    return item;
   }
 
   private mapFromDynamoDB(item: Record<string, unknown>): User {
+    const prefs = item.preferences as Record<string, unknown> | undefined;
     return {
       id: item.id as string,
       email: item.email as string | undefined,
@@ -199,9 +205,11 @@ export class UserRepository {
       passwordHash: item.passwordHash as string | undefined,
       provider: (item.provider as User['provider']) || 'local',
       providerId: item.providerId as string | undefined,
+      name: item.name as string | undefined,
       role: item.role as User['role'],
       emailVerified: item.emailVerified === true,
       phoneVerified: item.phoneVerified === true,
+      preferences: prefs ? (prefs as User['preferences']) : undefined,
       createdAt: item.createdAt as string,
       updatedAt: item.updatedAt as string,
     };

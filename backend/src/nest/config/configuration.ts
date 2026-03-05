@@ -32,6 +32,8 @@ export function configuration() {
       process.env['DYNAMODB_AUDIT_LOGS_TABLE'] || 'QuickBooks-AuditLogs-dev-audit',
     usersTable:
       process.env['DYNAMODB_USERS_TABLE'] || 'QuickBooks-UsersService-dev-users',
+    idempotencyTable:
+      process.env['DYNAMODB_IDEMPOTENCY_TABLE'] || 'QuickBooks-Idempotency-dev',
   },
   compliance: {
     /** Retention days for audit logs before TTL deletion. Default 365. */
@@ -86,7 +88,11 @@ export function configuration() {
     },
   },
   whatsapp: {
-    provider: (process.env['WHATSAPP_PROVIDER'] || 'mock') as 'mock' | 'twilio' | 'africastalking',
+    provider: (process.env['WHATSAPP_PROVIDER'] || 'mock') as 'mock' | 'twilio' | 'africastalking' | 'meta' | 'meta_cloud',
+    meta: {
+      accessToken: process.env['WHATSAPP_ACCESS_TOKEN'] || '',
+      phoneNumberId: process.env['WHATSAPP_PHONE_NUMBER_ID'] || '',
+    },
   },
   mobileMoney: {
     parserProvider: (process.env['MOBILE_MONEY_PARSER_PROVIDER'] || 'mock') as 'mock' | 'llm',

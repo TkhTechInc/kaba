@@ -1,17 +1,22 @@
 import { Injectable, Inject, Optional } from '@nestjs/common';
 import { InvoiceRepository, ListByBusinessResult } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
-import { Invoice, CreateInvoiceInput, InvoiceStatus } from '../models/Invoice';
+import { Invoice, CreateInvoiceInput, InvoiceStatus, UpdateInvoiceInput } from '../models/Invoice';
 import { PaymentGatewayManager } from '@/domains/payments/gateways/PaymentGatewayManager';
 import { WebhookService } from '@/domains/webhooks/WebhookService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { AccessService } from '@/domains/access/AccessService';
+import { EmailService } from '@/domains/verification/EmailService';
+import { InvoicePdfService } from './InvoicePdfService';
+import { ReceiptStorageService } from '@/domains/receipts/ReceiptStorageService';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
 import type { IMECeFProvider } from '@/domains/tax/interfaces/IMECeFProvider';
 import type { IFNEProvider } from '@/domains/tax/interfaces/IFNEProvider';
+import type { IWhatsAppProvider } from '@/domains/notifications/IWhatsAppProvider';
 import { MECEF_PROVIDER, FNE_PROVIDER } from '@/nest/modules/tax/tax.tokens';
+import { WHATSAPP_PROVIDER } from '@/domains/notifications/notification.tokens';
 
 @Injectable()
 export class InvoiceService {
@@ -22,12 +27,21 @@ export class InvoiceService {
     private readonly webhookService: WebhookService,
     private readonly businessRepository: BusinessRepository,
     private readonly accessService: AccessService,
+    private readonly emailService: EmailService,
+    private readonly invoicePdfService: InvoicePdfService,
+    private readonly receiptStorageService: ReceiptStorageService,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
     @Optional() @Inject(MECEF_PROVIDER) private readonly mecefProvider?: IMECeFProvider,
     @Optional() @Inject(FNE_PROVIDER) private readonly fneProvider?: IFNEProvider,
+    @Optional() @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider?: IWhatsAppProvider,
   ) {}
 
   async create(input: CreateInvoiceInput, userId?: string): Promise<Invoice> {
+    const totalAmount = input.items.reduce((s, i) => s + i.amount, 0);
+    if (totalAmount <= 0 || input.items.length === 0) {
+      throw new ValidationError('Invoice must have at least one line item with a positive amount');
+    }
+
     const customer = await this.customerRepository.getById(input.businessId, input.customerId);
     if (!customer) {
       throw new NotFoundError('Customer', input.customerId);
@@ -87,6 +101,57 @@ export class InvoiceService {
     }
 
     return invoice;
+  }
+
+  async update(businessId: string, id: string, input: UpdateInvoiceInput, userId?: string): Promise<Invoice> {
+    const existing = await this.invoiceRepository.getById(businessId, id);
+    if (!existing) {
+      throw new NotFoundError('Invoice', id);
+    }
+    if (existing.status !== 'draft' && existing.status !== 'pending_approval') {
+      throw new ValidationError('Only draft or pending-approval invoices can be edited');
+    }
+
+    if (input.items != null) {
+      const totalAmount = input.items.reduce((s, i) => s + i.amount, 0);
+      if (totalAmount <= 0 || input.items.length === 0) {
+        throw new ValidationError('Invoice must have at least one line item with a positive amount');
+      }
+    }
+
+    if (input.customerId != null) {
+      const customer = await this.customerRepository.getById(businessId, input.customerId);
+      if (!customer) {
+        throw new NotFoundError('Customer', input.customerId);
+      }
+    }
+
+    const merged: UpdateInvoiceInput = {
+      customerId: input.customerId ?? existing.customerId,
+      amount: input.amount ?? (input.items ? input.items.reduce((s, i) => s + i.amount, 0) : existing.amount),
+      currency: input.currency ?? existing.currency,
+      items: input.items ?? existing.items,
+      dueDate: input.dueDate ?? existing.dueDate,
+      earlyPaymentDiscountPercent: input.earlyPaymentDiscountPercent ?? existing.earlyPaymentDiscountPercent,
+      earlyPaymentDiscountDays: input.earlyPaymentDiscountDays ?? existing.earlyPaymentDiscountDays,
+    };
+
+    const updated = await this.invoiceRepository.update(businessId, id, merged);
+    if (!updated) {
+      throw new NotFoundError('Invoice', id);
+    }
+
+    if (this.auditLogger && userId) {
+      await this.auditLogger.log({
+        entityType: 'Invoice',
+        entityId: updated.id,
+        businessId: updated.businessId,
+        action: 'update',
+        userId,
+      });
+    }
+
+    return updated;
   }
 
   /** Background MECeF registration and auto-confirm within 120s window. */
@@ -347,5 +412,124 @@ export class InvoiceService {
       });
     }
     return updated;
+  }
+
+  /**
+   * Send invoice by email with PDF attachment.
+   */
+  async sendInvoice(
+    businessId: string,
+    invoiceId: string,
+  ): Promise<{ sent: boolean; channel: 'email' }> {
+    const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
+    if (!invoice) {
+      throw new NotFoundError('Invoice', invoiceId);
+    }
+
+    const customer = await this.customerRepository.getById(businessId, invoice.customerId);
+    if (!customer) {
+      throw new NotFoundError('Customer', invoice.customerId);
+    }
+
+    if (!customer.email?.trim()) {
+      throw new ValidationError('Customer has no email address');
+    }
+
+    const business = await this.businessRepository.getById(businessId);
+    const businessName = business?.name;
+
+    const pdfBuffer = await this.invoicePdfService.generateInvoicePdf(
+      invoice,
+      customer,
+      businessName,
+    );
+
+    const subject = `Invoice from ${businessName ?? 'Your Business'}`;
+    const body = 'Please find your invoice attached.';
+    const result = await this.emailService.sendInvoice(
+      customer.email,
+      subject,
+      body,
+      pdfBuffer,
+      invoiceId,
+    );
+
+    if (result.success) {
+      await this.invoiceRepository.updateStatus(businessId, invoiceId, 'sent');
+    }
+
+    return { sent: result.success, channel: 'email' };
+  }
+
+  /**
+   * Send invoice PDF to customer via WhatsApp.
+   * Requires customer phone (E.164), S3 storage, and WhatsApp provider configured.
+   */
+  async sendInvoiceViaWhatsApp(
+    businessId: string,
+    invoiceId: string,
+  ): Promise<{ success: boolean; messageId?: string }> {
+    if (!this.whatsappProvider) {
+      throw new ValidationError('WhatsApp is not configured. Enable WhatsApp integration to send invoices.');
+    }
+    if (!this.receiptStorageService.isConfigured()) {
+      throw new ValidationError('S3 storage is not configured for invoice PDFs.');
+    }
+
+    const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
+    if (!invoice) {
+      throw new NotFoundError('Invoice', invoiceId);
+    }
+
+    const customer = await this.customerRepository.getById(businessId, invoice.customerId);
+    if (!customer) {
+      throw new NotFoundError('Customer', invoice.customerId);
+    }
+
+    const phone = customer.phone?.trim();
+    if (!phone) {
+      throw new ValidationError('Customer has no phone number. Add a phone number to send invoices via WhatsApp.');
+    }
+
+    const normalizedPhone = this.normalizePhone(phone);
+    if (!normalizedPhone) {
+      throw new ValidationError('Invalid phone number format. Use E.164 format (e.g. +2348012345678).');
+    }
+
+    const business = await this.businessRepository.getById(businessId);
+    const businessName = business?.name;
+
+    const pdfBuffer = await this.invoicePdfService.generateInvoicePdf(
+      invoice,
+      customer,
+      businessName,
+    );
+
+    const { url } = await this.receiptStorageService.uploadInvoicePdf(businessId, pdfBuffer);
+
+    const caption = `Invoice #${invoice.id} - ${invoice.currency} ${invoice.amount.toLocaleString()}`;
+
+    let result: { success: boolean; messageId?: string };
+    if (this.whatsappProvider.sendMedia) {
+      result = await this.whatsappProvider.sendMedia(normalizedPhone, url, caption);
+    } else {
+      result = await this.whatsappProvider.send(normalizedPhone, `${caption}\n${url}`);
+    }
+
+    if (result.success) {
+      await this.invoiceRepository.updateStatus(businessId, invoiceId, 'sent');
+    }
+
+    return { success: result.success, messageId: result.messageId };
+  }
+
+  private normalizePhone(phone: string): string | null {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length < 9) return null;
+    if (digits.startsWith('0') && digits.length >= 11) return `+234${digits.slice(1)}`;
+    if (digits.length === 10 && digits[0] >= '2' && digits[0] <= '9') return `+1${digits}`;
+    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+    if (!phone.startsWith('+')) return `+${digits}`;
+    return phone;
   }
 }

@@ -6,7 +6,7 @@ import {
   UpdateCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { Invoice, CreateInvoiceInput, InvoiceStatus } from '../models/Invoice';
+import { Invoice, CreateInvoiceInput, InvoiceStatus, UpdateInvoiceInput } from '../models/Invoice';
 import { DatabaseError, ValidationError } from '@/shared/errors/DomainError';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -55,7 +55,12 @@ export class InvoiceRepository {
       );
       return invoice;
     } catch (e) {
-      throw new DatabaseError('Create invoice failed', e);
+      const err = e as Error & { name?: string };
+      const detail = err?.name
+        ? { awsError: err.name, message: err.message }
+        : { message: String(e) };
+      console.error('[InvoiceRepository] Create invoice failed:', err?.name ?? e, err?.message ?? e);
+      throw new DatabaseError('Create invoice failed', detail);
     }
   }
 
@@ -75,6 +80,47 @@ export class InvoiceRepository {
       return this.mapFromDynamoDB(result.Item);
     } catch (e) {
       throw new DatabaseError('Get invoice failed', e);
+    }
+  }
+
+  async update(
+    businessId: string,
+    id: string,
+    input: UpdateInvoiceInput
+  ): Promise<Invoice | null> {
+    const existing = await this.getById(businessId, id);
+    if (!existing) return null;
+    if (existing.status !== 'draft' && existing.status !== 'pending_approval') {
+      return null;
+    }
+
+    const updated: Invoice = {
+      ...existing,
+      ...(input.customerId != null && { customerId: input.customerId }),
+      ...(input.amount != null && { amount: input.amount }),
+      ...(input.currency != null && { currency: input.currency }),
+      ...(input.items != null && { items: input.items }),
+      ...(input.dueDate != null && { dueDate: input.dueDate }),
+      ...(input.earlyPaymentDiscountPercent != null && {
+        earlyPaymentDiscountPercent: input.earlyPaymentDiscountPercent,
+      }),
+      ...(input.earlyPaymentDiscountDays != null && {
+        earlyPaymentDiscountDays: input.earlyPaymentDiscountDays,
+      }),
+    };
+
+    try {
+      const item = this.mapToDynamoDB(updated);
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+          ConditionExpression: 'attribute_exists(sk)',
+        })
+      );
+      return updated;
+    } catch (e) {
+      throw new DatabaseError('Update invoice failed', e);
     }
   }
 
@@ -227,6 +273,7 @@ export class InvoiceRepository {
     exclusiveStartKey?: Record<string, unknown>
   ): Promise<{ items: Invoice[]; lastEvaluatedKey?: Record<string, unknown> }> {
     try {
+      const limitNum = Number(limit) || 20;
       const result = await this.docClient.send(
         new QueryCommand({
           TableName: this.tableName,
@@ -238,7 +285,7 @@ export class InvoiceRepository {
             ':status': status,
           },
           ExpressionAttributeNames: { '#status': 'status' },
-          Limit: limit,
+          Limit: limitNum,
           ScanIndexForward: false,
           ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
         })
@@ -259,6 +306,7 @@ export class InvoiceRepository {
     exclusiveStartKey?: Record<string, unknown>
   ): Promise<ListByBusinessResult> {
     try {
+      const limitNum = Number(limit) || 20;
       const params = {
         TableName: this.tableName,
         KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
@@ -266,7 +314,7 @@ export class InvoiceRepository {
           ':pk': businessId,
           ':skPrefix': SK_PREFIX,
         },
-        Limit: limit,
+        Limit: limitNum,
         ScanIndexForward: false,
         ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
       };

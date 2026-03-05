@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { Global, Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ILLMProvider } from '@/domains/ai/ILLMProvider';
 import type { IReceiptExtractor } from '@/domains/ai/IReceiptExtractor';
@@ -74,7 +74,13 @@ function createLLMProvider(config: ConfigService): ILLMProvider {
 @Global()
 @Module({
   controllers: [AIController],
-  imports: [LedgerModule, ReportModule, BusinessModule, UsageModule, AccessModule],
+  imports: [
+    forwardRef(() => LedgerModule),
+    ReportModule,
+    BusinessModule,
+    UsageModule,
+    AccessModule,
+  ],
   providers: [
     AIQueryService,
     VoiceToTransactionService,

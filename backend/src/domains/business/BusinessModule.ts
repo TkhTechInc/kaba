@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
@@ -10,7 +10,7 @@ import { BranchController } from './BranchController';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 
 @Module({
-  imports: [AuditModule, AccessModule],
+  imports: [AuditModule, forwardRef(() => AccessModule)],
   controllers: [BusinessController, BranchController],
   providers: [
     {

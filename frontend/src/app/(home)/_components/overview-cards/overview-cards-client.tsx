@@ -42,7 +42,7 @@ export function OverviewCardsGroupClient() {
     );
   }
 
-  if (loading) {
+  if (loading || features.loading) {
     return (
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
         {[1, 2, 3, 4].map((i) => (

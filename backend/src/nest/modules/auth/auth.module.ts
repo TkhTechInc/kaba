@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '../../modules/dynamodb/dynamodb.module';
 import { AuthController } from './auth.controller';
+import { UserController } from './UserController';
 import { AuthService } from './auth.service';
 import { UserRepository } from './repositories/UserRepository';
 import { JwtStrategy } from '../../common/strategies/jwt.strategy';
@@ -34,7 +35,7 @@ import { VoiceModule } from '@/domains/voice/VoiceModule';
     VerificationModule,
     VoiceModule,
   ],
-  controllers: [AuthController],
+  controllers: [AuthController, UserController],
   providers: [
     AuthService,
     JwtStrategy,

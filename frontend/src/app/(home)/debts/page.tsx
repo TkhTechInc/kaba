@@ -118,7 +118,7 @@ export default function DebtsPage() {
     api
       .sendReminder(businessId, id)
       .then((r) => {
-        if (r.data.sent) {
+        if (r.sent) {
           setError(null);
         } else {
           setError("Failed to send reminder");
@@ -134,6 +134,17 @@ export default function DebtsPage() {
         <Breadcrumb pageName="People who owe me" />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to manage debts.</p>
+        </div>
+      </>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="People who owe me" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </>
     );

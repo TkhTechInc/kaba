@@ -87,6 +87,17 @@ export default function ReportsPage() {
     );
   }
 
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="Reports" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </>
+    );
+  }
+
   if (!features.isEnabled("reports")) {
     return (
       <>

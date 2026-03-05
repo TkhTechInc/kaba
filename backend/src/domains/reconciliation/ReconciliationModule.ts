@@ -5,6 +5,7 @@ import type { ILLMProvider } from '@/domains/ai/ILLMProvider';
 import { MockMobileMoneyParser } from './providers/MockMobileMoneyParser';
 import { LLMMobileMoneyParser } from './providers/LLMMobileMoneyParser';
 import { ReconciliationService } from './services/ReconciliationService';
+import { BankStatementImportService } from './services/BankStatementImportService';
 import { ReconciliationController } from './ReconciliationController';
 import { MOBILE_MONEY_PARSER } from './reconciliation.tokens';
 import type { IMobileMoneyParser } from './interfaces/IMobileMoneyParser';
@@ -34,7 +35,8 @@ import { AIModule } from '@/nest/modules/ai/ai.module';
       inject: [ConfigService, AI_LLM_PROVIDER],
     },
     ReconciliationService,
+    BankStatementImportService,
   ],
-  exports: [MOBILE_MONEY_PARSER, ReconciliationService],
+  exports: [MOBILE_MONEY_PARSER, ReconciliationService, BankStatementImportService],
 })
 export class ReconciliationModule {}

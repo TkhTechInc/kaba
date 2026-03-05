@@ -1,11 +1,13 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, ForbiddenException } from '@nestjs/common';
 import { Response } from 'express';
 import { ReportService } from './ReportService';
+import { ReportCsvService } from './ReportCsvService';
 import { PdfExportService } from './PdfExportService';
 import { ConsolidatedReportService } from './ConsolidatedReportService';
 import { CreditScoreService } from './CreditScoreService';
 import { ReportQueryDto } from './dto/report-query.dto';
 import { AgingDebtQueryDto } from './dto/aging-debt-query.dto';
+import { BalanceSheetQueryDto } from './dto/balance-sheet-query.dto';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
 import { FeatureGuard } from '@/nest/common/guards/feature.guard';
@@ -22,6 +24,7 @@ import { ValidationError } from '@/shared/errors/DomainError';
 export class ReportController {
   constructor(
     private readonly reportService: ReportService,
+    private readonly reportCsvService: ReportCsvService,
     private readonly pdfExport: PdfExportService,
     private readonly consolidatedReportService: ConsolidatedReportService,
     private readonly creditScoreService: CreditScoreService,
@@ -32,13 +35,30 @@ export class ReportController {
   @Get('pl')
   @Feature('reports')
   @RequirePermission('reports:read')
-  async getPL(@Query() query: ReportQueryDto) {
+  async getPL(@Query() query: ReportQueryDto, @AuditUserId() userId?: string) {
+    const role = await this.accessService.getUserRole(query.businessId, userId ?? '');
+    if (!role) throw new ForbiddenException('Access denied to this business');
     const report = await this.reportService.getPL(
       query.businessId,
       query.fromDate,
       query.toDate,
     );
     return { success: true, data: report };
+  }
+
+  @Get('pl.csv')
+  @Feature('reports')
+  @RequirePermission('reports:read')
+  async getPLCsv(@Query() query: ReportQueryDto, @Res() res: Response) {
+    const report = await this.reportService.getPL(
+      query.businessId,
+      query.fromDate,
+      query.toDate,
+    );
+    const csv = this.reportCsvService.generatePLCsv(report);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="pl-${query.fromDate}-${query.toDate}.csv"`);
+    res.send(csv);
   }
 
   @Get('pl/pdf')
@@ -59,7 +79,9 @@ export class ReportController {
   @Get('aging-debt')
   @Feature('reports')
   @RequirePermission('reports:read')
-  async getAgingDebt(@Query() query: AgingDebtQueryDto) {
+  async getAgingDebt(@Query() query: AgingDebtQueryDto, @AuditUserId() userId?: string) {
+    const role = await this.accessService.getUserRole(query.businessId, userId ?? '');
+    if (!role) throw new ForbiddenException('Access denied to this business');
     const report = await this.reportService.getAgingDebt(
       query.businessId,
       query.asOfDate,
@@ -70,13 +92,57 @@ export class ReportController {
   @Get('cash-flow')
   @Feature('reports')
   @RequirePermission('reports:read')
-  async getCashFlow(@Query() query: ReportQueryDto) {
+  async getCashFlow(@Query() query: ReportQueryDto, @AuditUserId() userId?: string) {
+    const role = await this.accessService.getUserRole(query.businessId, userId ?? '');
+    if (!role) throw new ForbiddenException('Access denied to this business');
     const report = await this.reportService.getCashFlow(
       query.businessId,
       query.fromDate,
       query.toDate,
     );
     return { success: true, data: report };
+  }
+
+  @Get('balance-sheet')
+  @Feature('reports')
+  @RequirePermission('reports:read')
+  async getBalanceSheet(@Query() query: BalanceSheetQueryDto, @AuditUserId() userId?: string) {
+    const role = await this.accessService.getUserRole(query.businessId, userId ?? '');
+    if (!role) throw new ForbiddenException('Access denied to this business');
+    const report = await this.reportService.getBalanceSheet(
+      query.businessId,
+      query.asOfDate,
+    );
+    return { success: true, data: report };
+  }
+
+  @Get('balance-sheet.csv')
+  @Feature('reports')
+  @RequirePermission('reports:read')
+  async getBalanceSheetCsv(@Query() query: BalanceSheetQueryDto, @Res() res: Response) {
+    const report = await this.reportService.getBalanceSheet(
+      query.businessId,
+      query.asOfDate,
+    );
+    const csv = this.reportCsvService.generateBalanceSheetCsv(report);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="balance-sheet-${query.asOfDate}.csv"`);
+    res.send(csv);
+  }
+
+  @Get('cash-flow.csv')
+  @Feature('reports')
+  @RequirePermission('reports:read')
+  async getCashFlowCsv(@Query() query: ReportQueryDto, @Res() res: Response) {
+    const report = await this.reportService.getCashFlow(
+      query.businessId,
+      query.fromDate,
+      query.toDate,
+    );
+    const csv = this.reportCsvService.generateCashFlowCsv(report);
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="cash-flow-${query.fromDate}-${query.toDate}.csv"`);
+    res.send(csv);
   }
 
   @Get('cash-flow/pdf')
@@ -120,8 +186,9 @@ export class ReportController {
     const roles = await Promise.all(
       businesses.map((b) => this.accessService.getUserRole(b.id, userId))
     );
-    if (!roles.some((r) => r !== null)) {
-      throw new ValidationError('Access denied to this organization');
+    const authorizedRoles = ['owner', 'accountant'];
+    if (!roles.some((r) => r !== null && authorizedRoles.includes(r))) {
+      throw new ValidationError('Only owners and accountants can access consolidated reports');
     }
 
     const report = await this.consolidatedReportService.getConsolidatedPL(

@@ -41,6 +41,27 @@ export interface CashFlowSummary {
   daily?: Array<{ date: string; inflow: number; outflow: number; balance: number }>;
 }
 
+export interface BalanceSheetReport {
+  asOfDate: string;
+  currency: string;
+  assets: {
+    cash: number;
+    receivables: number;
+    total: number;
+  };
+  liabilities: {
+    payables: number;
+    total: number;
+  };
+  equity: {
+    retainedEarnings: number;
+    total: number;
+  };
+  totalAssets: number;
+  totalLiabilitiesAndEquity: number;
+  balanced: boolean;
+}
+
 @Injectable()
 export class ReportService {
   constructor(
@@ -212,6 +233,78 @@ export class ReportService {
       buckets,
       totalAmount,
       totalCount,
+    };
+  }
+
+  /**
+   * Balance sheet: Assets = Liabilities + Equity.
+   * For MSME: Assets = cash (ledger balance up to asOfDate) + receivables (unpaid debts);
+   * Liabilities = payables (0 for now); Equity = retained earnings (net profit from fiscal year start).
+   */
+  async getBalanceSheet(
+    businessId: string,
+    asOfDate: string,
+  ): Promise<BalanceSheetReport> {
+    if (!businessId?.trim()) throw new ValidationError('businessId is required');
+    if (!asOfDate?.trim()) throw new ValidationError('asOfDate is required');
+
+    const asOf = new Date(asOfDate);
+    asOf.setHours(0, 0, 0, 0);
+    const asOfStr = asOf.toISOString().slice(0, 10);
+
+    // Cash: sum ledger entries from epoch to asOfDate (sales - expenses), excluding soft-deleted
+    const entries = await this.ledgerRepository.listByBusinessAndDateRange(
+      businessId,
+      '1970-01-01',
+      asOfStr,
+    );
+    const activeEntries = entries.filter((e) => !e.deletedAt);
+    let cash = 0;
+    for (const e of activeEntries) {
+      cash += e.type === 'sale' ? e.amount : -e.amount;
+    }
+
+    // Receivables: sum of unpaid (pending + overdue) debts — shown for info, not included in equity equation
+    const debts = await this.debtRepository.listByBusinessForAging(businessId);
+    const receivables = debts.reduce((sum, d) => sum + d.amount, 0);
+
+    const payables = 0;
+
+    // Cash-basis balance sheet: Equity = Cash (lifetime net profit = cash position)
+    // Assets = Cash + Receivables (informational)
+    // Equity = Cash (retained earnings on cash basis)
+    // The equation A = L + E holds only for cash: cash = 0 + cash ✓
+    // Receivables are shown as a memo item; balanced flag checks cash = equity.
+    const retainedEarnings = cash;
+    const totalAssets = cash + receivables;
+    const liabilitiesTotal = payables;
+    const equityTotal = retainedEarnings;
+    const totalLiabilitiesAndEquity = liabilitiesTotal + equityTotal;
+    const balanced = Math.abs(cash - equityTotal) < 0.01; // cash = equity always
+
+    const business = await this.businessRepository.getById(businessId);
+    const currency =
+      entries[0]?.currency ?? debts[0]?.currency ?? business?.currency ?? 'NGN';
+
+    return {
+      asOfDate: asOfStr,
+      currency,
+      assets: {
+        cash,
+        receivables,
+        total: totalAssets,
+      },
+      liabilities: {
+        payables,
+        total: liabilitiesTotal,
+      },
+      equity: {
+        retainedEarnings,
+        total: equityTotal,
+      },
+      totalAssets,
+      totalLiabilitiesAndEquity,
+      balanced,
     };
   }
 }

@@ -137,7 +137,7 @@ export default function ReceiptsPage() {
       }
       try {
         const res = await api.process(businessId, { imageBase64: base64 });
-        setResult(res.data);
+        setResult(res);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Processing failed");
       } finally {
@@ -164,7 +164,7 @@ export default function ReceiptsPage() {
         throw new Error("Upload failed");
       }
       const res = await api.process(businessId, { s3Key: data.key });
-      setResult(res.data);
+      setResult(res);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Processing failed");
     } finally {
@@ -188,6 +188,17 @@ export default function ReceiptsPage() {
         <Breadcrumb pageName="Receipts" />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to process receipts.</p>
+        </div>
+      </>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <>
+        <Breadcrumb pageName="Receipts" />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
       </>
     );

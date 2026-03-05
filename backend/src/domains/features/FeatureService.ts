@@ -29,6 +29,9 @@ const DEFAULT_FEATURES: FeatureConfigMap = {
   tax_ohada: { enabled: true, tiers: ['pro', 'enterprise'] },
   whatsapp_bot: { enabled: true, tiers: ['enterprise'] },
   image_compression: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'] },
+  trust_score: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  trust_share: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
+  trust_lookup: { enabled: true, tiers: ['pro', 'enterprise'] },
 };
 
 @Injectable()

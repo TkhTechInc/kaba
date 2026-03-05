@@ -1,4 +1,5 @@
-import { apiGet, apiPatch, apiPost } from "@/lib/api-client";
+import { apiGet } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export type TeamMemberRole = "owner" | "accountant" | "viewer" | "sales";
 
@@ -61,17 +62,32 @@ export async function createInvitation(
   token: string | null,
   expiresInHours?: number
 ): Promise<Invitation> {
-  const res = await apiPost<CreateInvitationResponse>(
+  const optimistic: CreateInvitationResponse = {
+    success: true,
+    data: {
+      id: "pending-" + Date.now(),
+      businessId,
+      emailOrPhone,
+      role,
+      invitedBy: "",
+      expiresAt: new Date(Date.now() + (expiresInHours ?? 24) * 60 * 60 * 1000).toISOString(),
+      status: "pending",
+    },
+  };
+  const result = await offlineMutation<CreateInvitationResponse>(
     "/api/v1/invitations",
+    "POST",
     {
       emailOrPhone,
       businessId,
       role,
       ...(expiresInHours != null && { expiresInHours }),
     },
-    { token: token ?? undefined }
+    token,
+    optimistic
   );
-  if (!res.success || !res.data) {
+  const res = result.data;
+  if (!res?.success || !res.data) {
     throw new Error("Failed to create invitation");
   }
   return res.data;
@@ -83,12 +99,19 @@ export async function updateMemberRole(
   role: TeamMemberRole,
   token: string | null
 ): Promise<{ businessId: string; role: TeamMemberRole }> {
-  const res = await apiPatch<UpdateMemberRoleResponse>(
+  const optimistic: UpdateMemberRoleResponse = {
+    success: true,
+    data: { businessId, role },
+  };
+  const result = await offlineMutation<UpdateMemberRoleResponse>(
     `/api/v1/access/businesses/${encodeURIComponent(businessId)}/members/${encodeURIComponent(userId)}/role`,
+    "PATCH",
     { role },
-    { token: token ?? undefined }
+    token,
+    optimistic
   );
-  if (!res.success || !res.data) {
+  const res = result.data;
+  if (!res?.success || !res.data) {
     throw new Error("Failed to update member role");
   }
   return res.data;

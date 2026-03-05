@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export interface Product {
   id: string;
@@ -53,16 +54,63 @@ export function createProductsApi(token: string | null) {
         params: { businessId },
       }),
 
-    create: (body: CreateProductInput) =>
-      api.post<Product>("/api/v1/products", body, { token: token ?? undefined }),
+    create: async (body: CreateProductInput) => {
+      const optimistic: Product = {
+        id: "pending-" + Date.now(),
+        businessId: body.businessId,
+        name: body.name,
+        brand: body.brand,
+        unitPrice: body.unitPrice,
+        currency: body.currency,
+        quantityInStock: body.quantityInStock,
+        lowStockThreshold: body.lowStockThreshold,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Product>(
+        "/api/v1/products",
+        "POST",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    update: (id: string, body: UpdateProductInput & { businessId: string }) =>
-      api.patch<Product>(`/api/v1/products/${id}`, body, { token: token ?? undefined }),
+    update: async (id: string, body: UpdateProductInput & { businessId: string }) => {
+      const { businessId, ...updates } = body;
+      const optimistic: Product = {
+        id,
+        businessId,
+        name: updates.name ?? "",
+        unitPrice: updates.unitPrice ?? 0,
+        currency: updates.currency ?? "",
+        quantityInStock: updates.quantityInStock ?? 0,
+        brand: updates.brand,
+        lowStockThreshold: updates.lowStockThreshold,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<Product>(
+        `/api/v1/products/${id}`,
+        "PATCH",
+        body,
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    delete: (businessId: string, id: string) =>
-      api.delete(`/api/v1/products/${id}?businessId=${encodeURIComponent(businessId)}`, {
-        token: token ?? undefined,
-      }),
+    delete: async (businessId: string, id: string) => {
+      const result = await offlineMutation<{ deleted: boolean; id: string }>(
+        `/api/v1/products/${id}?businessId=${encodeURIComponent(businessId)}`,
+        "DELETE",
+        {},
+        token,
+        { deleted: true, id }
+      );
+      return result.data;
+    },
 
     getStockoutForecast: (businessId: string, productId: string) =>
       api.get<{
@@ -78,8 +126,19 @@ export function createProductsApi(token: string | null) {
         params: { businessId },
       }),
 
-    createRestockLoan: (businessId: string, productId: string) =>
-      api.post<{
+    createRestockLoan: async (businessId: string, productId: string) => {
+      const optimistic = {
+        id: "pending-" + Date.now(),
+        productId,
+        productName: "",
+        predictedStockoutDate: new Date().toISOString(),
+        suggestedLoanAmount: 0,
+        suggestedReorderQuantity: 0,
+        currency: "",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      const result = await offlineMutation<{
         id: string;
         productId: string;
         productName: string;
@@ -89,15 +148,25 @@ export function createProductsApi(token: string | null) {
         currency: string;
         status: string;
         createdAt: string;
-      }>(`/api/v1/inventory/${productId}/restock-loan?businessId=${encodeURIComponent(businessId)}`, {}, {
-        token: token ?? undefined,
-      }),
+      }>(
+        `/api/v1/inventory/${productId}/restock-loan?businessId=${encodeURIComponent(businessId)}`,
+        "POST",
+        {},
+        token,
+        optimistic
+      );
+      return result.data;
+    },
 
-    respondToRestockLoan: (businessId: string, offerId: string, decision: 'accepted' | 'rejected') =>
-      api.patch<{ id: string; status: string }>(
+    respondToRestockLoan: async (businessId: string, offerId: string, decision: 'accepted' | 'rejected') => {
+      const result = await offlineMutation<{ id: string; status: string }>(
         `/api/v1/inventory/loans/${offerId}`,
+        "PATCH",
         { businessId, decision },
-        { token: token ?? undefined }
-      ),
+        token,
+        { id: offerId, status: decision }
+      );
+      return result.data;
+    },
   };
 }

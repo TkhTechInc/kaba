@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
@@ -15,7 +15,7 @@ import { InvitationController } from './InvitationController';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 
 @Module({
-  imports: [BusinessModule, VerificationModule, NotificationsModule],
+  imports: [forwardRef(() => BusinessModule), VerificationModule, NotificationsModule],
   controllers: [AccessController, InvitationController],
   providers: [
     {
@@ -46,6 +46,6 @@ import { PermissionGuard } from '@/nest/common/guards/permission.guard';
     InvitationService,
     PermissionGuard,
   ],
-  exports: [AccessService, PermissionGuard, TeamMemberRepository],
+  exports: [AccessService, InvitationService, PermissionGuard, TeamMemberRepository],
 })
 export class AccessModule {}

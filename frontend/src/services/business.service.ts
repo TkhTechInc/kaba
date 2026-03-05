@@ -1,4 +1,4 @@
-import { apiPatch } from "@/lib/api-client";
+import { offlineMutation } from "@/lib/offline-api";
 
 export type Tier = "free" | "starter" | "pro" | "enterprise";
 
@@ -12,12 +12,19 @@ export async function updateBusinessTier(
   tier: Tier,
   token: string | null
 ): Promise<UpdateTierResponse> {
-  const res = await apiPatch<UpdateTierResponse>(
+  const optimistic: UpdateTierResponse = {
+    success: true,
+    data: { id: businessId, tier, updatedAt: new Date().toISOString() },
+  };
+  const result = await offlineMutation<UpdateTierResponse>(
     "/api/v1/businesses/tier",
+    "PATCH",
     { businessId, tier },
-    { token: token ?? undefined }
+    token,
+    optimistic
   );
-  if (!res.success || !res.data) {
+  const res = result.data;
+  if (!res?.success || !res.data) {
     throw new Error("Failed to update tier");
   }
   return res;

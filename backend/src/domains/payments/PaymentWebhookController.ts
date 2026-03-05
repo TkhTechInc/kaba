@@ -7,7 +7,7 @@ import { InvoiceService } from '@/domains/invoicing/services/InvoiceService';
 
 /**
  * Payment webhook controller.
- * Receives callbacks from Stripe, KkiaPay, MoMo.
+ * Receives callbacks from Stripe, KkiaPay, MoMo, Paystack.
  * Raw body is captured by the middleware in main.ts for HMAC signature verification.
  */
 @Controller('api/v1/payments/webhook')
@@ -64,6 +64,7 @@ export class PaymentWebhookController {
     if (g === 'stripe') return 'stripe';
     if (g === 'kkiapay') return 'kkiapay';
     if (g === 'momo' || g === 'mtmmomo' || g === 'mtn') return 'momo';
+    if (g === 'paystack') return 'paystack';
     return null;
   }
 
@@ -75,6 +76,8 @@ export class PaymentWebhookController {
         return req.headers['x-kkiapay-signature'] as string | undefined;
       case 'momo':
         return req.headers['x-momo-signature'] as string | undefined;
+      case 'paystack':
+        return req.headers['x-paystack-signature'] as string | undefined;
       default:
         return undefined;
     }
