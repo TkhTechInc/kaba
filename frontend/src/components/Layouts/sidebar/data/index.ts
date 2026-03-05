@@ -63,6 +63,14 @@ export const NAV_DATA: NavSection[] = [
     label: "MONEY OUT",
     items: [
       {
+        title: "Products",
+        icon: Icons.Table,
+        url: "/products",
+        items: [],
+        featureKey: "inventory_lite",
+        permission: "inventory:read",
+      },
+      {
         title: "Ledger Entries",
         icon: Icons.Table,
         url: "/ledger",
@@ -102,6 +110,19 @@ export const NAV_DATA: NavSection[] = [
     ],
   },
   {
+    label: "APPROVAL",
+    items: [
+      {
+        title: "Pending Approvals",
+        icon: Icons.DocumentIcon,
+        url: "/invoices/pending-approval",
+        items: [],
+        featureKey: "invoicing",
+        permission: "invoices:write",
+      },
+    ],
+  },
+  {
     label: "INSIGHTS",
     items: [
       {
@@ -110,7 +131,8 @@ export const NAV_DATA: NavSection[] = [
         url: "/reports",
         items: [
           { title: "P&L", url: "/reports" },
-          { title: "Cash Flow", url: "/reports" },
+          { title: "Cash Flow", url: "/reports/cash-flow" },
+          { title: "Consolidated", url: "/reports/consolidated" },
         ],
         featureKey: "reports",
         permission: "reports:read",
@@ -124,7 +146,10 @@ export const NAV_DATA: NavSection[] = [
         title: "Settings",
         icon: Icons.SettingsIcon,
         url: "/settings",
-        items: [],
+        items: [
+          { title: "Plans", url: "/settings" },
+          { title: "Team", url: "/settings/team" },
+        ],
       },
     ],
   },

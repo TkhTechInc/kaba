@@ -16,6 +16,8 @@ export interface OnboardingAnswers {
   country?: string;
   currency?: string;
   taxRegime?: string;
+  /** IFU (Benin) or NCC (Côte d'Ivoire) — required for fiscal certification */
+  taxId?: string;
   businessAddress?: string;
   businessPhone?: string;
   fiscalYearStart?: number;

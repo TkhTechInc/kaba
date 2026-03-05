@@ -25,6 +25,7 @@ export interface QuickBooksApiStackProps extends cdk.StackProps {
   config: EnvironmentConfig;
   ledgerTable: dynamodb.ITable;
   invoicesTable: dynamodb.ITable;
+  inventoryTable: dynamodb.ITable;
   auditLogsTable: dynamodb.ITable;
   usersTable: dynamodb.ITable;
   region: string;
@@ -37,7 +38,7 @@ export class QuickBooksApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: QuickBooksApiStackProps) {
     super(scope, id, props);
 
-    const { environment, config, ledgerTable, invoicesTable, auditLogsTable, usersTable, region, receiptsBucket } = props;
+    const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, region, receiptsBucket } = props;
     const resourcePrefix = `QuickBooks-Api-${environment}`;
 
     // SECURITY: JWT secret from Secrets Manager. Lambda resolves at runtime via JWT_SECRET_SECRET_NAME.
@@ -64,18 +65,43 @@ export class QuickBooksApiStack extends cdk.Stack {
         CORS_ORIGINS: config.frontendUrl ?? '',
         DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
         DYNAMODB_INVOICES_TABLE: invoicesTable.tableName,
+        DYNAMODB_INVENTORY_TABLE: inventoryTable.tableName,
         DYNAMODB_AUDIT_LOGS_TABLE: auditLogsTable.tableName,
         DYNAMODB_USERS_TABLE: usersTable.tableName,
         S3_RECEIPTS_BUCKET: receiptsBucket?.bucketName ?? '',
         SMS_ENABLED: config.sms?.enabled ? 'true' : 'false',
         SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
         SMS_SENDER_ID: config.sms?.senderId ?? 'QuickBooks',
+        ...(config.googleClientId && { GOOGLE_CLIENT_ID: config.googleClientId }),
+        ...(config.googleClientSecret && { GOOGLE_CLIENT_SECRET: config.googleClientSecret }),
+        FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
+        // AI: mobile money parsing, receipts. OPENROUTER_API_KEY loaded from secret at runtime.
+        ...(config.ai?.provider && { AI_PROVIDER: config.ai.provider }),
+        ...(config.ai?.model && { AI_MODEL: config.ai.model }),
+        ...(config.ai?.mobileMoneyParserProvider && {
+          MOBILE_MONEY_PARSER_PROVIDER: config.ai.mobileMoneyParserProvider,
+        }),
+        ...(config.ai?.provider === 'openrouter' && {
+          OPENROUTER_API_KEY_SECRET_NAME: `quickbooks/${environment}/openrouter-api-key`,
+        }),
       },
     });
 
     jwtSecret.grantRead(this.apiLambda);
+
+    // OpenRouter API key for AI (when provider=openrouter). Create secret before deploy.
+    if (config.ai?.provider === 'openrouter') {
+      const openRouterSecretName = `quickbooks/${environment}/openrouter-api-key`;
+      const openRouterSecret = secretsmanager.Secret.fromSecretNameV2(
+        this,
+        'OpenRouterSecret',
+        openRouterSecretName
+      );
+      openRouterSecret.grantRead(this.apiLambda);
+    }
     ledgerTable.grantReadWriteData(this.apiLambda);
     invoicesTable.grantReadWriteData(this.apiLambda);
+    inventoryTable.grantReadWriteData(this.apiLambda);
     auditLogsTable.grantReadWriteData(this.apiLambda);
     usersTable.grantReadWriteData(this.apiLambda);
 
@@ -157,6 +183,10 @@ export class QuickBooksApiStack extends cdk.Stack {
         'method.request.path.proxy': true,
       },
     });
+
+    // OAuth callback URL for Lambda (must match Google Console authorized redirect URIs)
+    const callbackUrl = `https://${restApi.restApiId}.execute-api.${this.region}.amazonaws.com/${environment}/api/v1/auth/google/callback`;
+    this.apiLambda.addEnvironment('GOOGLE_CALLBACK_URL', callbackUrl);
 
     // AWS WAF v2 - only in prod (REGIONAL scope for API Gateway)
     if (environment === 'prod') {

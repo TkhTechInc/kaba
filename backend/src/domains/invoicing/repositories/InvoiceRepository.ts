@@ -4,9 +4,10 @@ import {
   GetCommand,
   QueryCommand,
   UpdateCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Invoice, CreateInvoiceInput, InvoiceStatus } from '../models/Invoice';
-import { DatabaseError } from '@/shared/errors/DomainError';
+import { DatabaseError, ValidationError } from '@/shared/errors/DomainError';
 import { v4 as uuidv4 } from 'uuid';
 
 const SK_PREFIX = 'INVOICE#';
@@ -38,6 +39,8 @@ export class InvoiceRepository {
       items: input.items,
       dueDate: input.dueDate,
       createdAt: now,
+      earlyPaymentDiscountPercent: input.earlyPaymentDiscountPercent,
+      earlyPaymentDiscountDays: input.earlyPaymentDiscountDays,
     };
 
     const item = this.mapToDynamoDB(invoice);
@@ -147,6 +150,108 @@ export class InvoiceRepository {
     }
   }
 
+  /**
+   * Approve a pending_approval invoice — transitions to 'draft'.
+   * Conditional on current status to prevent double-approvals.
+   */
+  async approve(businessId: string, id: string): Promise<Invoice | null> {
+    const existing = await this.getById(businessId, id);
+    if (!existing) return null;
+
+    if (existing.status !== 'pending_approval') {
+      throw new ValidationError(
+        `Invoice ${id} cannot be approved: current status is '${existing.status}'`
+      );
+    }
+
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
+          UpdateExpression: 'SET #status = :draft',
+          ConditionExpression: '#status = :pending',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':draft': 'draft',
+            ':pending': 'pending_approval',
+          },
+        })
+      );
+      return { ...existing, status: 'draft' };
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        throw new ValidationError('Invoice was already approved or status changed concurrently');
+      }
+      throw new DatabaseError('Approve invoice failed', e);
+    }
+  }
+
+  /**
+   * Update MECeF fields after DGI confirmation.
+   */
+  async updateMECeF(
+    businessId: string,
+    id: string,
+    mecefStatus: 'pending' | 'confirmed' | 'rejected',
+    fields?: { mecefQrCode?: string; mecefSerialNumber?: string; mecefToken?: string }
+  ): Promise<void> {
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
+          UpdateExpression:
+            'SET mecefStatus = :ms' +
+            (fields?.mecefToken !== undefined ? ', mecefToken = :mt' : '') +
+            (fields?.mecefQrCode !== undefined ? ', mecefQrCode = :qr' : '') +
+            (fields?.mecefSerialNumber !== undefined ? ', mecefSerialNumber = :sn' : ''),
+          ExpressionAttributeValues: {
+            ':ms': mecefStatus,
+            ...(fields?.mecefToken !== undefined && { ':mt': fields.mecefToken }),
+            ...(fields?.mecefQrCode !== undefined && { ':qr': fields.mecefQrCode }),
+            ...(fields?.mecefSerialNumber !== undefined && { ':sn': fields.mecefSerialNumber }),
+          },
+        })
+      );
+    } catch (e) {
+      throw new DatabaseError('Update MECeF fields failed', e);
+    }
+  }
+
+  /** List invoices filtered by status. */
+  async listByBusinessAndStatus(
+    businessId: string,
+    status: InvoiceStatus,
+    limit = 20,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: Invoice[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    try {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: '#status = :status',
+          ExpressionAttributeValues: {
+            ':pk': businessId,
+            ':skPrefix': SK_PREFIX,
+            ':status': status,
+          },
+          ExpressionAttributeNames: { '#status': 'status' },
+          Limit: limit,
+          ScanIndexForward: false,
+          ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+        })
+      );
+      return {
+        items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+        lastEvaluatedKey: result.LastEvaluatedKey,
+      };
+    } catch (e) {
+      throw new DatabaseError('List invoices by status failed', e);
+    }
+  }
+
   async listByBusiness(
     businessId: string,
     page: number = 1,
@@ -196,6 +301,16 @@ export class InvoiceRepository {
       items: invoice.items,
       dueDate: invoice.dueDate,
       createdAt: invoice.createdAt,
+      ...(invoice.earlyPaymentDiscountPercent != null && {
+        earlyPaymentDiscountPercent: invoice.earlyPaymentDiscountPercent,
+      }),
+      ...(invoice.earlyPaymentDiscountDays != null && {
+        earlyPaymentDiscountDays: invoice.earlyPaymentDiscountDays,
+      }),
+      ...(invoice.mecefToken != null && { mecefToken: invoice.mecefToken }),
+      ...(invoice.mecefStatus != null && { mecefStatus: invoice.mecefStatus }),
+      ...(invoice.mecefQrCode != null && { mecefQrCode: invoice.mecefQrCode }),
+      ...(invoice.mecefSerialNumber != null && { mecefSerialNumber: invoice.mecefSerialNumber }),
     };
   }
 
@@ -212,6 +327,20 @@ export class InvoiceRepository {
       dueDate: String(item.dueDate ?? ''),
       createdAt: String(item.createdAt ?? ''),
       deletedAt: item.deletedAt != null ? String(item.deletedAt) : undefined,
+      earlyPaymentDiscountPercent:
+        item.earlyPaymentDiscountPercent != null
+          ? Number(item.earlyPaymentDiscountPercent)
+          : undefined,
+      earlyPaymentDiscountDays:
+        item.earlyPaymentDiscountDays != null
+          ? Number(item.earlyPaymentDiscountDays)
+          : undefined,
+      mecefToken: item.mecefToken != null ? String(item.mecefToken) : undefined,
+      mecefStatus: item.mecefStatus != null
+        ? (item.mecefStatus as 'pending' | 'confirmed' | 'rejected')
+        : undefined,
+      mecefQrCode: item.mecefQrCode != null ? String(item.mecefQrCode) : undefined,
+      mecefSerialNumber: item.mecefSerialNumber != null ? String(item.mecefSerialNumber) : undefined,
     };
   }
 }

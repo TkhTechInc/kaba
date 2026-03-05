@@ -6,9 +6,12 @@ import { AccessModule } from '@/domains/access/AccessModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { DebtModule } from '@/domains/debts/DebtModule';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
+import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 import { ReportService } from './ReportService';
 import { PdfExportService } from './PdfExportService';
 import { ReportController } from './ReportController';
+import { ConsolidatedReportService } from './ConsolidatedReportService';
+import { CreditScoreService } from './CreditScoreService';
 
 @Module({
   imports: [AccessModule, BusinessModule, DebtModule],
@@ -23,8 +26,18 @@ import { ReportController } from './ReportController';
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
     },
+    {
+      provide: DebtRepository,
+      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+        return new DebtRepository(docClient, tableName);
+      },
+      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
+    },
     ReportService,
+    ConsolidatedReportService,
+    CreditScoreService,
   ],
-  exports: [ReportService, LedgerRepository],
+  exports: [ReportService, LedgerRepository, ConsolidatedReportService, CreditScoreService],
 })
 export class ReportModule {}

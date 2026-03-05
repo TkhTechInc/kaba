@@ -1,9 +1,22 @@
+import * as path from 'path';
+import * as fs from 'fs';
+import { config } from 'dotenv';
+// Load .env from backend/ - try __dirname first, then cwd (for different run contexts)
+const envPaths = [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(process.cwd(), '.env'),
+];
+for (const p of envPaths) {
+  if (fs.existsSync(p)) {
+    config({ path: p });
+    break;
+  }
+}
 import 'reflect-metadata';
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 async function bootstrap() {
@@ -23,10 +36,18 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   });
 
+  // Capture raw body bytes before JSON parsing — required for webhook HMAC signature verification.
+  app.use(
+    '/api/v1/payments/webhook',
+    (req: import('express').Request, _res: import('express').Response, next: import('express').NextFunction) => {
+      let data = '';
+      req.setEncoding('utf8');
+      req.on('data', (chunk: string) => { data += chunk; });
+      req.on('end', () => { (req as any).rawBody = data; next(); });
+    },
+  );
   app.useBodyParser('json', { limit: '1mb' });
   app.useBodyParser('urlencoded', { limit: '1mb', extended: true });
-
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   const port = process.env['PORT'] || 3001;
   await app.listen(port);

@@ -5,6 +5,7 @@ import * as cdk from 'aws-cdk-lib';
 import { LedgerServiceStack } from './stacks/LedgerServiceStack';
 import { ReceiptsStorageStack } from './stacks/ReceiptsStorageStack';
 import { InvoicesServiceStack } from './stacks/InvoicesServiceStack';
+import { InventoryServiceStack } from './stacks/InventoryServiceStack';
 import { AuditLogsStack } from './stacks/AuditLogsStack';
 import { UsersServiceStack } from './stacks/UsersServiceStack';
 import { QuickBooksApiStack } from './stacks/QuickBooksApiStack';
@@ -15,10 +16,25 @@ const app = new cdk.App();
 const environment = app.node.tryGetContext('environment') || 'dev';
 const account = app.node.tryGetContext('account') || process.env['CDK_DEFAULT_ACCOUNT'];
 const frontendUrlFromContext = app.node.tryGetContext('frontendUrl') as string | undefined;
+const googleClientId = app.node.tryGetContext('googleClientId') as string | undefined;
+const googleClientSecret = app.node.tryGetContext('googleClientSecret') as string | undefined;
+const aiProvider = app.node.tryGetContext('aiProvider') as string | undefined;
+const aiModel = app.node.tryGetContext('aiModel') as string | undefined;
+const mobileMoneyParserProvider = app.node.tryGetContext('mobileMoneyParserProvider') as 'mock' | 'llm' | undefined;
 
 const envConfig = getEnvironmentConfig(environment);
 if (frontendUrlFromContext) {
   envConfig.frontendUrl = frontendUrlFromContext;
+}
+if (googleClientId) (envConfig as any).googleClientId = googleClientId;
+if (googleClientSecret) (envConfig as any).googleClientSecret = googleClientSecret;
+if (aiProvider || aiModel || mobileMoneyParserProvider) {
+  (envConfig as any).ai = {
+    ...(envConfig as any).ai,
+    ...(aiProvider && { provider: aiProvider }),
+    ...(aiModel && { model: aiModel }),
+    ...(mobileMoneyParserProvider && { mobileMoneyParserProvider }),
+  };
 }
 validateEnvironmentConfig(envConfig);
 
@@ -53,6 +69,13 @@ const invoicesStack = new InvoicesServiceStack(app, `QuickBooks-InvoicesService-
   config: envConfig,
 });
 
+const inventoryStack = new InventoryServiceStack(app, `QuickBooks-InventoryService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'QuickBooks West Africa - Inventory DynamoDB table',
+  config: envConfig,
+});
+
 const auditLogsStack = new AuditLogsStack(app, `QuickBooks-AuditLogs-${environment}`, {
   ...commonProps,
   environment,
@@ -74,6 +97,7 @@ const apiStack = new QuickBooksApiStack(app, `QuickBooks-Api-${environment}`, {
   config: envConfig,
   ledgerTable: ledgerStack.ledgerTable,
   invoicesTable: invoicesStack.invoicesTable,
+  inventoryTable: inventoryStack.inventoryTable,
   auditLogsTable: auditLogsStack.auditLogsTable,
   usersTable: usersStack.usersTable,
   receiptsBucket: receiptsStack.receiptsBucket,
@@ -83,6 +107,7 @@ const apiStack = new QuickBooksApiStack(app, `QuickBooks-Api-${environment}`, {
 apiStack.addDependency(ledgerStack);
 apiStack.addDependency(receiptsStack);
 apiStack.addDependency(invoicesStack);
+apiStack.addDependency(inventoryStack);
 apiStack.addDependency(auditLogsStack);
 apiStack.addDependency(usersStack);
 

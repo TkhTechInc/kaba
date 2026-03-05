@@ -27,6 +27,7 @@ export function configuration() {
   dynamodb: {
     ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-Ledger-dev',
     invoicesTable: process.env['DYNAMODB_INVOICES_TABLE'] || 'QuickBooks-Invoices-dev',
+    inventoryTable: process.env['DYNAMODB_INVENTORY_TABLE'] || 'QuickBooks-Inventory-dev',
     auditLogsTable:
       process.env['DYNAMODB_AUDIT_LOGS_TABLE'] || 'QuickBooks-AuditLogs-dev-audit',
     usersTable:
@@ -40,18 +41,24 @@ export function configuration() {
   },
   ai: {
     provider: process.env['AI_PROVIDER'] || '',
-    apiKey:
-      process.env['ANTHROPIC_API_KEY'] ||
-      process.env['OPENAI_API_KEY'] ||
-      process.env['GEMINI_API_KEY'] ||
-      process.env['OPENROUTER_API_KEY'] ||
-      process.env['AI_API_KEY'] ||
-      '',
     model: process.env['AI_MODEL'] || '',
     bedrockRegion: process.env['AI_BEDROCK_REGION'] || 'us-east-1',
+    // Provider-specific API keys are read directly from env vars in ai.module.ts (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)
   },
   tax: {
     provider: process.env['TAX_PROVIDER'] || '',
+  },
+  fiscal: {
+    /** Benin e-MECeF: JWT token from developper.impots.bj (test) or sygmef.impots.bj (prod) */
+    mecefBeninJwt: process.env['MECEF_BENIN_JWT'] || '',
+    /** Benin e-MECeF base URL. Default: test env. Use https://sygmef.impots.bj for prod */
+    mecefBeninBaseUrl:
+      process.env['MECEF_BENIN_BASE_URL'] || 'https://developper.impots.bj',
+    /** Côte d'Ivoire FNE: API key from services.fne.dgi.gouv.ci */
+    fneCiApiKey: process.env['FNE_CI_API_KEY'] || '',
+    /** Côte d'Ivoire FNE base URL */
+    fneCiBaseUrl:
+      process.env['FNE_CI_BASE_URL'] || 'https://services.fne.dgi.gouv.ci',
   },
   s3: {
     receiptsBucket: process.env['S3_RECEIPTS_BUCKET'] || '',

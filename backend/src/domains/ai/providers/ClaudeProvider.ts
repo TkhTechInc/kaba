@@ -15,7 +15,7 @@ export class ClaudeProvider extends BaseLLMProvider {
   private readonly apiKey: string;
   private readonly model: string;
 
-  constructor(apiKey: string, model = 'claude-sonnet-4-6') {
+  constructor(apiKey: string, model = 'claude-3-5-sonnet-20241022') {
     super();
     this.apiKey = apiKey;
     this.model = model;

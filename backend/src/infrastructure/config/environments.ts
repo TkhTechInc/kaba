@@ -30,6 +30,15 @@ export interface EnvironmentConfig {
   };
   /** Frontend URL for CORS (e.g. https://dev.quickbooks.example.com). Localhost is always allowed. */
   frontendUrl?: string;
+  /** Google OAuth — pass via cdk deploy -c googleClientId=... -c googleClientSecret=... */
+  googleClientId?: string;
+  googleClientSecret?: string;
+  /** AI: receipts, mobile money parsing. Pass via -c aiProvider=openrouter -c aiModel=openrouter/free -c mobileMoneyParserProvider=llm */
+  ai?: {
+    provider?: string;
+    model?: string;
+    mobileMoneyParserProvider?: 'mock' | 'llm';
+  };
   database?: {
     useOnDemand: boolean;
     enablePITR: boolean;

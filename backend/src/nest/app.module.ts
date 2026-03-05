@@ -29,6 +29,7 @@ import { HealthController } from './modules/health/health.controller';
 import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { NotificationsModule } from '@/domains/notifications/NotificationsModule';
 import { InvoiceModule } from '@/domains/invoicing/InvoiceModule';
+import { InventoryModule } from '@/domains/inventory/InventoryModule';
 import { PaymentModule } from '@/domains/payments/PaymentModule';
 import { ReceiptModule } from '@/domains/receipts/ReceiptModule';
 import { ReconciliationModule } from '@/domains/reconciliation/ReconciliationModule';
@@ -58,6 +59,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     LedgerModule,
     NotificationsModule,
     InvoiceModule,
+    InventoryModule,
     ReceiptModule,
     ReconciliationModule,
     ReportModule,

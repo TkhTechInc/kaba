@@ -1,7 +1,9 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { ITaxEngine } from './ITaxEngine';
-import { TAX_ENGINE } from '@/nest/modules/tax/tax.tokens';
+import type { IFNEProvider } from './interfaces/IFNEProvider';
+import type { IMECeFProvider } from './interfaces/IMECeFProvider';
+import { TAX_ENGINE, FNE_PROVIDER, MECEF_PROVIDER } from '@/nest/modules/tax/tax.tokens';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import type { TaxableTransaction } from './ITaxEngine';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
@@ -16,6 +18,8 @@ import { RequirePermission } from '@/nest/common/decorators/require-permission.d
 export class TaxController {
   constructor(
     @Inject(TAX_ENGINE) private readonly taxEngine: ITaxEngine,
+    @Inject(FNE_PROVIDER) private readonly fneProvider: IFNEProvider,
+    @Inject(MECEF_PROVIDER) private readonly mecefProvider: IMECeFProvider,
     private readonly ledgerRepo: LedgerRepository,
   ) {}
 
@@ -56,5 +60,92 @@ export class TaxController {
       success: true,
       data: { countries: this.taxEngine.getSupportedCountries() },
     };
+  }
+
+  @Get('fne/countries')
+  @Feature('tax')
+  @RequirePermission('tax:read')
+  async getFNESupportedCountries() {
+    return {
+      success: true,
+      data: { countries: this.fneProvider.getSupportedCountries() },
+    };
+  }
+
+  @Post('fne/register')
+  @Feature('tax')
+  @RequirePermission('tax:read')
+  async registerFNEInvoice(
+    @Body() body: {
+      countryCode: string;
+      businessId: string;
+      invoiceId: string;
+      amount: number;
+      currency: string;
+      customerId?: string;
+    },
+  ) {
+    const result = await this.fneProvider.registerInvoice(body.countryCode, {
+      businessId: body.businessId,
+      invoiceId: body.invoiceId,
+      amount: body.amount,
+      currency: body.currency,
+      customerId: body.customerId,
+    });
+    return { success: true, data: result };
+  }
+
+  @Get('mecef/countries')
+  @Feature('tax')
+  @RequirePermission('tax:read')
+  async getMECeFSupportedCountries() {
+    return {
+      success: true,
+      data: { countries: this.mecefProvider.getSupportedCountries() },
+    };
+  }
+
+  @Post('mecef/register')
+  @Feature('tax')
+  @RequirePermission('tax:read')
+  async registerMECeFInvoice(
+    @Body() body: {
+      nim: string;
+      ifu: string;
+      client_ifu?: string;
+      reference?: string;
+      montant_ht: number;
+      montant_tva: number;
+      montant_ttc: number;
+      type_facture: 'FV' | 'FA';
+      date: string;
+      items: Array<{
+        nom: string;
+        quantite: number;
+        prix_unitaire_ht: number;
+        montant_ht: number;
+        montant_tva: number;
+        montant_ttc: number;
+      }>;
+    },
+  ) {
+    const result = await this.mecefProvider.registerInvoice(body);
+    return { success: true, data: result };
+  }
+
+  @Post('mecef/confirm')
+  @Feature('tax')
+  @RequirePermission('tax:read')
+  async confirmMECeFInvoice(
+    @Body() body: { token: string; decision: 'confirm' | 'reject' },
+  ) {
+    const result = await this.mecefProvider.confirmInvoice(body.token, body.decision);
+    if (!result) {
+      return {
+        success: false,
+        error: 'Token expired, already used, or decision was reject',
+      };
+    }
+    return { success: true, data: result };
   }
 }

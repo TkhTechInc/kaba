@@ -50,7 +50,13 @@ export default function InvoicesPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
 
   const [form, setForm] = useState<
-    CreateInvoiceInput & { itemDesc: string; itemQty: string; itemPrice: string }
+    Omit<CreateInvoiceInput, 'earlyPaymentDiscountPercent' | 'earlyPaymentDiscountDays'> & {
+      itemDesc: string;
+      itemQty: string;
+      itemPrice: string;
+      earlyPaymentDiscountPercent: string;
+      earlyPaymentDiscountDays: string;
+    }
   >({
     businessId: "",
     customerId: "",
@@ -62,6 +68,8 @@ export default function InvoicesPage() {
     itemDesc: "",
     itemQty: "1",
     itemPrice: "0",
+    earlyPaymentDiscountPercent: "",
+    earlyPaymentDiscountDays: "",
   });
 
   const api = createInvoicesApi(token);
@@ -126,6 +134,12 @@ export default function InvoicesPage() {
       items: form.items,
       dueDate: form.dueDate,
       status: "draft",
+      earlyPaymentDiscountPercent: form.earlyPaymentDiscountPercent
+        ? Number(form.earlyPaymentDiscountPercent)
+        : undefined,
+      earlyPaymentDiscountDays: form.earlyPaymentDiscountDays
+        ? Number(form.earlyPaymentDiscountDays)
+        : undefined,
     };
     api
       .create(payload)
@@ -238,19 +252,40 @@ export default function InvoicesPage() {
                             {customers.find((c) => c.id === inv.customerId)?.name ?? inv.customerId}
                           </TableCell>
                           <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
-                                inv.status === "paid"
-                                  ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                                  : inv.status === "overdue"
-                                  ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                                  : inv.status === "sent"
-                                  ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                                  : "bg-gray-100 text-gray-700 dark:bg-dark-2 dark:text-dark-6"
-                              }`}
-                            >
-                              {inv.status}
-                            </span>
+                            <div className="flex flex-col gap-1">
+                              <span
+                                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
+                                  inv.status === "paid"
+                                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                                    : inv.status === "overdue"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : inv.status === "sent"
+                                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                    : inv.status === "pending_approval"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                    : "bg-gray-100 text-gray-700 dark:bg-dark-2 dark:text-dark-6"
+                                }`}
+                              >
+                                {inv.status === "pending_approval" ? "Pending Approval" : inv.status}
+                              </span>
+                              {/* MECeF DGI badge for Benin invoices */}
+                              {inv.mecefStatus === "confirmed" && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800"
+                                  title={`MECeF Serial: ${inv.mecefSerialNumber ?? ""}`}>
+                                  ✓ DGI {inv.mecefSerialNumber ? `#${inv.mecefSerialNumber.slice(-8)}` : "Certified"}
+                                </span>
+                              )}
+                              {inv.mecefStatus === "pending" && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                                  ⏳ DGI Pending
+                                </span>
+                              )}
+                              {inv.mecefStatus === "rejected" && (
+                                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                                  ✗ DGI Rejected
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             {inv.currency} {standardFormat(inv.amount)}
@@ -363,6 +398,43 @@ export default function InvoicesPage() {
                 value={form.dueDate}
                 handleChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
               />
+              <div className="rounded-lg border border-dashed border-stroke p-3 dark:border-dark-3">
+                <p className="mb-2 text-body-sm font-medium text-dark dark:text-white">
+                  Early payment discount (optional)
+                </p>
+                <p className="mb-2 text-xs text-dark-6">
+                  Offer a discount if customer pays within N days of invoice.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="% off"
+                    min={0}
+                    max={100}
+                    value={form.earlyPaymentDiscountPercent}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        earlyPaymentDiscountPercent: e.target.value,
+                      }))
+                    }
+                    className="w-20 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Days"
+                    min={1}
+                    value={form.earlyPaymentDiscountDays}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        earlyPaymentDiscountDays: e.target.value,
+                      }))
+                    }
+                    className="w-20 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
+                  />
+                </div>
+              </div>
               <div className="border-t border-stroke pt-4 dark:border-dark-3">
                 <p className="mb-2 text-body-sm font-medium text-dark dark:text-white">
                   Line items

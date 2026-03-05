@@ -6,6 +6,7 @@ import {
   Min,
   MaxLength,
   Matches,
+  ValidateIf,
 } from 'class-validator';
 
 const CURRENCIES = ['NGN', 'GHS', 'XOF', 'XAF', 'USD', 'EUR'] as const;
@@ -18,14 +19,17 @@ export class CreateLedgerEntryDto {
   @IsIn(['sale', 'expense'])
   type!: 'sale' | 'expense';
 
+  /** Required when productId not provided. When productId provided, computed from product. */
+  @ValidateIf((o) => !o.productId)
   @IsNumber()
   @Min(0)
-  amount!: number;
+  amount?: number;
 
   @IsString()
   @IsIn(CURRENCIES)
   currency!: string;
 
+  /** Optional when productId provided (computed as "{productName} x {quantitySold}"). */
   @IsString()
   @IsOptional()
   @MaxLength(500)
@@ -43,4 +47,30 @@ export class CreateLedgerEntryDto {
   @IsOptional()
   @IsString()
   smsPhone?: string;
+
+  /** Product ID for inventory-based sale. When set, quantitySold required, amount/description computed. */
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  /** Quantity sold when productId provided. */
+  @ValidateIf((o) => !!o.productId)
+  @IsNumber()
+  @Min(1)
+  quantitySold?: number;
+
+  /** Original currency for multi-currency entries. */
+  @IsOptional()
+  @IsString()
+  originalCurrency?: string;
+
+  /** Exchange rate (1 originalCurrency = X ledger currency). */
+  @IsOptional()
+  @IsNumber()
+  exchangeRate?: number;
+
+  /** Forex gain/loss in ledger currency. */
+  @IsOptional()
+  @IsNumber()
+  forexGainLoss?: number;
 }

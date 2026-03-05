@@ -8,6 +8,7 @@ import {
   HomeIcon,
   ShieldIcon,
   PieChart,
+  ChartBarIcon,
   Table,
   ReceiptIcon,
   DocumentIcon,
@@ -20,11 +21,15 @@ type IconProps = SVGProps<SVGSVGElement>;
 const ADMIN_NAV = [
   { title: "Dashboard", url: "/admin/dashboard", icon: HomeIcon },
   { title: "Health", url: "/admin/health", icon: ShieldIcon },
+  { title: "Receipts", url: "/admin/receipts", icon: ReceiptIcon },
   { title: "Metrics", url: "/admin/metrics", icon: PieChart },
+  { title: "Usage", url: "/admin/usage", icon: ChartBarIcon },
   { title: "Activity", url: "/admin/activity", icon: Table },
   { title: "Audit Logs", url: "/admin/audit-logs", icon: ReceiptIcon },
+  { title: "Leakage Report", url: "/admin/leakage", icon: ShieldIcon },
   { title: "AI Query", url: "/admin/ai", icon: DocumentIcon },
   { title: "Businesses", url: "/admin/businesses", icon: Table },
+  { title: "Debts", url: "/admin/debts", icon: ReceiptIcon },
   { title: "Users", url: "/admin/users", icon: DocumentIcon },
   { title: "Features", url: "/admin/features", icon: SettingsIcon },
 ];

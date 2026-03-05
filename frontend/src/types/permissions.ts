@@ -6,6 +6,8 @@ export type Role = "owner" | "accountant" | "viewer";
 export type Permission =
   | "ledger:read"
   | "ledger:write"
+  | "inventory:read"
+  | "inventory:write"
   | "invoices:read"
   | "invoices:write"
   | "reports:read"
@@ -30,6 +32,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [
     "ledger:read",
     "ledger:write",
+    "inventory:read",
+    "inventory:write",
     "invoices:read",
     "invoices:write",
     "reports:read",
@@ -53,6 +57,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   accountant: [
     "ledger:read",
     "ledger:write",
+    "inventory:read",
+    "inventory:write",
     "invoices:read",
     "invoices:write",
     "reports:read",
@@ -70,6 +76,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   viewer: [
     "ledger:read",
+    "inventory:read",
     "invoices:read",
     "reports:read",
     "receipts:read",
@@ -93,6 +100,7 @@ export function roleHasPermission(role: Role, permission: Permission): boolean {
 /** Feature key to permission mapping for read/write */
 export const FEATURE_PERMISSIONS = {
   ledger: { read: "ledger:read" as Permission, write: "ledger:write" as Permission },
+  inventory: { read: "inventory:read" as Permission, write: "inventory:write" as Permission },
   invoices: { read: "invoices:read" as Permission, write: "invoices:write" as Permission },
   reports: { read: "reports:read" as Permission, write: "reports:write" as Permission },
   receipts: { read: "receipts:read" as Permission, write: "receipts:write" as Permission },

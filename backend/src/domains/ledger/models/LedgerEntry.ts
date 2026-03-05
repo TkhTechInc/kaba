@@ -12,6 +12,16 @@ export interface LedgerEntry {
   createdAt: string;
   /** Set when soft-deleted (compliance erasure). */
   deletedAt?: string;
+  /** Product ID when sale is from inventory (type=sale). */
+  productId?: string;
+  /** Quantity sold when sale is from inventory (type=sale). */
+  quantitySold?: number;
+  /** Original currency when different from ledger currency (multi-currency). */
+  originalCurrency?: string;
+  /** Exchange rate used (e.g. 1 originalCurrency = X ledger currency). */
+  exchangeRate?: number;
+  /** Forex gain/loss amount in ledger currency. */
+  forexGainLoss?: number;
 }
 
 export interface CreateLedgerEntryInput {
@@ -23,4 +33,9 @@ export interface CreateLedgerEntryInput {
   category: string;
   date: string;
   smsPhone?: string;
+  productId?: string;
+  quantitySold?: number;
+  originalCurrency?: string;
+  exchangeRate?: number;
+  forexGainLoss?: number;
 }

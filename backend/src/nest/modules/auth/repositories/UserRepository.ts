@@ -3,6 +3,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { DatabaseError } from '@/shared/errors/DomainError';
 import type { User } from '../entities/User.entity';
@@ -31,6 +32,34 @@ export class UserRepository {
     private readonly docClient: DynamoDBDocumentClient,
     private readonly tableName: string,
   ) {}
+
+  async scanUsers(
+    limit = 50,
+    lastEvaluatedKey?: Record<string, unknown>,
+  ): Promise<{ items: User[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    try {
+      const result = await this.docClient.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'begins_with(pk, :pkPrefix)',
+          ExpressionAttributeValues: { ':pkPrefix': PK_PREFIX },
+          Limit: limit,
+          ...(lastEvaluatedKey && { ExclusiveStartKey: lastEvaluatedKey }),
+        }),
+      );
+      const items = (result.Items ?? []).map((item) =>
+        this.mapFromDynamoDB(item as Record<string, unknown>),
+      );
+      return {
+        items,
+        ...(result.LastEvaluatedKey && {
+          lastEvaluatedKey: result.LastEvaluatedKey as Record<string, unknown>,
+        }),
+      };
+    } catch (e) {
+      throw new DatabaseError('Scan users failed', e);
+    }
+  }
 
   async getById(userId: string): Promise<User | null> {
     try {

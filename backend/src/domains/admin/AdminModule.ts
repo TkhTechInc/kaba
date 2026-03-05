@@ -9,18 +9,23 @@ import { ReceiptModule } from '@/domains/receipts/ReceiptModule';
 import { AuditModule } from '@/domains/audit/AuditModule';
 import { AIModule } from '@/nest/modules/ai/ai.module';
 import { BusinessModule } from '@/domains/business/BusinessModule';
+import { ReportModule } from '@/domains/reports/ReportModule';
+import { DebtModule } from '@/domains/debts/DebtModule';
+import { UsageModule } from '@/domains/usage/UsageModule';
 import { AdminController } from './AdminController';
 import { AdminMetricsService } from './AdminMetricsService';
 import { AdminAIQueryService } from './AdminAIQueryService';
+import { LeakageDetectionService } from './LeakageDetectionService';
 import { AdminGuard } from './AdminGuard';
 
 @Module({
-  imports: [LedgerModule, ReceiptModule, AuditModule, AIModule, BusinessModule],
+  imports: [LedgerModule, ReceiptModule, AuditModule, AIModule, BusinessModule, ReportModule, DebtModule, UsageModule],
   controllers: [AdminController],
   providers: [
     AdminGuard,
     AdminMetricsService,
     AdminAIQueryService,
+    LeakageDetectionService,
     {
       provide: LedgerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {

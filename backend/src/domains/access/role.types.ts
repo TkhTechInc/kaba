@@ -8,6 +8,8 @@ export type Permission =
   | 'ledger:read'
   | 'ledger:write'
   | 'ledger:delete'
+  | 'inventory:read'
+  | 'inventory:write'
   | 'invoices:read'
   | 'invoices:write'
   | 'reports:read'
@@ -15,6 +17,7 @@ export type Permission =
   | 'receipts:read'
   | 'receipts:write'
   | 'ai:read'
+  | 'lending:read'
   | 'tax:read'
   | 'features:read'
   | 'api_keys:read'
@@ -33,6 +36,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'ledger:read',
     'ledger:write',
     'ledger:delete',
+    'inventory:read',
+    'inventory:write',
     'invoices:read',
     'invoices:write',
     'reports:read',
@@ -40,6 +45,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'receipts:read',
     'receipts:write',
     'ai:read',
+    'lending:read',
     'tax:read',
     'features:read',
     'api_keys:read',
@@ -56,6 +62,8 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   accountant: [
     'ledger:read',
     'ledger:write',
+    'inventory:read',
+    'inventory:write',
     'invoices:read',
     'invoices:write',
     'reports:read',
@@ -63,6 +71,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'receipts:read',
     'receipts:write',
     'ai:read',
+    'lending:read',
     'tax:read',
     'features:read',
     'api_keys:read',
@@ -72,16 +81,20 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ],
   viewer: [
     'ledger:read',
+    'inventory:read',
     'invoices:read',
     'reports:read',
     'receipts:read',
     'ai:read',
+    'lending:read',
     'tax:read',
     'features:read',
   ],
   sales: [
     'ledger:read',
     'ledger:write',
+    'inventory:read',
+    'inventory:write',
     'invoices:read',
     'invoices:write',
     'receipts:read',

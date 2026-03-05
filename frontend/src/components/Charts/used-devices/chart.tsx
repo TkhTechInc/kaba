@@ -6,13 +6,15 @@ import dynamic from "next/dynamic";
 
 type PropsType = {
   data: { name: string; amount: number }[];
+  /** Center label (e.g. "Visitors", "Total"). Default: "Visitors" */
+  centerLabel?: string;
 };
 
 const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function DonutChart({ data }: PropsType) {
+export function DonutChart({ data, centerLabel = "Visitors" }: PropsType) {
   const chartOptions: ApexOptions = {
     chart: {
       type: "donut",
@@ -42,7 +44,7 @@ export function DonutChart({ data }: PropsType) {
             total: {
               show: true,
               showAlways: true,
-              label: "Visitors",
+              label: centerLabel,
               fontSize: "16px",
               fontWeight: "400",
             },

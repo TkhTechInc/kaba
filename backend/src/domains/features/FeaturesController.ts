@@ -41,6 +41,7 @@ export class FeaturesController {
         tier: business.tier,
         onboardingComplete: business.onboardingComplete ?? false,
         currency: business.currency ?? 'NGN',
+        countryCode: business.countryCode ?? undefined,
         enabled,
         limits,
       },

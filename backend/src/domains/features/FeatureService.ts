@@ -1,6 +1,8 @@
-import { Injectable, Optional, Inject } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Tier, FeatureKey, FeatureConfigMap } from './feature.types';
+import type { Tier, FeatureKey, FeatureConfigMap, FeatureConfig } from './feature.types';
+
+const VALID_TIERS: Tier[] = ['free', 'starter', 'pro', 'enterprise'];
 
 const DEFAULT_FEATURES: FeatureConfigMap = {
   ledger: { enabled: true, tiers: ['free', 'starter', 'pro', 'enterprise'], limits: { free: 50, starter: 500, pro: 5000, enterprise: 100000 } },
@@ -66,5 +68,37 @@ export class FeatureService {
   /** Get all features (for admin/config display). */
   getAllFeatures(): FeatureConfigMap {
     return { ...this.features };
+  }
+
+  /**
+   * Update a feature config at runtime (session-only, no persistence).
+   * Merges partial config into existing feature. Validates key exists and tiers are valid.
+   */
+  updateFeature(key: FeatureKey, config: Partial<FeatureConfig>): FeatureConfig {
+    const existing = this.features[key];
+    if (!existing) {
+      throw new BadRequestException(`Unknown feature key: ${key}`);
+    }
+    if (config.tiers !== undefined) {
+      if (!Array.isArray(config.tiers) || config.tiers.length === 0) {
+        throw new BadRequestException('tiers must be a non-empty array');
+      }
+      const invalid = config.tiers.filter((t: string) => !VALID_TIERS.includes(t as Tier));
+      if (invalid.length > 0) {
+        throw new BadRequestException(
+          `Invalid tier(s): ${invalid.join(', ')}. Valid: ${VALID_TIERS.join(', ')}`,
+        );
+      }
+    }
+    const merged: FeatureConfig = {
+      enabled: config.enabled ?? existing.enabled,
+      tiers: config.tiers ?? existing.tiers,
+      limits:
+        config.limits !== undefined
+          ? { ...existing.limits, ...config.limits }
+          : existing.limits,
+    };
+    this.features[key] = merged;
+    return { ...merged };
   }
 }

@@ -11,10 +11,11 @@ import type { IMobileMoneyParser } from './interfaces/IMobileMoneyParser';
 import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { UsageModule } from '@/domains/usage/UsageModule';
+import { AuditModule } from '@/domains/audit/AuditModule';
 import { AIModule } from '@/nest/modules/ai/ai.module';
 
 @Module({
-  imports: [AIModule, LedgerModule, BusinessModule, UsageModule],
+  imports: [AIModule, LedgerModule, BusinessModule, UsageModule, AuditModule],
   controllers: [ReconciliationController],
   providers: [
     {
@@ -24,10 +25,11 @@ import { AIModule } from '@/nest/modules/ai/ai.module';
           config?.get<string>('mobileMoney.parserProvider') ||
           process.env['MOBILE_MONEY_PARSER_PROVIDER'] ||
           'mock';
-        if (provider === 'llm') {
-          return new LLMMobileMoneyParser(llm);
+        const parser = provider === 'llm' ? new LLMMobileMoneyParser(llm) : new MockMobileMoneyParser();
+        if (process.env['NODE_ENV'] !== 'production') {
+          console.log(`[Reconciliation] Mobile money parser: ${provider}`);
         }
-        return new MockMobileMoneyParser();
+        return parser;
       },
       inject: [ConfigService, AI_LLM_PROVIDER],
     },

@@ -23,6 +23,8 @@ export interface CreateLedgerEntryInput {
   description?: string;
   category?: string;
   smsPhone?: string;
+  productId?: string;
+  quantitySold?: number;
 }
 
 export interface ListEntriesResult {

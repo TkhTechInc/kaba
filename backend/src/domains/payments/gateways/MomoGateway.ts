@@ -34,7 +34,12 @@ export class MomoGateway implements IPaymentGateway {
 
   private async getToken(): Promise<string | null> {
     const apiUser = process.env['MOMO_API_USER'];
-    if (!apiUser || !this.apiKey) return this.apiKey || null;
+    if (!apiUser) {
+      // Without MOMO_API_USER we cannot exchange credentials for a Bearer token.
+      // Return null to signal misconfiguration rather than silently using apiKey.
+      return null;
+    }
+    if (!this.apiKey) return null;
     const url = `${this.baseUrl}/collection/token/`;
     try {
       const res = await fetch(url, {
@@ -59,7 +64,9 @@ export class MomoGateway implements IPaymentGateway {
         return { success: false, gatewayTransactionId: '', gatewayResponse: null, error: 'phoneNumber is required in metadata for MoMo' };
       }
 
-      const paymentId = request.metadata?.['paymentIntentId'] || `qb-${request.invoiceId}-${Date.now()}`;
+      // Encode businessId + invoiceId into externalId so webhook can recover both.
+      // Format: qb-<businessId>-<invoiceId>-<timestamp>
+      const paymentId = request.metadata?.['paymentIntentId'] || `qb-${request.businessId}-${request.invoiceId}-${Date.now()}`;
       const referenceId = crypto.randomUUID();
       const token = await this.getToken();
       if (!token) {
@@ -110,7 +117,8 @@ export class MomoGateway implements IPaymentGateway {
   }
 
   async handleWebhook(payload: string, signature?: string): Promise<{ success: boolean; invoiceId?: string; businessId?: string }> {
-    if (this.webhookSecret && signature) {
+    if (this.webhookSecret) {
+      if (!signature) return { success: false };
       const expected = crypto.createHmac('sha256', this.webhookSecret).update(payload).digest('hex');
       try {
         if (!crypto.timingSafeEqual(Buffer.from(signature, 'hex'), Buffer.from(expected, 'hex'))) {
@@ -120,10 +128,31 @@ export class MomoGateway implements IPaymentGateway {
         return { success: false };
       }
     }
-    const body = JSON.parse(payload) as { status?: string; externalId?: string };
-    const status = (body.status ?? '').toUpperCase();
-    const success = status === 'SUCCESSFUL';
-    return { success, invoiceId: body.externalId };
+    try {
+      const body = JSON.parse(payload) as { status?: string; externalId?: string };
+      const status = (body.status ?? '').toUpperCase();
+      const success = status === 'SUCCESSFUL';
+      // Parse businessId + invoiceId from externalId format: qb-<businessId>-<invoiceId>-<timestamp>
+      const externalId = body.externalId ?? '';
+      let invoiceId: string | undefined;
+      let businessId: string | undefined;
+      if (externalId.startsWith('qb-')) {
+        const withoutPrefix = externalId.slice(3);            // "<businessId>-<invoiceId>-<timestamp>"
+        const withoutTimestamp = withoutPrefix.replace(/-\d+$/, ''); // "<businessId>-<invoiceId>"
+        const dashIdx = withoutTimestamp.indexOf('-');
+        if (dashIdx !== -1) {
+          businessId = withoutTimestamp.slice(0, dashIdx) || undefined;
+          invoiceId = withoutTimestamp.slice(dashIdx + 1) || undefined;
+        } else {
+          invoiceId = withoutTimestamp || undefined;
+        }
+      } else {
+        invoiceId = externalId || undefined;
+      }
+      return { success, invoiceId, businessId };
+    } catch {
+      return { success: false };
+    }
   }
 
   private formatAmount(amount: number, currency: string): number {

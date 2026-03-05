@@ -1,7 +1,5 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
 import type { ILLMProvider } from '@/domains/ai/ILLMProvider';
 import type { IReceiptExtractor } from '@/domains/ai/IReceiptExtractor';
 import type { ISpeechToText } from '@/domains/ai/ISpeechToText';
@@ -18,7 +16,6 @@ import { AIQueryService } from '@/domains/ai/AIQueryService';
 import { VoiceToTransactionService } from '@/domains/ai/VoiceToTransactionService';
 import { LoanReadinessService } from '@/domains/ai/LoanReadinessService';
 import { AIController } from '@/domains/ai/AIController';
-import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { ReportModule } from '@/domains/reports/ReportModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
@@ -40,25 +37,17 @@ export {
 
 function createLLMProvider(config: ConfigService): ILLMProvider {
   const provider = config.get<string>('ai.provider') || process.env['AI_PROVIDER'] || '';
-  const apiKey =
-    process.env['ANTHROPIC_API_KEY'] ||
-    process.env['OPENAI_API_KEY'] ||
-    process.env['GEMINI_API_KEY'] ||
-    process.env['OPENROUTER_API_KEY'] ||
-    process.env['AI_API_KEY'] ||
-    config.get<string>('ai.apiKey') ||
-    '';
   const model = process.env['AI_MODEL'] || config.get<string>('ai.model') || '';
   const region = process.env['AI_BEDROCK_REGION'] || config.get<string>('ai.bedrockRegion') || 'us-east-1';
 
   switch (provider.toLowerCase().trim()) {
     case 'claude': {
-      const key = process.env['ANTHROPIC_API_KEY'] || apiKey;
+      const key = process.env['ANTHROPIC_API_KEY'] || '';
       if (!key) throw new Error('ANTHROPIC_API_KEY is required for Claude provider');
-      return new ClaudeProvider(key, model || 'claude-sonnet-4-6');
+      return new ClaudeProvider(key, model || 'claude-3-5-sonnet-20241022');
     }
     case 'openai': {
-      const key = process.env['OPENAI_API_KEY'] || apiKey;
+      const key = process.env['OPENAI_API_KEY'] || '';
       if (!key) throw new Error('OPENAI_API_KEY is required for OpenAI provider');
       return new OpenAIProvider(key, model || 'gpt-4o-mini');
     }
@@ -67,14 +56,14 @@ function createLLMProvider(config: ConfigService): ILLMProvider {
       return new BedrockProvider({ region, modelId });
     }
     case 'gemini': {
-      const key = process.env['GEMINI_API_KEY'] || apiKey;
+      const key = process.env['GEMINI_API_KEY'] || '';
       if (!key) throw new Error('GEMINI_API_KEY is required for Gemini provider');
-      return new GeminiProvider(key, model || 'gemini-2.5-flash');
+      return new GeminiProvider(key, model || 'gemini-1.5-flash');
     }
     case 'openrouter': {
-      const key = process.env['OPENROUTER_API_KEY'] || apiKey;
+      const key = process.env['OPENROUTER_API_KEY'] || '';
       if (!key) throw new Error('OPENROUTER_API_KEY is required for OpenRouter provider');
-      const openRouterModel = model?.includes('/') ? model : 'openai/gpt-4o-mini';
+      const openRouterModel = (model?.includes('/') ? model : null) ?? 'openai/gpt-4o-mini';
       return new OpenRouterProvider(key, openRouterModel);
     }
     default:
@@ -90,14 +79,6 @@ function createLLMProvider(config: ConfigService): ILLMProvider {
     AIQueryService,
     VoiceToTransactionService,
     LoanReadinessService,
-    {
-      provide: LedgerRepository,
-      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
-        return new LedgerRepository(docClient, tableName);
-      },
-      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
-    },
     {
       provide: AI_LLM_PROVIDER,
       useFactory: (config: ConfigService): ILLMProvider => createLLMProvider(config),

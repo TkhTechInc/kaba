@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Optional, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Optional, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { UserRepository, getUserIdFromPhone } from './repositories/UserRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { TeamMemberRepository } from '@/domains/access/repositories/TeamMemberRepository';
+import { InvitationService } from '@/domains/access/InvitationService';
 import { OtpService } from '@/domains/otp/OtpService';
 import { SmsService } from '@/domains/notifications/SmsService';
 import { EmailVerificationRepository } from '@/domains/verification/EmailVerificationRepository';
@@ -14,9 +15,13 @@ import type { User } from './entities/User.entity';
 
 const SALT_ROUNDS = 10;
 
+function isEmail(s: string): boolean {
+  return s.includes('@');
+}
+
 export interface AuthResult {
   accessToken: string;
-  user: { id: string; phone?: string; email?: string; role?: string; emailVerified?: boolean; phoneVerified?: boolean };
+  user: { id: string; phone?: string; email?: string; name?: string; picture?: string; role?: string; emailVerified?: boolean; phoneVerified?: boolean };
 }
 
 @Injectable()
@@ -27,6 +32,7 @@ export class AuthService {
     private readonly userRepo: UserRepository,
     private readonly businessRepo: BusinessRepository,
     private readonly teamMemberRepo: TeamMemberRepository,
+    private readonly invitationService: InvitationService,
     private readonly otpService: OtpService,
     private readonly smsService: SmsService,
     private readonly emailVerificationRepo: EmailVerificationRepository,
@@ -55,19 +61,28 @@ export class AuthService {
     };
   }
 
-  async loginWithPhone(phone: string, otp?: string): Promise<AuthResult> {
+  async loginWithPhone(phone: string, otp?: string, password?: string): Promise<AuthResult> {
     if (!phone?.trim()) {
       throw new UnauthorizedException('Phone is required');
     }
-    const valid = await this.otpService.verify(phone, otp ?? '');
-    if (!valid) {
-      throw new UnauthorizedException('Invalid or expired OTP');
+    let user = await this.userRepo.getByPhone(phone);
+    if (user?.passwordHash && password) {
+      const valid = await bcrypt.compare(password, user.passwordHash);
+      if (!valid) {
+        throw new UnauthorizedException('Invalid phone or password');
+      }
+    } else {
+      const valid = await this.otpService.verify(phone, otp ?? '');
+      if (!valid) {
+        throw new UnauthorizedException('Invalid or expired OTP');
+      }
+      const userId = getUserIdFromPhone(phone);
+      user = await this.userRepo.getById(userId);
+      if (!user) {
+        user = await this.createPhoneUser(phone);
+      }
     }
-    const userId = getUserIdFromPhone(phone);
-    let user = await this.userRepo.getById(userId);
-    if (!user) {
-      user = await this.createPhoneUser(phone);
-    }
+    if (!user) throw new UnauthorizedException('Invalid credentials');
     await this.ensureDefaultBusiness(user.id);
     const role = user.role ?? this.resolveRole(undefined, phone);
     const payload = { sub: user.id, phone, role, phoneVerified: true };
@@ -189,6 +204,139 @@ export class AuthService {
     };
   }
 
+  /**
+   * Invite activation: request OTP for email or phone. Validates token first.
+   */
+  async inviteRequestOtp(token: string): Promise<{ success: boolean; message: string }> {
+    const data = await this.invitationService.getByToken(token);
+    if (!data) {
+      throw new BadRequestException('Invalid or expired invitation');
+    }
+    const { emailOrPhone } = data;
+
+    if (isEmail(emailOrPhone)) {
+      const normalizedEmail = emailOrPhone.toLowerCase().trim();
+      const existing = await this.userRepo.getByEmail(normalizedEmail);
+      if (existing) {
+        throw new ConflictException('An account with this email already exists. Please sign in and accept the invitation.');
+      }
+      const code = this.otpService.generateCode();
+      const ttlMinutes = this.config?.get<number>('otp.ttlMinutes') ?? parseInt(process.env['OTP_TTL_MINUTES'] || '10', 10);
+      await this.emailVerificationRepo.save(normalizedEmail, code, ttlMinutes);
+      await this.emailService.sendVerificationCode(normalizedEmail, code);
+      return { success: true, message: `Verification code sent to ${normalizedEmail}` };
+    } else {
+      const phone = emailOrPhone.trim();
+      const existing = await this.userRepo.getByPhone(phone);
+      if (existing) {
+        throw new ConflictException('An account with this phone already exists. Please sign in and accept the invitation.');
+      }
+      return this.sendOtp(phone);
+    }
+  }
+
+  /**
+   * Invite activation: verify OTP, create user with password, accept invitation, return JWT.
+   */
+  async inviteVerify(input: { token: string; emailOrPhone: string; code: string; password: string }): Promise<AuthResult> {
+    const { token, emailOrPhone, code, password } = input;
+    if (!token?.trim() || !emailOrPhone?.trim() || !code?.trim() || !password?.trim()) {
+      throw new BadRequestException('token, emailOrPhone, code, and password are required');
+    }
+    if (password.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+
+    const inviteData = await this.invitationService.getByToken(token);
+    if (!inviteData) {
+      throw new BadRequestException('Invalid or expired invitation');
+    }
+    if (inviteData.emailOrPhone.toLowerCase().trim() !== emailOrPhone.toLowerCase().trim()) {
+      throw new BadRequestException('Email or phone does not match invitation');
+    }
+
+    let userId: string;
+    const normalized = emailOrPhone.trim().toLowerCase();
+
+    if (isEmail(emailOrPhone)) {
+      const record = await this.emailVerificationRepo.getLatest(normalized);
+      if (!record || record.code !== code) {
+        throw new UnauthorizedException('Invalid or expired verification code');
+      }
+      if (new Date(record.expiresAt) < new Date()) {
+        throw new UnauthorizedException('Verification code has expired');
+      }
+      await this.emailVerificationRepo.delete(normalized);
+
+      const existing = await this.userRepo.getByEmail(normalized);
+      if (existing) {
+        throw new ConflictException('An account with this email already exists');
+      }
+
+      userId = `user_${uuidv4().slice(0, 8)}`;
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      const now = new Date().toISOString();
+      const user: User = {
+        id: userId,
+        email: normalized,
+        provider: 'local',
+        passwordHash,
+        role: this.resolveRole(normalized) ? 'admin' : 'user',
+        emailVerified: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.userRepo.create(user);
+    } else {
+      const valid = await this.otpService.verify(emailOrPhone.trim(), code);
+      if (!valid) {
+        throw new UnauthorizedException('Invalid or expired verification code');
+      }
+
+      const existing = await this.userRepo.getByPhone(emailOrPhone.trim());
+      if (existing) {
+        throw new ConflictException('An account with this phone already exists');
+      }
+
+      userId = getUserIdFromPhone(emailOrPhone.trim());
+      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      const now = new Date().toISOString();
+      const user: User = {
+        id: userId,
+        phone: emailOrPhone.trim(),
+        provider: 'phone',
+        passwordHash,
+        role: this.resolveRole(undefined, emailOrPhone) ? 'admin' : 'user',
+        phoneVerified: true,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await this.userRepo.create(user);
+    }
+
+    await this.invitationService.accept({ token, userId });
+
+    const user = await this.userRepo.getById(userId);
+    if (!user) throw new UnauthorizedException('User creation failed');
+
+    const payload = user.email
+      ? { sub: user.id, email: user.email, role: user.role, emailVerified: true }
+      : { sub: user.id, phone: user.phone, role: user.role, phoneVerified: true };
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+        ...(user.role && { role: user.role }),
+      },
+    };
+  }
+
   async loginWithEmail(email: string, password: string): Promise<AuthResult> {
     const normalizedEmail = email.toLowerCase().trim();
     const user = await this.userRepo.getByEmail(normalizedEmail);
@@ -218,6 +366,7 @@ export class AuthService {
     providerId: string,
     email?: string,
     name?: string,
+    picture?: string,
   ): Promise<AuthResult> {
     const userId = `${provider}_${providerId}`;
     let user = await this.userRepo.getByProviderId(provider, providerId);
@@ -241,11 +390,11 @@ export class AuthService {
 
     const role = user.role ?? (this.resolveRole(user.email) ? 'admin' : 'user');
     const emailVerified = user.emailVerified ?? true;
-    const payload = { sub: user.id, email: user.email, role, emailVerified };
+    const payload = { sub: user.id, email: user.email, role, emailVerified, name: name ?? undefined, picture: picture ?? undefined };
     const accessToken = this.jwtService.sign(payload);
     return {
       accessToken,
-      user: { id: user.id, email: user.email, emailVerified, ...(role && { role }) },
+      user: { id: user.id, email: user.email, name: name ?? undefined, picture: picture ?? undefined, emailVerified, ...(role && { role }) },
     };
   }
 

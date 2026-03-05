@@ -2,6 +2,8 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { DatabaseError } from '@/shared/errors/DomainError';
 import type { Business, BusinessType, TaxRegime } from '@/domains/ledger/models/Business';
@@ -13,6 +15,7 @@ export interface UpdateOnboardingInput {
   countryCode?: string;
   currency?: string;
   taxRegime?: TaxRegime;
+  taxId?: string;
   address?: string;
   phone?: string;
   fiscalYearStart?: number;
@@ -90,6 +93,67 @@ export class BusinessRepository {
     }
   }
 
+  /**
+   * Lock a fiscal period (OHADA-compliant month-end close).
+   * Period format: "YYYY-MM" (e.g. "2026-01").
+   * Idempotent — locking an already-locked period is a no-op.
+   */
+  async lockPeriod(businessId: string, period: string): Promise<void> {
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: SK_META },
+          UpdateExpression: 'ADD lockedPeriods :period',
+          ExpressionAttributeValues: {
+            ':period': new Set([period]),
+          },
+          ConditionExpression: 'attribute_exists(pk)',
+        })
+      );
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        throw new Error(`Business ${businessId} not found`);
+      }
+      throw new DatabaseError('Lock period failed', e);
+    }
+  }
+
+  /** Returns sorted list of locked periods ("YYYY-MM") for a business. */
+  async getLockedPeriods(businessId: string): Promise<string[]> {
+    const business = await this.getById(businessId);
+    return business?.lockedPeriods?.sort() ?? [];
+  }
+
+  /**
+   * List all businesses belonging to an organization.
+   * Uses a Scan with filter on organizationId (no GSI required).
+   * For large platforms, add an organizationId-index GSI for O(1) lookups.
+   */
+  async listByOrganization(organizationId: string): Promise<import('@/domains/ledger/models/Business').Business[]> {
+    const items: import('@/domains/ledger/models/Business').Business[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await this.docClient.send(
+        new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'organizationId = :orgId AND sk = :sk',
+          ExpressionAttributeValues: {
+            ':orgId': organizationId,
+            ':sk': SK_META,
+          },
+          ...(lastKey && { ExclusiveStartKey: lastKey }),
+        })
+      );
+      const batch = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+      items.push(...batch);
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+
+    return items;
+  }
+
   async updateOnboarding(
     businessId: string,
     input: UpdateOnboardingInput,
@@ -128,16 +192,29 @@ export class BusinessRepository {
       organizationId: b.organizationId,
       businessType: b.businessType,
       taxRegime: b.taxRegime,
+      taxId: b.taxId,
       address: b.address,
       phone: b.phone,
       fiscalYearStart: b.fiscalYearStart,
       onboardingComplete: b.onboardingComplete,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
+      ...(b.lockedPeriods?.length ? { lockedPeriods: b.lockedPeriods } : {}),
     };
   }
 
   private mapFromDynamoDB(item: Record<string, unknown>): Business {
+    let lockedPeriods: string[] | undefined;
+    if (item.lockedPeriods) {
+      // DynamoDB stores string sets as DocumentClient Set objects
+      const raw = item.lockedPeriods;
+      if (raw && typeof raw === 'object' && 'values' in raw) {
+        lockedPeriods = Array.from((raw as { values: string[] }).values);
+      } else if (Array.isArray(raw)) {
+        lockedPeriods = raw as string[];
+      }
+    }
+
     return {
       id: String(item.id ?? item.pk ?? ''),
       tier: (item.tier as Tier) ?? 'free',
@@ -147,10 +224,12 @@ export class BusinessRepository {
       organizationId: item.organizationId != null ? String(item.organizationId) : undefined,
       businessType: item.businessType != null ? (item.businessType as BusinessType) : undefined,
       taxRegime: item.taxRegime != null ? String(item.taxRegime) : undefined,
+      taxId: item.taxId != null ? String(item.taxId) : undefined,
       address: item.address != null ? String(item.address) : undefined,
       phone: item.phone != null ? String(item.phone) : undefined,
       fiscalYearStart: item.fiscalYearStart != null ? Number(item.fiscalYearStart) : undefined,
       onboardingComplete: item.onboardingComplete === true,
+      lockedPeriods,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
     };

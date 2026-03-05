@@ -14,6 +14,11 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "platform-lookaside.fbsbx.com",
+        port: ""
+      },
+      {
+        protocol: "https",
         hostname: "avatars.githubusercontent.com",
         port: ""
       },

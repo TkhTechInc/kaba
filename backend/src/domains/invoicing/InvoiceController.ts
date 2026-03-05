@@ -10,6 +10,21 @@ import { FeatureGuard } from '@/nest/common/guards/feature.guard';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
+import { IsString, IsOptional } from 'class-validator';
+
+class ApproveInvoiceDto {
+  @IsString()
+  businessId!: string;
+}
+
+class ListByStatusQueryDto {
+  @IsString()
+  businessId!: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+}
 
 @Controller('api/v1/invoices')
 @Auth()
@@ -22,14 +37,16 @@ export class InvoiceController {
   async create(@Body() dto: CreateInvoiceDto, @AuditUserId() userId?: string) {
     const invoice = await this.invoiceService.create(
       {
-      businessId: dto.businessId,
-      customerId: dto.customerId,
-      amount: dto.amount,
-      currency: dto.currency,
-      items: dto.items,
-      dueDate: dto.dueDate,
-      status: dto.status,
-    },
+        businessId: dto.businessId,
+        customerId: dto.customerId,
+        amount: dto.amount,
+        currency: dto.currency,
+        items: dto.items,
+        dueDate: dto.dueDate,
+        status: dto.status,
+        earlyPaymentDiscountPercent: dto.earlyPaymentDiscountPercent,
+        earlyPaymentDiscountDays: dto.earlyPaymentDiscountDays,
+      },
       userId
     );
     return { success: true, data: invoice };
@@ -37,7 +54,15 @@ export class InvoiceController {
 
   @Get()
   @RequirePermission('invoices:read')
-  async list(@Query() query: ListInvoicesQueryDto) {
+  async list(@Query() query: ListInvoicesQueryDto & { status?: string }) {
+    if (query.status) {
+      const result = await this.invoiceService.listByStatus(
+        query.businessId,
+        query.status as import('./models/Invoice').InvoiceStatus,
+        query.limit ?? 20
+      );
+      return { success: true, data: { items: result.items } };
+    }
     const result = await this.invoiceService.list(
       query.businessId,
       query.page ?? 1,
@@ -52,6 +77,27 @@ export class InvoiceController {
         limit: result.limit,
       },
     };
+  }
+
+  @Get('pending-approval')
+  @RequirePermission('invoices:read')
+  async listPendingApproval(@Query('businessId') businessId: string) {
+    const result = await this.invoiceService.listPendingApproval(businessId);
+    return { success: true, data: { items: result.items } };
+  }
+
+  @Post(':id/approve')
+  @RequirePermission('invoices:write')
+  async approve(
+    @Param('id') id: string,
+    @Body() dto: ApproveInvoiceDto,
+    @AuditUserId() userId?: string,
+  ) {
+    if (!userId) {
+      return { success: false, error: 'Authentication required' };
+    }
+    const invoice = await this.invoiceService.approveInvoice(dto.businessId, id, userId);
+    return { success: true, data: invoice };
   }
 
   @Get(':id')

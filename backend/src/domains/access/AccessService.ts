@@ -45,6 +45,16 @@ export class AccessService {
   }
 
   /**
+   * List all team members for a business. Caller must have members:manage permission.
+   */
+  async listMembers(businessId: string): Promise<Array<{ userId: string; role: Role; createdAt: string }>> {
+    const members = await this.teamMemberRepo.listMembersForBusiness(businessId);
+    return members
+      .filter((m) => m.businessId)
+      .map((m) => ({ userId: m.userId, role: m.role, createdAt: m.createdAt }));
+  }
+
+  /**
    * List all businesses the user has access to.
    */
   async listBusinessesForUser(userId: string): Promise<BusinessAccess[]> {

@@ -40,6 +40,11 @@ export class LedgerRepository {
       category: input.category,
       date: input.date,
       createdAt: now,
+      productId: input.productId,
+      quantitySold: input.quantitySold,
+      originalCurrency: input.originalCurrency,
+      exchangeRate: input.exchangeRate,
+      forexGainLoss: input.forexGainLoss,
     };
 
     const item = this.mapToDynamoDB(entry);
@@ -254,8 +259,8 @@ export class LedgerRepository {
    */
   async listAllByBusinessForBalance(
     businessId: string,
-  ): Promise<Array<{ type: LedgerEntry['type']; amount: number }>> {
-    const entries: Array<{ type: LedgerEntry['type']; amount: number }> = [];
+  ): Promise<Array<{ type: LedgerEntry['type']; amount: number; date: string; category: string; currency: string }>> {
+    const entries: Array<{ type: LedgerEntry['type']; amount: number; date: string; category: string; currency: string }> = [];
     let lastKey: Record<string, unknown> | undefined;
 
     do {
@@ -268,8 +273,8 @@ export class LedgerRepository {
             ':pk': businessId,
             ':skPrefix': SK_PREFIX,
           },
-          ProjectionExpression: '#t, amount',
-          ExpressionAttributeNames: { '#t': 'type' },
+          ProjectionExpression: '#t, amount, #dt, #cat, currency',
+          ExpressionAttributeNames: { '#t': 'type', '#dt': 'date', '#cat': 'category' },
           ExclusiveStartKey: lastKey,
         }),
       );
@@ -278,6 +283,9 @@ export class LedgerRepository {
         entries.push({
           type: item['type'] as LedgerEntry['type'],
           amount: Number(item['amount'] ?? 0),
+          date: String(item['date'] ?? ''),
+          category: String(item['category'] ?? 'Other'),
+          currency: String(item['currency'] ?? 'NGN'),
         });
       }
       lastKey = result.LastEvaluatedKey;
@@ -382,6 +390,11 @@ export class LedgerRepository {
       category: entry.category,
       date: entry.date,
       createdAt: entry.createdAt,
+      ...(entry.productId != null && { productId: entry.productId }),
+      ...(entry.quantitySold != null && { quantitySold: entry.quantitySold }),
+      ...(entry.originalCurrency != null && { originalCurrency: entry.originalCurrency }),
+      ...(entry.exchangeRate != null && { exchangeRate: entry.exchangeRate }),
+      ...(entry.forexGainLoss != null && { forexGainLoss: entry.forexGainLoss }),
     };
   }
 
@@ -397,6 +410,11 @@ export class LedgerRepository {
       date: String(item.date ?? ''),
       createdAt: String(item.createdAt ?? ''),
       deletedAt: item.deletedAt != null ? String(item.deletedAt) : undefined,
+      productId: item.productId != null ? String(item.productId) : undefined,
+      quantitySold: item.quantitySold != null ? Number(item.quantitySold) : undefined,
+      originalCurrency: item.originalCurrency != null ? String(item.originalCurrency) : undefined,
+      exchangeRate: item.exchangeRate != null ? Number(item.exchangeRate) : undefined,
+      forexGainLoss: item.forexGainLoss != null ? Number(item.forexGainLoss) : undefined,
     };
   }
 }

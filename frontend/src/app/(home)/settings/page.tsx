@@ -8,6 +8,7 @@ import {
   getCurrencySymbol,
 } from "@/lib/format-number";
 import { updateBusinessTier, type Tier } from "@/services/business.service";
+import Link from "next/link";
 import { useState } from "react";
 
 /** Monthly price per tier. Key = currency code, value = price per tier. */
@@ -108,6 +109,18 @@ export default function SettingsPage() {
       <p className="mb-8 text-dark-4 dark:text-dark-6">
         Configure your business settings.
       </p>
+
+      <div className="mb-8 flex flex-wrap gap-4">
+        <Link
+          href="/settings/team"
+          className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm transition hover:border-primary/50 hover:bg-primary/5 dark:border-gray-700 dark:bg-gray-dark dark:hover:border-primary/50 dark:hover:bg-primary/10"
+        >
+          <span className="font-medium text-dark dark:text-white">Team</span>
+          <p className="mt-1 text-sm text-dark-4 dark:text-dark-6">
+            Manage who has access to this business
+          </p>
+        </Link>
+      </div>
 
       <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-dark">
         <h2 className="mb-2 text-lg font-semibold text-dark dark:text-white">

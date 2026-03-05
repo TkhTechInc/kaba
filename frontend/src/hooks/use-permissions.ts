@@ -27,6 +27,8 @@ export interface PermissionsResult {
   ai: { canRead: boolean };
   /** Convenience: canRead for tax */
   tax: { canRead: boolean };
+  /** Convenience: canRead/canWrite for inventory */
+  inventory: { canRead: boolean; canWrite: boolean };
   isLoading: boolean;
 }
 
@@ -81,6 +83,10 @@ export function usePermissions(businessId: string | null): PermissionsResult {
       },
       tax: {
         canRead: canRead(FEATURE_PERMISSIONS.tax.read),
+      },
+      inventory: {
+        canRead: canRead(FEATURE_PERMISSIONS.inventory.read),
+        canWrite: canWrite(FEATURE_PERMISSIONS.inventory.write),
       },
       isLoading,
     };

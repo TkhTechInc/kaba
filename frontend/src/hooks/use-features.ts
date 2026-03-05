@@ -12,6 +12,7 @@ export type FeaturesResponse = {
     tier: Tier;
     onboardingComplete?: boolean;
     currency?: string;
+    countryCode?: string;
     enabled: Record<string, boolean>;
     limits: Record<string, number | undefined>;
   };
@@ -145,6 +146,8 @@ export function useFeatures(businessId: string | null) {
       onboardingComplete: data?.onboardingComplete ?? false,
       /** null while loading; "NGN" only when loaded but business has no currency set */
       currency: data ? (data.currency ?? "NGN") : null,
+      /** ISO 3166-1 alpha-2 country code (e.g. NG, BJ, GH) from onboarding */
+      countryCode: data?.countryCode ?? null,
       enabled: data?.enabled ?? {},
       limits: data?.limits ?? {},
       isEnabled,

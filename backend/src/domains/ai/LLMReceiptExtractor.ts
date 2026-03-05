@@ -70,12 +70,11 @@ export class LLMReceiptExtractor implements IReceiptExtractor {
         const res = await this.llm.generateStructuredWithImage(req);
         rawResult = res.data;
       } else {
-        const res = await this.llm.generateStructured<ReceiptExtractionResult>({
-          prompt: `${prompt}\n\n[Image provided as base64 but this provider does not support vision]`,
-          systemPrompt,
-          jsonSchema: schema,
-        });
-        rawResult = res.data;
+        throw new Error(
+          'Receipt image extraction from raw image buffer requires a vision-capable LLM provider (Claude, GPT-4o, or Gemini). ' +
+          'Set AI_PROVIDER=claude, openai, or gemini and provide the corresponding API key, ' +
+          'or pass a publicly accessible image URL instead of a buffer.',
+        );
       }
     }
 

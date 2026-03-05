@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { MOBILE_MONEY_PARSER } from '../reconciliation.tokens';
 import type { IMobileMoneyParser } from '../interfaces/IMobileMoneyParser';
 import { LedgerService } from '@/domains/ledger/services/LedgerService';
@@ -7,6 +7,8 @@ import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { FeatureService } from '@/domains/features/FeatureService';
 import { UsageRepository } from '@/domains/usage/UsageRepository';
 import { ValidationError } from '@/shared/errors/DomainError';
+import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
+import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 
 export interface MobileMoneyReconResult {
   entry: LedgerEntry;
@@ -28,6 +30,7 @@ export class ReconciliationService {
     private readonly businessRepo: BusinessRepository,
     private readonly featureService: FeatureService,
     private readonly usageRepo: UsageRepository,
+    @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
   async reconcileFromSms(
@@ -71,6 +74,26 @@ export class ReconciliationService {
     );
 
     await this.usageRepo.incrementMobileMoneyRecon(businessId);
+
+    if (this.auditLogger && userId) {
+      try {
+        await this.auditLogger.log({
+          entityType: 'Reconciliation',
+          entityId: entry.id,
+          businessId,
+          action: 'create',
+          userId,
+          metadata: {
+            source: 'mobile_money',
+            amount: parsed.amount,
+            currency: parsed.currency,
+            type: parsed.type,
+          },
+        });
+      } catch (auditErr) {
+        console.error('[ReconciliationService] Audit log failed:', auditErr);
+      }
+    }
 
     return { entry, parsed };
   }

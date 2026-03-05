@@ -3,13 +3,20 @@
 import { EmailIcon, PasswordIcon } from "@/assets/icons";
 import { useAuth } from "@/contexts/auth-context";
 import InputGroup from "@/components/FormElements/InputGroup";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import React, { useState } from "react";
+
+function isValidReturnUrl(url: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  return url.startsWith("/") && !url.startsWith("//");
+}
 
 export default function SigninWithPassword() {
   const { loginWithEmail } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const returnUrl = searchParams.get("returnUrl");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,7 +34,8 @@ export default function SigninWithPassword() {
     setLoading(true);
     try {
       await loginWithEmail(email, password);
-      router.replace("/");
+      const target = isValidReturnUrl(returnUrl ?? "") ? (returnUrl ?? "/") : "/";
+      router.replace(target);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

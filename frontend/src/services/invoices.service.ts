@@ -17,6 +17,11 @@ export interface Invoice {
   dueDate: string;
   status: string;
   createdAt: string;
+  mecefStatus?: 'pending' | 'confirmed' | 'rejected';
+  mecefQrCode?: string;
+  mecefSerialNumber?: string;
+  earlyPaymentDiscountPercent?: number;
+  earlyPaymentDiscountDays?: number;
 }
 
 export interface Customer {
@@ -35,6 +40,8 @@ export interface CreateInvoiceInput {
   items: InvoiceItem[];
   dueDate: string;
   status: string;
+  earlyPaymentDiscountPercent?: number;
+  earlyPaymentDiscountDays?: number;
 }
 
 export interface ListInvoicesResult {
@@ -81,6 +88,23 @@ export function createInvoicesApi(token: string | null) {
     }) =>
       api.post<Customer>("/api/v1/customers", body, {
         token: token ?? undefined,
+      }),
+
+    listPendingApproval: (businessId: string) =>
+      api.get<{ items: Invoice[] }>("/api/v1/invoices/pending-approval", {
+        token: token ?? undefined,
+        params: { businessId },
+      }),
+
+    approveInvoice: (invoiceId: string, businessId: string) =>
+      api.post<Invoice>(`/api/v1/invoices/${invoiceId}/approve`, { businessId }, {
+        token: token ?? undefined,
+      }),
+
+    listByStatus: (businessId: string, status: string, limit = 20) =>
+      api.get<{ items: Invoice[] }>("/api/v1/invoices", {
+        token: token ?? undefined,
+        params: { businessId, status, limit: String(limit) },
       }),
   };
 }

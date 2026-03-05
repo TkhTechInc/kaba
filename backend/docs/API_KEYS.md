@@ -21,7 +21,8 @@ API key scopes align with the `Permission` type:
 | `reports:write` | (Reserved) |
 | `receipts:read` | (Reserved) |
 | `receipts:write` | Upload and process receipts |
-| `ai:read` | AI query, voice-to-transaction, loan readiness |
+| `ai:read` | AI query, voice-to-transaction |
+| `lending:read` | Loan readiness (for banks / Lending-as-a-Service) |
 | `tax:read` | VAT and tax calculations |
 | `features:read` | Get feature flags for business |
 | `webhooks:read` | List webhooks |

@@ -25,6 +25,18 @@ export class AccessController {
   }
 
   /**
+   * List team members for a business. Requires members:manage permission.
+   * GET /api/v1/access/businesses/:businessId/members
+   */
+  @Get('businesses/:businessId/members')
+  @UseGuards(PermissionGuard)
+  @RequirePermission('members:manage')
+  async listMembers(@Param('businessId') businessId: string) {
+    const members = await this.accessService.listMembers(businessId.trim());
+    return { success: true, data: { members } };
+  }
+
+  /**
    * Update a team member's role. Requires members:manage permission (owner).
    * PATCH /api/v1/access/businesses/:businessId/members/:userId/role
    */
@@ -34,10 +46,10 @@ export class AccessController {
   async updateMemberRole(
     @Param('businessId') businessId: string,
     @Param('userId') targetUserId: string,
-    @Body() body: { role: 'owner' | 'accountant' | 'viewer' },
+    @Body() body: { role: 'owner' | 'accountant' | 'viewer' | 'sales' },
   ) {
     const role = body?.role;
-    const valid: Array<'owner' | 'accountant' | 'viewer'> = ['owner', 'accountant', 'viewer'];
+    const valid: Array<'owner' | 'accountant' | 'viewer' | 'sales'> = ['owner', 'accountant', 'viewer', 'sales'];
     if (!role || !valid.includes(role)) {
       throw new BadRequestException(`role must be one of: ${valid.join(', ')}`);
     }

@@ -12,6 +12,8 @@ export type AuthUser = {
   id: string;
   phone?: string;
   email?: string;
+  name?: string;
+  picture?: string;
   role?: "admin" | "user";
 };
 
@@ -25,11 +27,13 @@ interface AuthContextValue {
   setBusinessId: (id: string | null) => void;
   sendOtp: (phone: string) => Promise<{ success: boolean; message: string }>;
   sendVoiceOtp: (phone: string, locale?: "en" | "fr") => Promise<{ success: boolean; message: string }>;
-  login: (phone: string, otp: string) => Promise<void>;
+  login: (phone: string, otp?: string, password?: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signUpRequest: (email: string) => Promise<{ success: boolean; message: string }>;
   signUpVerify: (email: string, code: string, password: string) => Promise<void>;
+  inviteRequestOtp: (token: string) => Promise<{ success: boolean; message: string }>;
+  inviteVerify: (token: string, emailOrPhone: string, code: string, password: string) => Promise<void>;
   completeOAuth: (token: string) => Promise<void>;
   logout: () => void;
   refreshBusinesses: () => Promise<void>;
@@ -116,13 +120,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const login = useCallback(async (phone: string, otp: string) => {
+  const login = useCallback(async (phone: string, otp?: string, password?: string) => {
+    const body = password ? { phone, password } : { phone, otp };
     const res = await apiPost<{
       success: boolean;
       data?: { accessToken: string; user: AuthUser };
       accessToken?: string;
       user?: AuthUser;
-    }>("/api/v1/auth/login", { phone, otp }, { skip401Redirect: true });
+    }>("/api/v1/auth/login", body, { skip401Redirect: true });
 
     const accessToken = res.accessToken ?? (res as { data?: { accessToken: string } }).data?.accessToken;
     const userData = res.user ?? (res as { data?: { user: AuthUser } }).data?.user;
@@ -207,6 +212,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [applyAuthResult]
   );
 
+  const inviteRequestOtp = useCallback(async (token: string) => {
+    const res = await apiPost<{ success: boolean; message: string }>(
+      "/api/v1/auth/invite/request-otp",
+      { token },
+      { skip401Redirect: true }
+    );
+    return res as { success: boolean; message: string };
+  }, []);
+
+  const inviteVerify = useCallback(
+    async (token: string, emailOrPhone: string, code: string, password: string) => {
+      const res = await apiPost<{
+        accessToken?: string;
+        user?: AuthUser;
+      }>("/api/v1/auth/invite/verify", { token, emailOrPhone, code, password }, { skip401Redirect: true });
+
+      const accessToken = res.accessToken ?? (res as { data?: { accessToken: string } }).data?.accessToken;
+      const userData = res.user ?? (res as { data?: { user: AuthUser } }).data?.user;
+      if (!accessToken || !userData) throw new Error("Invalid verification response");
+
+      await applyAuthResult(accessToken, userData);
+    },
+    [applyAuthResult]
+  );
+
   const completeOAuth = useCallback(
     async (accessToken: string) => {
       try {
@@ -214,10 +244,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (parts.length === 3) {
           const payload = JSON.parse(
             atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-          ) as { sub?: string; email?: string; role?: string };
+          ) as { sub?: string; email?: string; name?: string; picture?: string; role?: string };
           const userData: AuthUser = {
             id: payload.sub ?? "unknown",
             email: payload.email,
+            name: payload.name,
+            picture: payload.picture,
             role: payload.role === "admin" ? "admin" : "user",
           };
           setTokenState(accessToken);
@@ -298,6 +330,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signUpRequest,
         signUpVerify,
+        inviteRequestOtp,
+        inviteVerify,
         completeOAuth,
         logout,
         refreshBusinesses,

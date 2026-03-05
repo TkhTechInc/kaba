@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 import { Debt } from '@/domains/debts/models/Debt';
+import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { ValidationError } from '@/shared/errors/DomainError';
 
 export interface AgingBucket {
@@ -45,6 +46,7 @@ export class ReportService {
   constructor(
     private readonly ledgerRepository: LedgerRepository,
     private readonly debtRepository: DebtRepository,
+    private readonly businessRepository: BusinessRepository,
   ) {}
 
   async getPL(
@@ -81,12 +83,15 @@ export class ReportService {
       type,
     }));
 
+    const business = await this.businessRepository.getById(businessId);
+    const currency = entries[0]?.currency ?? business?.currency ?? 'NGN';
+
     return {
       period: { start: fromDate, end: toDate },
       totalIncome,
       totalExpenses,
       netProfit: totalIncome - totalExpenses,
-      currency: entries[0]?.currency ?? 'NGN',
+      currency,
       byCategory: byCategoryArray,
     };
   }
@@ -136,13 +141,16 @@ export class ReportService {
 
     const closingBalance = openingBalance + totalInflows - totalOutflows;
 
+    const business = await this.businessRepository.getById(businessId);
+    const currency = entries[0]?.currency ?? business?.currency ?? 'NGN';
+
     return {
       period: { start: fromDate, end: toDate },
       openingBalance,
       totalInflows,
       totalOutflows,
       closingBalance,
-      currency: entries[0]?.currency ?? 'NGN',
+      currency,
       daily: daily.length ? daily : undefined,
     };
   }
@@ -162,7 +170,8 @@ export class ReportService {
     const asOfStr = asOf.toISOString().slice(0, 10);
 
     const debts = await this.debtRepository.listByBusinessForAging(businessId);
-    const currency = debts[0]?.currency ?? 'NGN';
+    const business = await this.businessRepository.getById(businessId);
+    const currency = debts[0]?.currency ?? business?.currency ?? 'NGN';
 
     const bucketDefs: Array<{ label: string; daysMin: number; daysMax: number }> = [
       { label: 'Current (not yet due)', daysMin: -999999, daysMax: -1 },

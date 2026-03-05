@@ -8,6 +8,8 @@ export interface CreatePaymentIntentRequest {
   invoiceId: string;
   amount: number;
   currency: string;
+  /** ISO 3166-1 alpha-2 country code (e.g. NG, GH, BJ). Used to select the right payment gateway per country. */
+  countryCode?: string;
   customerId?: string;
   metadata?: Record<string, string>;
 }

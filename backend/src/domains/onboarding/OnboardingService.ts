@@ -89,22 +89,42 @@ export class OnboardingService {
     const completedSteps = [...new Set([...state.completedSteps, step])];
     const nextStep = this.getNextStep(completedSteps);
 
+    const allStepsComplete = STEPS.every((s) => completedSteps.includes(s));
+    const completedAt = allStepsComplete ? (state.completedAt ?? now) : state.completedAt;
+
     const updated: OnboardingState = {
       ...state,
       step: nextStep,
       completedSteps,
       answers: mergedAnswers,
       startedAt: state.startedAt,
+      completedAt,
     };
 
     await this.onboardingRepo.upsert(updated);
+
+    if (allStepsComplete && !state.completedAt) {
+      await this.businessRepo.updateOnboarding(businessId, {
+        name: mergedAnswers.businessName,
+        countryCode: mergedAnswers.country,
+        currency: mergedAnswers.currency,
+        businessType: mergedAnswers.businessType as import('@/domains/ledger/models/Business').BusinessType | undefined,
+        taxRegime: mergedAnswers.taxRegime,
+        taxId: mergedAnswers.taxId,
+        address: mergedAnswers.businessAddress,
+        phone: mergedAnswers.businessPhone,
+        fiscalYearStart: mergedAnswers.fiscalYearStart,
+        onboardingComplete: true,
+      });
+    }
 
     return {
       step: updated.step,
       completedSteps: updated.completedSteps,
       answers: updated.answers,
-      isComplete: false,
+      isComplete: !!updated.completedAt,
       startedAt: updated.startedAt,
+      completedAt: updated.completedAt,
     };
   }
 

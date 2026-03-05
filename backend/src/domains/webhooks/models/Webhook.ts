@@ -3,7 +3,8 @@ export type WebhookEvent =
   | 'ledger.entry.deleted'
   | 'invoice.paid'
   | 'invoice.created'
-  | 'payment.received';
+  | 'payment.received'
+  | 'inventory.low_stock';
 
 export interface Webhook {
   id: string;

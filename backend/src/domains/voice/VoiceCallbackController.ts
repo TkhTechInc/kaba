@@ -1,8 +1,11 @@
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
 import { Response } from 'express';
-import { Public } from '@/nest/common/decorators/auth.decorator';
+import { Auth, Public } from '@/nest/common/decorators/auth.decorator';
+import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
 import { OtpRepository } from '@/domains/otp/OtpRepository';
 import { VoiceOtpService } from './VoiceOtpService';
+import { VoiceCommandService } from './VoiceCommandService';
+import { VoiceCommandDto } from './dto/voice-command.dto';
 
 /**
  * Handles Africa's Talking Voice API callbacks.
@@ -10,14 +13,32 @@ import { VoiceOtpService } from './VoiceOtpService';
  * When a voice OTP call is answered, AT POSTs here; we return XML with TTS of the OTP code.
  */
 @Controller('api/v1/voice')
-@Public()
 export class VoiceCallbackController {
   constructor(
     private readonly otpRepo: OtpRepository,
     private readonly voiceOtpService: VoiceOtpService,
+    private readonly voiceCommandService: VoiceCommandService,
   ) {}
 
+  @Post('command')
+  @Auth()
+  async handleCommand(
+    @Body() dto: VoiceCommandDto,
+    @AuditUserId() userId?: string,
+  ) {
+    if (!userId) {
+      return { success: false, message: 'Authentication required' };
+    }
+    return this.voiceCommandService.processAndSend(
+      dto.businessId,
+      userId,
+      dto.phone,
+      dto.text,
+    );
+  }
+
   @Post('callback')
+  @Public()
   async handleCallback(
     @Body() body: Record<string, string>,
     @Res() res: Response,

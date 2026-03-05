@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { standardFormat } from "@/lib/format-number";
+import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createReceiptsApi } from "@/services/receipts.service";
 import { createLedgerApi } from "@/services/ledger.service";
 import type { ProcessReceiptResult } from "@/services/receipts.service";
@@ -360,7 +361,7 @@ export default function ReceiptsPage() {
                       type="tel"
                       value={sendPhone}
                       onChange={(e) => setSendPhone(e.target.value)}
-                      placeholder="+233..."
+                      placeholder={getPhonePlaceholder(features.countryCode)}
                       className="rounded-lg border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                     />
                   </div>

@@ -5,7 +5,7 @@ import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository
 import { FeatureService } from '@/domains/features/FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { UsageRepository } from '@/domains/usage/UsageRepository';
-import { ValidationError } from '@/shared/errors/DomainError';
+import { ValidationError, AIProviderError } from '@/shared/errors/DomainError';
 
 export interface AIQueryResult {
   answer: string;
@@ -48,10 +48,18 @@ export class AIQueryService {
     const summary = this.summarizeEntries(entries);
     const prompt = `User question: "${query}"\n\nBusiness data (last ${entries.length} transactions):\n${JSON.stringify(summary, null, 2)}\n\nAnswer the question concisely. If they ask for a number, provide it. If they ask "how much on X", sum expenses in that category.`;
 
-    const response = await this.llm.generateText({
-      prompt,
-      systemPrompt: 'You are a helpful accounting assistant for a small business in West Africa. Answer based only on the provided data. Be concise.',
-    });
+    let response: Awaited<ReturnType<typeof this.llm.generateText>>;
+    try {
+      response = await this.llm.generateText({
+        prompt,
+        systemPrompt: 'You are a helpful accounting assistant for a small business in West Africa. Answer based only on the provided data. Be concise.',
+      });
+    } catch (llmErr) {
+      throw new AIProviderError(
+        `Failed to generate AI response: ${(llmErr as Error).message ?? 'Unknown error'}`,
+        { query },
+      );
+    }
 
     let chartData: Array<{ label: string; value: number }> | undefined;
     if (query.toLowerCase().includes('category') || query.toLowerCase().includes('breakdown')) {

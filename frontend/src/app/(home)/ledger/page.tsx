@@ -15,8 +15,11 @@ import { useFeatures } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { standardFormat } from "@/lib/format-number";
+import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createLedgerApi } from "@/services/ledger.service";
 import type { CreateLedgerEntryInput, LedgerEntryType } from "@/services/ledger.service";
+import { createProductsApi } from "@/services/products.service";
+import type { Product } from "@/services/products.service";
 import { useEffect, useState } from "react";
 
 const CURRENCIES = [
@@ -51,9 +54,13 @@ export default function LedgerPage() {
     description: "",
     category: "",
     smsPhone: "",
+    productId: "",
+    quantitySold: undefined,
   });
+  const [products, setProducts] = useState<Product[]>([]);
 
   const api = createLedgerApi(token);
+  const productsApi = createProductsApi(token);
 
   useEffect(() => {
     if (!businessId) return;
@@ -80,24 +87,44 @@ export default function LedgerPage() {
       .catch(() => setBalance(null));
   }, [businessId, entries]);
 
+  useEffect(() => {
+    if (!businessId || !features.isEnabled("inventory_lite")) return;
+    productsApi
+      .list(businessId, 1, 100)
+      .then((r) => setProducts(r.data.items))
+      .catch(() => setProducts([]));
+  }, [businessId, features.isEnabled("inventory_lite")]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!businessId || !form.amount || !form.date) return;
+    const useProduct = form.type === "sale" && form.productId && form.quantitySold;
+    if (!businessId || !form.date) return;
+    if (!useProduct && (!form.amount || form.amount <= 0)) return;
     setSubmitting(true);
     setError(null);
     api
       .createEntry({
         businessId,
         type: form.type as LedgerEntryType,
-        amount: Number(form.amount),
+        amount: useProduct ? 0 : Number(form.amount),
         currency: form.currency,
         date: form.date,
         description: form.description || undefined,
         category: form.category || undefined,
         smsPhone: form.smsPhone || undefined,
+        productId: useProduct ? form.productId : undefined,
+        quantitySold: useProduct ? Number(form.quantitySold) : undefined,
       })
       .then(() => {
-        setForm((f) => ({ ...f, amount: 0, description: "", category: "", smsPhone: "" }));
+        setForm((f) => ({
+          ...f,
+          amount: 0,
+          description: "",
+          category: "",
+          smsPhone: "",
+          productId: "",
+          quantitySold: undefined,
+        }));
         return api.listEntries(businessId, 1, 20);
       })
       .then((r) => {
@@ -260,23 +287,82 @@ export default function LedgerPage() {
                 </label>
                 <select
                   value={form.type}
-                  onChange={(e) => setForm((f) => ({ ...f, type: e.target.value as LedgerEntryType }))}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      type: e.target.value as LedgerEntryType,
+                      productId: "",
+                      quantitySold: undefined,
+                    }))
+                  }
                   className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2"
                 >
                   <option value="sale">Sale</option>
                   <option value="expense">Expense</option>
                 </select>
               </div>
-              <InputGroup
-                label="Amount"
-                type="number"
-                placeholder="0"
-                required
-                value={String(form.amount || "")}
-                handleChange={(e) =>
-                  setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))
-                }
-              />
+              {form.type === "sale" && features.isEnabled("inventory_lite") && products.length > 0 && (
+                <>
+                  <div>
+                    <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+                      Product (optional)
+                    </label>
+                    <select
+                      value={form.productId || ""}
+                      onChange={(e) => {
+                        const pid = e.target.value;
+                        const p = products.find((x) => x.id === pid);
+                        setForm((f) => ({
+                          ...f,
+                          productId: pid,
+                          quantitySold: pid ? 1 : undefined,
+                          amount: pid && p ? p.unitPrice : f.amount,
+                          description: pid && p ? `${p.name} x 1` : f.description,
+                        }));
+                      }}
+                      className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2"
+                    >
+                      <option value="">Manual entry</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.currency} {standardFormat(p.unitPrice)})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {form.productId && (
+                    <InputGroup
+                      label="Quantity sold"
+                      type="number"
+                      placeholder="1"
+                      required
+                      value={String(form.quantitySold || "")}
+                      handleChange={(e) => {
+                        const qty = parseInt(e.target.value, 10) || 0;
+                        const p = products.find((x) => x.id === form.productId);
+                        setForm((f) => ({
+                          ...f,
+                          quantitySold: qty,
+                          amount: p ? p.unitPrice * qty : f.amount,
+                          description: p ? `${p.name} x ${qty}` : f.description,
+                        }));
+                      }}
+                    />
+                  )}
+                </>
+              )}
+              {(!form.productId || form.type === "expense") && (
+                <InputGroup
+                  label="Amount"
+                  type="number"
+                  placeholder="0"
+                  required={!form.productId}
+                  value={String(form.amount || "")}
+                  handleChange={(e) =>
+                    setForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))
+                  }
+                />
+              )}
               <div>
                 <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
                   Currency
@@ -318,7 +404,7 @@ export default function LedgerPage() {
               <InputGroup
                 label="SMS Phone"
                 type="text"
-                placeholder="Optional"
+                placeholder={getPhonePlaceholder(features.countryCode)}
                 value={form.smsPhone || ""}
                 handleChange={(e) => setForm((f) => ({ ...f, smsPhone: e.target.value }))}
               />

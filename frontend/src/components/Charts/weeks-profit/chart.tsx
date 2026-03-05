@@ -101,7 +101,7 @@ export function WeeksProfitChart({ data }: PropsType) {
             data: data.sales,
           },
           {
-            name: "Revenue",
+            name: "Expenses",
             data: data.revenue,
           },
         ]}

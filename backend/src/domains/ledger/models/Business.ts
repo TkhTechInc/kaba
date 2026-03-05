@@ -20,6 +20,8 @@ export interface Business {
   tier: Tier;
   /** Optional tax regime for the business */
   taxRegime?: TaxRegime;
+  /** IFU (Benin) or NCC (Côte d'Ivoire) — required for fiscal certification */
+  taxId?: string;
   /** Business address for invoices/receipts */
   address?: string;
   /** Business phone for receipts/contact */
@@ -30,6 +32,11 @@ export interface Business {
   organizationId?: string;
   /** Set when onboarding wizard is completed */
   onboardingComplete?: boolean;
+  /**
+   * OHADA-compliant period locking. ISO month strings in "YYYY-MM" format.
+   * Once locked, entries in that period cannot be deleted — only reversed.
+   */
+  lockedPeriods?: string[];
   createdAt: string;
   updatedAt: string;
 }

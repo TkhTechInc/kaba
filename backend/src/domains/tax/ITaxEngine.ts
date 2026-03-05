@@ -10,6 +10,11 @@ export interface TaxableTransaction {
   type: 'sale' | 'purchase' | 'expense';
   isTaxInclusive?: boolean;
   taxRate?: number;
+  /**
+   * Category for exemption routing.
+   * Benin 2026 exempt categories: 'construction_materials', 'sme_imports', 'agricultural_inputs'
+   */
+  category?: string;
 }
 
 export interface TaxSummary {

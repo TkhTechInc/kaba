@@ -59,7 +59,7 @@ export class AIController {
 
   @Post('loan-readiness')
   @Feature('ai_loan_readiness')
-  @RequirePermission('ai:read')
+  @RequirePermission('lending:read')
   async getLoanReadiness(@Body() dto: LoanReadinessDto) {
     const result = await this.loanReadinessService.getScore(
       dto.businessId,

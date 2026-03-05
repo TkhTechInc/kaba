@@ -3,16 +3,31 @@ import { InvitationService } from './InvitationService';
 import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { AcceptInvitationDto } from './dto/accept-invitation.dto';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
+import { Public } from '@/nest/common/decorators/auth.decorator';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { CurrentUser } from '@/nest/common/decorators/current-user.decorator';
 
 @Controller('api/v1/invitations')
-@Auth()
 export class InvitationController {
   constructor(private readonly invitationService: InvitationService) {}
 
+  /**
+   * Public: Get invitation details by token (for invitee activation flow).
+   * Returns emailOrPhone, businessName, role. No auth required.
+   */
+  @Get('by-token')
+  @Public()
+  async getByToken(@Query('token') token: string) {
+    const data = await this.invitationService.getByToken(token);
+    if (!data) {
+      return { success: false, data: null };
+    }
+    return { success: true, data };
+  }
+
   @Post()
+  @Auth()
   @UseGuards(PermissionGuard)
   @RequirePermission('invitations:manage')
   async create(@Body() dto: CreateInvitationDto, @CurrentUser('sub') userId: string) {
@@ -27,6 +42,7 @@ export class InvitationController {
   }
 
   @Post('accept')
+  @Auth()
   async accept(@Body() dto: AcceptInvitationDto, @CurrentUser('sub') userId: string) {
     const result = await this.invitationService.accept({
       token: dto.token,
@@ -36,6 +52,7 @@ export class InvitationController {
   }
 
   @Get()
+  @Auth()
   @UseGuards(PermissionGuard)
   @RequirePermission('invitations:manage')
   async list(@Query('businessId') businessId: string) {

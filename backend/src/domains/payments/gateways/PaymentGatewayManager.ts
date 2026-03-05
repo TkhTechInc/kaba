@@ -7,9 +7,36 @@ import { MomoGateway } from './MomoGateway';
 import { StripeGateway } from './StripeGateway';
 
 /**
- * Manages payment gateways and selects the appropriate one by currency.
- * Pattern copied from events project.
+ * Country → preferred gateway order per payment region.
+ * Payment gateways are country-specific; currency is used only to validate support.
  */
+const COUNTRY_GATEWAY_PRIORITY: Record<string, PaymentGatewayType[]> = {
+  // Benin, Togo, Ivory Coast — KkiaPay primary (XOF)
+  BJ: ['kkiapay', 'momo', 'stripe', 'mock'],
+  TG: ['kkiapay', 'momo', 'stripe', 'mock'],
+  CI: ['kkiapay', 'momo', 'stripe', 'mock'],
+  // Senegal, Mali, Niger, Burkina Faso — XOF
+  SN: ['kkiapay', 'momo', 'stripe', 'mock'],
+  ML: ['kkiapay', 'momo', 'stripe', 'mock'],
+  NE: ['kkiapay', 'momo', 'stripe', 'mock'],
+  BF: ['kkiapay', 'momo', 'stripe', 'mock'],
+  // Ghana — MoMo primary (GHS)
+  GH: ['momo', 'kkiapay', 'stripe', 'mock'],
+  // Nigeria — Stripe (NGN) or Paystack when added
+  NG: ['stripe', 'momo', 'mock'],
+  // Cameroon, Gabon, etc. — XAF
+  CM: ['kkiapay', 'momo', 'stripe', 'mock'],
+  GA: ['kkiapay', 'momo', 'stripe', 'mock'],
+  CG: ['kkiapay', 'momo', 'stripe', 'mock'],
+  CF: ['kkiapay', 'momo', 'stripe', 'mock'],
+  TD: ['kkiapay', 'momo', 'stripe', 'mock'],
+  GQ: ['kkiapay', 'momo', 'stripe', 'mock'],
+  // Guinea — GNF
+  GN: ['kkiapay', 'momo', 'stripe', 'mock'],
+  // International / fallback
+  DEFAULT: ['stripe', 'kkiapay', 'momo', 'mock'],
+};
+
 @Injectable()
 export class PaymentGatewayManager {
   private gateways: Map<PaymentGatewayType, IPaymentGateway> = new Map();
@@ -19,7 +46,8 @@ export class PaymentGatewayManager {
   }
 
   private initializeGateways(): void {
-    if (process.env['NODE_ENV'] !== 'production') {
+    const env = process.env['NODE_ENV'];
+    if (env === 'development' || env === 'test' || env === 'local' || !env) {
       this.registerGateway(new MockPaymentGateway());
     }
 
@@ -45,26 +73,16 @@ export class PaymentGatewayManager {
   }
 
   /**
-   * Select gateway by currency. Prefers real gateways over mock; prioritizes by currency region.
+   * Select gateway by country first, then validate currency support.
+   * Falls back to currency-based selection if countryCode is missing.
    */
   selectGateway(request: CreatePaymentIntentRequest): IPaymentGateway {
     const currency = request.currency.toUpperCase();
-    const found = this.selectGatewayByCurrency(currency);
-    if (!found) {
-      throw new Error(`No payment gateway configured for currency: ${currency}. Set STRIPE_SECRET_KEY, KKIAPAY_PRIVATE_KEY, or MOMO_API_KEY + MOMO_SUBSCRIPTION_KEY.`);
-    }
-    return found;
-  }
+    const countryCode = request.countryCode?.toUpperCase().trim();
 
-  private selectGatewayByCurrency(currency: string): IPaymentGateway | null {
-    const preferred: PaymentGatewayType[] =
-      ['XOF', 'XAF', 'GNF'].includes(currency)
-        ? ['kkiapay', 'momo', 'mock']
-        : ['GHS'].includes(currency)
-        ? ['momo', 'kkiapay', 'mock']
-        : ['USD', 'EUR', 'GBP', 'CAD', 'AUD'].includes(currency)
-        ? ['stripe', 'mock']
-        : ['stripe', 'kkiapay', 'momo', 'mock'];
+    const preferred = countryCode && COUNTRY_GATEWAY_PRIORITY[countryCode]
+      ? COUNTRY_GATEWAY_PRIORITY[countryCode]
+      : COUNTRY_GATEWAY_PRIORITY.DEFAULT;
 
     for (const type of preferred) {
       const gw = this.gateways.get(type);
@@ -73,7 +91,11 @@ export class PaymentGatewayManager {
     for (const gw of this.gateways.values()) {
       if (gw.isCurrencySupported(currency)) return gw;
     }
-    return null;
+
+    throw new Error(
+      `No payment gateway configured for country ${countryCode ?? 'unknown'} / currency ${currency}. ` +
+      'Set STRIPE_SECRET_KEY, KKIAPAY_PRIVATE_KEY, or MOMO_API_KEY + MOMO_SUBSCRIPTION_KEY. Set business countryCode in onboarding.'
+    );
   }
 
   /**
@@ -86,7 +108,7 @@ export class PaymentGatewayManager {
   }
 
   /**
-   * Create payment intent using the gateway selected by currency.
+   * Create payment intent using the gateway selected by country (and currency).
    */
   async createPaymentIntent(request: CreatePaymentIntentRequest): Promise<PaymentGatewayResponse> {
     const gw = this.selectGateway(request);

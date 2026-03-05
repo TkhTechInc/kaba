@@ -1,4 +1,4 @@
-import { Inject, Optional } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { LedgerRepository, ListByBusinessResult } from '../repositories/LedgerRepository';
 import { LedgerEntry, CreateLedgerEntryInput } from '../models/LedgerEntry';
@@ -9,6 +9,7 @@ import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { WebhookService } from '@/domains/webhooks/WebhookService';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
+import { ProductRepository } from '@/domains/inventory/repositories/ProductRepository';
 
 export const EVENT_BRIDGE_CLIENT = 'EVENT_BRIDGE_CLIENT';
 
@@ -26,9 +27,11 @@ function getCurrentMonthRange(): { from: string; to: string } {
   return { from, to };
 }
 
+@Injectable()
 export class LedgerService {
   constructor(
     private readonly ledgerRepository: LedgerRepository,
+    private readonly productRepository: ProductRepository,
     private readonly smsService: SmsService,
     private readonly featureService: FeatureService,
     private readonly businessRepo: BusinessRepository,
@@ -44,14 +47,62 @@ export class LedgerService {
     if (!['sale', 'expense'].includes(input.type)) {
       throw new ValidationError('type must be "sale" or "expense"');
     }
-    if (typeof input.amount !== 'number' || isNaN(input.amount)) {
-      throw new ValidationError('amount must be a valid number');
-    }
     if (!input.currency?.trim()) {
       throw new ValidationError('currency is required');
     }
     if (!input.date?.trim()) {
       throw new ValidationError('date is required');
+    }
+
+    let amount = input.amount;
+    let description = input.description ?? '';
+    let productId: string | undefined;
+    let quantitySold: number | undefined;
+    let updatedProduct: import('@/domains/inventory/models/Product').Product | null = null;
+
+    if (input.productId && input.quantitySold != null) {
+      if (input.type !== 'sale') {
+        throw new ValidationError('productId and quantitySold are only valid for type "sale"');
+      }
+      const product = await this.productRepository.getById(input.businessId, input.productId);
+      if (!product) {
+        throw new NotFoundError('Product', input.productId);
+      }
+      if (input.quantitySold > product.quantityInStock) {
+        throw new ValidationError(
+          `Insufficient stock. Available: ${product.quantityInStock}, requested: ${input.quantitySold}`,
+        );
+      }
+      updatedProduct = await this.productRepository.decrementStock(
+        input.businessId,
+        input.productId,
+        input.quantitySold,
+      );
+      if (!updatedProduct) {
+        throw new ValidationError('Failed to decrement stock (concurrent update or insufficient stock)');
+      }
+      amount = product.unitPrice * input.quantitySold;
+      description = `${product.name} x ${input.quantitySold}`;
+      productId = input.productId;
+      quantitySold = input.quantitySold;
+
+      if (
+        updatedProduct.lowStockThreshold != null &&
+        updatedProduct.quantityInStock <= updatedProduct.lowStockThreshold
+      ) {
+        this.webhookService.emit(input.businessId, 'inventory.low_stock', {
+          productId: updatedProduct.id,
+          productName: updatedProduct.name,
+          quantityInStock: updatedProduct.quantityInStock,
+          lowStockThreshold: updatedProduct.lowStockThreshold,
+        });
+      }
+    } else {
+      if (typeof input.amount !== 'number' || isNaN(input.amount)) {
+        throw new ValidationError('amount is required when not using productId');
+      }
+      amount = input.amount;
+      description = input.description ?? '';
     }
 
     const business = await this.businessRepo.getOrCreate(input.businessId, 'free');
@@ -68,7 +119,13 @@ export class LedgerService {
       );
     }
 
-    const entry = await this.ledgerRepository.create(input);
+    const entry = await this.ledgerRepository.create({
+      ...input,
+      amount,
+      description,
+      productId,
+      quantitySold,
+    });
 
     this.webhookService.emit(input.businessId, 'ledger.entry.created', {
       entryId: entry.id,
@@ -122,11 +179,22 @@ export class LedgerService {
     ) {
       const message = this.smsService.formatReceiptMessage(
         input.type,
-        input.amount,
+        amount,
         input.currency,
-        input.description,
+        description,
       );
       await this.smsService.sendTransactionReceipt(input.smsPhone.trim(), message);
+    }
+
+    if (
+      updatedProduct &&
+      business.phone?.trim() &&
+      this.featureService.isEnabled('sms_receipts', business.tier) &&
+      updatedProduct.lowStockThreshold != null &&
+      updatedProduct.quantityInStock <= updatedProduct.lowStockThreshold
+    ) {
+      const lowStockMsg = `QuickBooks: Low stock alert - ${updatedProduct.name} has ${updatedProduct.quantityInStock} left (threshold: ${updatedProduct.lowStockThreshold}). Restock soon.`;
+      await this.smsService.send(business.phone.trim(), lowStockMsg);
     }
 
     return entry;
@@ -204,6 +272,15 @@ export class LedgerService {
     }
     if (entry.deletedAt) {
       throw new ValidationError('Ledger entry already deleted');
+    }
+
+    // OHADA Ledger Lock: reject deletion of entries in a closed period
+    const entryPeriod = entry.date.slice(0, 7); // "YYYY-MM"
+    const lockedPeriods = await this.businessRepo.getLockedPeriods(businessId);
+    if (lockedPeriods.includes(entryPeriod)) {
+      throw new ValidationError(
+        `Cannot delete entries in a locked period (${entryPeriod}). Create a reversal entry instead.`
+      );
     }
 
     await this.ledgerRepository.softDelete(businessId, id);

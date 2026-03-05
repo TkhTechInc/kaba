@@ -16,8 +16,7 @@ export class StripeGateway implements IPaymentGateway {
   private readonly supportedCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NGN'];
 
   constructor(secretKey: string, webhookSecret = '') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    this.stripe = new Stripe(secretKey, { apiVersion: '2026-01-28.clover' as any });
+    this.stripe = new Stripe(secretKey);
     this.webhookSecret = webhookSecret;
   }
 
@@ -53,15 +52,22 @@ export class StripeGateway implements IPaymentGateway {
   }
 
   async handleWebhook(payload: string, signature?: string): Promise<{ success: boolean; invoiceId?: string; businessId?: string }> {
-    try {
-      if (this.webhookSecret && signature) {
+    // In production, always require signature verification.
+    if (this.webhookSecret) {
+      if (!signature) return { success: false };
+      try {
         const event = this.stripe.webhooks.constructEvent(payload, signature, this.webhookSecret);
         const obj = event.data.object as { metadata?: { invoiceId?: string; businessId?: string } };
         if (event.type === 'payment_intent.succeeded') {
           return { success: true, invoiceId: obj.metadata?.invoiceId, businessId: obj.metadata?.businessId };
         }
         return { success: true };
+      } catch {
+        return { success: false };
       }
+    }
+    // No webhook secret configured — only parse body without verification (dev/mock only).
+    try {
       const body = JSON.parse(payload) as { type?: string; data?: { object?: { metadata?: { invoiceId?: string; businessId?: string } } } };
       if (body.type === 'payment_intent.succeeded') {
         return { success: true, invoiceId: body.data?.object?.metadata?.invoiceId, businessId: body.data?.object?.metadata?.businessId };

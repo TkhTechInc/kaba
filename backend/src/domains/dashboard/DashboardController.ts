@@ -23,4 +23,58 @@ export class DashboardController {
     const summary = await this.dashboardService.getSummary(businessId.trim());
     return { success: true, data: summary };
   }
+
+  /**
+   * Get payments overview chart data (received vs due by period).
+   * GET /api/v1/dashboard/payments-overview?businessId=xxx&timeFrame=monthly|yearly
+   */
+  @Get('payments-overview')
+  @RequirePermission('ledger:read')
+  async getPaymentsOverview(
+    @Query('businessId') businessId: string,
+    @Query('timeFrame') timeFrame?: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    const tf = timeFrame === 'yearly' ? 'yearly' : 'monthly';
+    const data = await this.dashboardService.getPaymentsOverview(businessId.trim(), tf);
+    return { success: true, data };
+  }
+
+  /**
+   * Get weekly profit chart data (sales vs expenses by day).
+   * GET /api/v1/dashboard/weeks-profit?businessId=xxx&timeFrame=this week|last week
+   */
+  @Get('weeks-profit')
+  @RequirePermission('ledger:read')
+  async getWeeksProfit(
+    @Query('businessId') businessId: string,
+    @Query('timeFrame') timeFrame?: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    const tf = timeFrame === 'last week' ? 'last week' : 'this week';
+    const data = await this.dashboardService.getWeeksProfit(businessId.trim(), tf);
+    return { success: true, data };
+  }
+
+  /**
+   * Get activity by type (sales vs expenses) for donut chart.
+   * GET /api/v1/dashboard/activity-by-type?businessId=xxx&timeFrame=monthly|yearly
+   */
+  @Get('activity-by-type')
+  @RequirePermission('ledger:read')
+  async getActivityByType(
+    @Query('businessId') businessId: string,
+    @Query('timeFrame') timeFrame?: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    const tf = timeFrame === 'yearly' ? 'yearly' : 'monthly';
+    const data = await this.dashboardService.getActivityByType(businessId.trim(), tf);
+    return { success: true, data };
+  }
 }

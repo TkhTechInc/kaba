@@ -6,7 +6,6 @@
 import {
   CreatePaymentIntentRequest,
   PaymentGatewayResponse,
-  PaymentGatewayEvent,
 } from '../models/Payment';
 
 export type PaymentGatewayType = 'mock' | 'stripe' | 'kkiapay' | 'momo';

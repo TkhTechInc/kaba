@@ -35,6 +35,9 @@ const externals = [
   'class-transformer/storage',
   'mock-aws-s3',
   'nock',
+  '@anthropic-ai/sdk',
+  'openai',
+  '@google/generative-ai',
 ];
 
 esbuild

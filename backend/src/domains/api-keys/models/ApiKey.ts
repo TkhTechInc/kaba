@@ -9,6 +9,7 @@ export type ApiKeyScope =
   | 'receipts:read'
   | 'receipts:write'
   | 'ai:read'
+  | 'lending:read'
   | 'tax:read'
   | 'features:read'
   | 'webhooks:read'

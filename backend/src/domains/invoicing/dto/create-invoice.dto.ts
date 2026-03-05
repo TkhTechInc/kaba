@@ -52,4 +52,14 @@ export class CreateInvoiceDto {
   @IsString()
   @IsOptional()
   status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+
+  @IsNumber()
+  @IsOptional()
+  @Min(0)
+  earlyPaymentDiscountPercent?: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Min(1)
+  earlyPaymentDiscountDays?: number;
 }

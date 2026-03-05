@@ -58,6 +58,33 @@ export class TeamMemberRepository {
     }
   }
 
+  /** List all members for a business. Query pk=BUSINESS#businessId, begins_with sk=MEMBER# */
+  async listMembersForBusiness(businessId: string): Promise<TeamMember[]> {
+    const members: TeamMember[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+    try {
+      do {
+        const result = await this.docClient.send(
+          new QueryCommand({
+            TableName: this.tableName,
+            KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+            ExpressionAttributeValues: {
+              ':pk': `${PK_BUSINESS_PREFIX}${businessId}`,
+              ':skPrefix': SK_MEMBER_PREFIX,
+            },
+            ExclusiveStartKey: lastKey,
+          }),
+        );
+        const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+        members.push(...items);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      return members;
+    } catch (e) {
+      throw new DatabaseError('List members for business failed', e);
+    }
+  }
+
   /** List all businesses the user has access to */
   async listBusinessesForUser(userId: string): Promise<TeamMember[]> {
     const members: TeamMember[] = [];

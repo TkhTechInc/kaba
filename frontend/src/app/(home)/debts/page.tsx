@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { standardFormat } from "@/lib/format-number";
+import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
 import { useEffect, useState } from "react";
 
@@ -38,10 +39,13 @@ export default function DebtsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
 
+  const defaultCurrency = features.currency ?? "NGN";
+  const phonePlaceholder = getPhonePlaceholder(features.countryCode);
+
   const [form, setForm] = useState({
     debtorName: "",
     amount: "",
-    currency: "NGN",
+    currency: defaultCurrency,
     dueDate: new Date().toISOString().slice(0, 10),
     phone: "",
     notes: "",
@@ -49,6 +53,12 @@ export default function DebtsPage() {
 
   const api = createDebtsApi(token);
   const canRemind = features.isEnabled("debt_reminders");
+
+  useEffect(() => {
+    setForm((f) =>
+      !f.debtorName && !f.amount ? { ...f, currency: defaultCurrency } : f
+    );
+  }, [defaultCurrency]);
 
   const load = () => {
     if (!businessId) return;
@@ -195,7 +205,7 @@ export default function DebtsPage() {
               type="text"
               value={form.phone}
               handleChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder="+234..."
+              placeholder={phonePlaceholder}
             />
             <InputGroup
               label="Notes"

@@ -59,6 +59,11 @@ export default function AdminDashboardPage() {
       value: data?.recentActivityCount ?? 0,
       href: "/admin/activity",
     },
+    {
+      title: "Debts",
+      value: "—",
+      href: "/admin/debts",
+    },
   ];
 
   return (
@@ -77,7 +82,9 @@ export default function AdminDashboardPage() {
               {card.title}
             </p>
             <p className="mt-2 text-2xl font-bold text-dark dark:text-white">
-              {card.value.toLocaleString()}
+              {typeof card.value === "number"
+                ? card.value.toLocaleString()
+                : card.value}
             </p>
           </Link>
         ))}

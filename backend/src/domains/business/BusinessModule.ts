@@ -3,13 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
 import { AuditModule } from '../audit/AuditModule';
+import { AccessModule } from '@/domains/access/AccessModule';
 import { BusinessRepository } from './BusinessRepository';
 import { BusinessController } from './BusinessController';
+import { BranchController } from './BranchController';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 
 @Module({
-  imports: [AuditModule],
-  controllers: [BusinessController],
+  imports: [AuditModule, AccessModule],
+  controllers: [BusinessController, BranchController],
   providers: [
     {
       provide: BusinessRepository,

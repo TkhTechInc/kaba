@@ -66,3 +66,9 @@ export class ConfigurationError extends DomainError {
     super(`Configuration error: ${message}`, 'CONFIGURATION_ERROR', 500, details);
   }
 }
+
+export class AIProviderError extends DomainError {
+  constructor(message: string, details?: unknown) {
+    super(`AI provider error: ${message}`, 'AI_PROVIDER_ERROR', 503, details);
+  }
+}

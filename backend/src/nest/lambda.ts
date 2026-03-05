@@ -26,9 +26,26 @@ async function ensureJwtSecret(): Promise<void> {
   }
 }
 
+async function ensureOpenRouterApiKey(): Promise<void> {
+  if (process.env['OPENROUTER_API_KEY']) return;
+  const secretName = process.env['OPENROUTER_API_KEY_SECRET_NAME'];
+  if (!secretName) return;
+  try {
+    const client = new SecretsManagerClient({ region: process.env['AWS_REGION'] || 'af-south-1' });
+    const res = await client.send(new GetSecretValueCommand({ SecretId: secretName }));
+    const raw = res.SecretString;
+    if (!raw) return;
+    const data = JSON.parse(raw) as { openrouter_api_key?: string };
+    if (data.openrouter_api_key) process.env['OPENROUTER_API_KEY'] = data.openrouter_api_key;
+  } catch {
+    // Secret may not exist yet; AI features will use mock
+  }
+}
+
 async function bootstrap(): Promise<Handler> {
   try {
     await ensureJwtSecret();
+    await ensureOpenRouterApiKey();
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { abortOnError: false });
 
     app.use(helmet({ contentSecurityPolicy: false }));

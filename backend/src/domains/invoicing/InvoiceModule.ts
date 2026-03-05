@@ -6,6 +6,7 @@ import { AuditModule } from '../audit/AuditModule';
 import { AccessModule } from '@/domains/access/AccessModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { WebhookModule } from '@/domains/webhooks/WebhookModule';
+import { TaxModule } from '@/nest/modules/tax/tax.module';
 import { InvoiceRepository } from './repositories/InvoiceRepository';
 import { CustomerRepository } from './repositories/CustomerRepository';
 import { InvoiceService } from './services/InvoiceService';
@@ -14,7 +15,7 @@ import { InvoiceController } from './InvoiceController';
 import { CustomerController } from './CustomerController';
 
 @Module({
-  imports: [AuditModule, AccessModule, BusinessModule, WebhookModule],
+  imports: [AuditModule, AccessModule, BusinessModule, WebhookModule, TaxModule],
   controllers: [InvoiceController, CustomerController],
   providers: [
     {

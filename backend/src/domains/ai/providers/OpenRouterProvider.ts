@@ -3,7 +3,6 @@
  * Model format: "anthropic/claude-3.5-sonnet" or "openai/gpt-4o"
  */
 
-import OpenAI from 'openai';
 import type {
   GenerateTextRequest,
   GenerateTextResponse,
@@ -13,27 +12,33 @@ import type {
 import { BaseLLMProvider } from '../ILLMProvider';
 
 export class OpenRouterProvider extends BaseLLMProvider {
-  private readonly client: OpenAI;
+  private readonly apiKey: string;
   private readonly model: string;
 
-  constructor(apiKey: string, model: string) {
+  constructor(apiKey: string, model = 'openai/gpt-4o-mini') {
     super();
-    this.client = new OpenAI({ apiKey, baseURL: 'https://openrouter.ai/api/v1' });
+    this.apiKey = apiKey;
     this.model = model;
   }
 
   async generateText(request: GenerateTextRequest): Promise<GenerateTextResponse> {
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const OpenAI = require('openai');
+    const client = new OpenAI.default({ apiKey: this.apiKey, baseURL: 'https://openrouter.ai/api/v1' });
+
+    const messages: { role: 'system' | 'user'; content: string }[] = [];
     if (request.systemPrompt) {
       messages.push({ role: 'system', content: request.systemPrompt });
     }
     messages.push({ role: 'user', content: request.prompt });
-    const completion = await this.client.chat.completions.create({
+
+    const completion = await client.chat.completions.create({
       model: this.model,
       messages,
       max_tokens: request.maxTokens ?? 1024,
       temperature: request.temperature,
     });
+
     const choice = completion.choices?.[0];
     const text = (typeof choice?.message?.content === 'string' ? choice.message.content : '') ?? '';
     const usage = completion.usage
@@ -45,23 +50,29 @@ export class OpenRouterProvider extends BaseLLMProvider {
   async generateStructured<T>(
     request: GenerateStructuredRequest<T>,
   ): Promise<GenerateStructuredResponse<T>> {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const OpenAI = require('openai');
+    const client = new OpenAI.default({ apiKey: this.apiKey, baseURL: 'https://openrouter.ai/api/v1' });
+
     const system =
       (request.systemPrompt ?? '') +
       '\nRespond ONLY with valid JSON matching this schema: ' +
       JSON.stringify(request.jsonSchema) +
       '. No markdown or explanation.';
-    const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+    const messages: { role: 'system' | 'user'; content: string }[] = [];
     if (system) {
       messages.push({ role: 'system', content: system });
     }
     messages.push({ role: 'user', content: request.prompt });
-    const completion = await this.client.chat.completions.create({
+
+    const completion = await client.chat.completions.create({
       model: this.model,
       messages,
       max_tokens: request.maxTokens ?? 1024,
       temperature: request.temperature ?? 0,
       response_format: { type: 'json_object' },
     });
+
     const choice = completion.choices?.[0];
     const raw = (typeof choice?.message?.content === 'string' ? choice.message.content : '') ?? '{}';
     const data = this.parseJsonFromText(raw) as T;

@@ -73,5 +73,53 @@ export function createReportsApi(token: string | null) {
       a.click();
       URL.revokeObjectURL(a.href);
     },
+
+    getConsolidatedPL: (organizationId: string, fromDate: string, toDate: string) =>
+      api.get<{
+        organizationId: string;
+        period: { start: string; end: string };
+        totalIncome: number;
+        totalExpenses: number;
+        netProfit: number;
+        currency: string;
+        branches: Array<{
+          businessId: string;
+          businessName?: string;
+          report: PLReport;
+        }>;
+      }>(
+        `/api/v1/reports/consolidated?organizationId=${encodeURIComponent(organizationId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+        { token: token ?? undefined }
+      ),
+
+    getCreditScore: (businessId: string, customerId: string, fromDate: string, toDate: string) =>
+      api.get<{
+        customerId: string;
+        trustScore: number;
+        breakdown: {
+          transactionFrequency: number;
+          debtRepaymentRatio: number;
+          volumeConsistency: number;
+        };
+        recommendation: 'approve' | 'review' | 'deny';
+        period: { start: string; end: string };
+        scoredAt: string;
+      }>(
+        `/api/v1/reports/credit-score?businessId=${encodeURIComponent(businessId)}&customerId=${encodeURIComponent(customerId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+        { token: token ?? undefined }
+      ),
+
+    getLockedPeriods: (businessId: string) =>
+      api.get<{ lockedPeriods: string[] }>(
+        `/api/v1/ledger/locked-periods?businessId=${encodeURIComponent(businessId)}`,
+        { token: token ?? undefined }
+      ),
+
+    lockPeriod: (businessId: string, year: number, month: number) =>
+      api.post<{ period: string; locked: boolean }>(
+        '/api/v1/ledger/lock-period',
+        { businessId, year, month },
+        { token: token ?? undefined }
+      ),
   };
 }

@@ -2,6 +2,8 @@
 
 This document guides AI agents working on this project. Follow the plan in `.cursor/plans/` and the rules in `.cursor/rules/`.
 
+**Stabilization:** See `STABILIZATION.md`. Feature freeze in effect — fix bugs and improve stability only.
+
 ## Project Context
 
 - **Product**: QuickBooks-like MSME accounting SaaS for West Africa
