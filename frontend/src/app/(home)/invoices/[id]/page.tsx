@@ -19,6 +19,8 @@ export default function InvoiceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [paymentLinkError, setPaymentLinkError] = useState<string | null>(null);
+  const [whatsappLoading, setWhatsappLoading] = useState(false);
+  const [whatsappError, setWhatsappError] = useState<string | null>(null);
 
   const id = params?.id as string;
   const api = createInvoicesApi(token);
@@ -31,6 +33,12 @@ export default function InvoiceDetailPage() {
     invoice.amount > 0 &&
     features.isEnabled("payment_links");
 
+  const canGetWhatsAppLink =
+    invoice &&
+    invoice.status !== "paid" &&
+    invoice.status !== "cancelled" &&
+    invoice.amount > 0;
+
   const handlePaymentLink = () => {
     if (!businessId || !id) return;
     setPaymentLinkError(null);
@@ -38,6 +46,29 @@ export default function InvoiceDetailPage() {
       .generatePaymentLink(id, businessId)
       .then((r) => setPaymentLinkUrl(r.paymentUrl))
       .catch((e) => setPaymentLinkError(e.message));
+  };
+
+  const handleWhatsApp = () => {
+    if (!businessId || !id) return;
+    setWhatsappError(null);
+    setWhatsappLoading(true);
+    // Open window immediately (synchronous, in event handler) to avoid popup blockers.
+    // Then navigate it to the resolved URL once available.
+    const win = window.open("", "_blank");
+    api
+      .getWhatsAppLink(id, businessId)
+      .then((url) => {
+        if (win) {
+          win.location.href = url;
+        } else {
+          window.open(url, "_blank");
+        }
+      })
+      .catch((e) => {
+        win?.close();
+        setWhatsappError(e.message ?? "Failed to get WhatsApp link");
+      })
+      .finally(() => setWhatsappLoading(false));
   };
 
   useEffect(() => {
@@ -153,6 +184,23 @@ export default function InvoiceDetailPage() {
                 Payment link
               </button>
             )}
+            {canGetWhatsAppLink && (
+              <button
+                type="button"
+                onClick={handleWhatsApp}
+                disabled={whatsappLoading}
+                className="inline-flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-900/20 disabled:opacity-50"
+              >
+                {whatsappLoading ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                    Loading…
+                  </>
+                ) : (
+                  "Send via WhatsApp"
+                )}
+              </button>
+            )}
           </div>
         </div>
 
@@ -219,6 +267,9 @@ export default function InvoiceDetailPage() {
 
           {paymentLinkError && (
             <div className="rounded bg-red/10 p-3 text-sm text-red">{paymentLinkError}</div>
+          )}
+          {whatsappError && (
+            <div className="rounded bg-red/10 p-3 text-sm text-red">{whatsappError}</div>
           )}
           {paymentLinkUrl && (
             <div className="rounded-lg border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">

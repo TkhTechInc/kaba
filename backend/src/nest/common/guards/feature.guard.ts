@@ -7,6 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { FEATURE_KEY } from '../decorators/feature.decorator';
+import { IS_PUBLIC } from '../decorators/auth.decorator';
 import type { FeatureKey } from '@/domains/features/feature.types';
 import { FeatureService } from '@/domains/features/FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
@@ -20,6 +21,12 @@ export class FeatureGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const featureKey = this.reflector.getAllAndOverride<FeatureKey>(FEATURE_KEY, [
       context.getHandler(),
       context.getClass(),

@@ -525,10 +525,8 @@ export class InvoiceService {
 
   private normalizePhone(phone: string): string | null {
     const digits = phone.replace(/\D/g, '');
-    if (digits.length < 9) return null;
+    if (digits.length < 10) return null;
     if (digits.startsWith('0') && digits.length >= 11) return `+234${digits.slice(1)}`;
-    if (digits.length === 10 && digits[0] >= '2' && digits[0] <= '9') return `+1${digits}`;
-    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
     if (!phone.startsWith('+')) return `+${digits}`;
     return phone;
   }

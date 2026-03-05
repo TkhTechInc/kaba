@@ -126,6 +126,28 @@ export default function ReconciliationPage() {
             <div className="space-y-4">
               <div className="rounded-lg bg-green/10 p-4 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                 <p className="font-medium">Entry created successfully</p>
+                {result.matchedInvoice && (
+                  <p className="mt-2 text-sm">
+                    Invoice #{result.matchedInvoice.number} automatically marked as paid
+                  </p>
+                )}
+                {result.matchedInvoices && result.matchedInvoices.length > 0 && (
+                  <div className="mt-2 text-sm">
+                    <p className="font-medium">Multiple invoices match — please select</p>
+                    <ul className="mt-1 list-inside list-disc space-y-0.5">
+                      {result.matchedInvoices.map((inv) => (
+                        <li key={inv.id}>
+                          <Link
+                            href={`/invoices/${inv.id}`}
+                            className="text-primary hover:underline"
+                          >
+                            Invoice #{inv.number}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
               <div className="rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                 <h4 className="mb-2 text-sm font-medium text-dark dark:text-white">

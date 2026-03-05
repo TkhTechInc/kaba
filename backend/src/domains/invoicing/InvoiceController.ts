@@ -1,12 +1,13 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, NotFoundException } from '@nestjs/common';
 import { InvoiceService } from './services/InvoiceService';
+import { InvoiceShareService } from './services/InvoiceShareService';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { GetInvoiceQueryDto } from './dto/get-invoice-query.dto';
 import { GeneratePaymentLinkDto } from './dto/payment-link.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
-import { Auth } from '@/nest/common/decorators/auth.decorator';
+import { Auth, Public } from '@/nest/common/decorators/auth.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
 import { FeatureGuard } from '@/nest/common/guards/feature.guard';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
@@ -33,7 +34,10 @@ class ListByStatusQueryDto {
 @UseGuards(FeatureGuard, PermissionGuard)
 @Feature('invoicing')
 export class InvoiceController {
-  constructor(private readonly invoiceService: InvoiceService) {}
+  constructor(
+    private readonly invoiceService: InvoiceService,
+    private readonly invoiceShareService: InvoiceShareService,
+  ) {}
 
   @Post()
   async create(@Body() dto: CreateInvoiceDto, @AuditUserId() userId?: string) {
@@ -52,6 +56,24 @@ export class InvoiceController {
       userId
     );
     return { success: true, data: invoice };
+  }
+
+  @Get('pay/:token')
+  @Public()
+  async getPayByToken(@Param('token') token: string) {
+    const raw = await this.invoiceShareService.getInvoiceByToken(token);
+    if (!raw) throw new NotFoundException('Invoice not found or link expired');
+    // Flatten for frontend: businessName, invoiceId, items, etc.
+    return {
+      success: true,
+      data: {
+        ...raw.invoice,
+        businessName: raw.business.name,
+        customerName: raw.customer.name,
+        invoiceNumber: raw.invoice.id.slice(0, 8),
+        paymentUrl: raw.paymentUrl,
+      },
+    };
   }
 
   @Get()
@@ -102,6 +124,16 @@ export class InvoiceController {
     return { success: true, data: invoice };
   }
 
+  @Get(':id/whatsapp-link')
+  @RequirePermission('invoices:read')
+  async getWhatsAppLink(
+    @Param('id') id: string,
+    @Query() query: GetInvoiceQueryDto,
+  ) {
+    const { url } = await this.invoiceShareService.generateWhatsAppShareLink(query.businessId, id);
+    return { success: true, data: { url } };
+  }
+
   @Get(':id')
   @RequirePermission('invoices:read')
   async getById(@Param('id') id: string, @Query() query: GetInvoiceQueryDto) {
@@ -142,6 +174,19 @@ export class InvoiceController {
   ) {
     const { paymentUrl } = await this.invoiceService.generatePaymentLink(dto.businessId, id);
     return { success: true, data: { paymentUrl } };
+  }
+
+  @Post(':id/share')
+  @RequirePermission('invoices:write')
+  async generateShareToken(
+    @Param('id') id: string,
+    @Body() dto: GeneratePaymentLinkDto
+  ) {
+    const { token, payUrl } = await this.invoiceShareService.generatePublicToken(
+      id,
+      dto.businessId
+    );
+    return { success: true, data: { token, payUrl } };
   }
 
   @Post(':id/send')

@@ -13,10 +13,11 @@ import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { UsageModule } from '@/domains/usage/UsageModule';
 import { AuditModule } from '@/domains/audit/AuditModule';
+import { InvoiceModule } from '@/domains/invoicing/InvoiceModule';
 import { AIModule } from '@/nest/modules/ai/ai.module';
 
 @Module({
-  imports: [AIModule, LedgerModule, BusinessModule, UsageModule, AuditModule],
+  imports: [AIModule, LedgerModule, BusinessModule, UsageModule, AuditModule, InvoiceModule],
   controllers: [ReconciliationController],
   providers: [
     {

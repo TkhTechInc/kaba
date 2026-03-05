@@ -11,9 +11,11 @@ import { TaxModule } from '@/nest/modules/tax/tax.module';
 import { ReceiptModule } from '@/domains/receipts/ReceiptModule';
 import { NotificationsModule } from '@/domains/notifications/NotificationsModule';
 import { InvoiceRepository } from './repositories/InvoiceRepository';
+import { InvoiceShareRepository } from './repositories/InvoiceShareRepository';
 import { CustomerRepository } from './repositories/CustomerRepository';
 import { RecurringInvoiceRepository } from './repositories/RecurringInvoiceRepository';
 import { InvoiceService } from './services/InvoiceService';
+import { InvoiceShareService } from './services/InvoiceShareService';
 import { InvoicePdfService } from './services/InvoicePdfService';
 import { CustomerService } from './services/CustomerService';
 import { RecurringInvoiceService } from './services/RecurringInvoiceService';
@@ -58,7 +60,16 @@ import { RecurringInvoiceController } from './RecurringInvoiceController';
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
     },
+    {
+      provide: InvoiceShareRepository,
+      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+        return new InvoiceShareRepository(docClient, tableName);
+      },
+      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
+    },
     InvoiceService,
+    InvoiceShareService,
     InvoicePdfService,
     CustomerService,
     RecurringInvoiceService,

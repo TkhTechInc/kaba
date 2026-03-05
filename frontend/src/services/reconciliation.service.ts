@@ -1,5 +1,10 @@
 import { offlineMutation } from "@/lib/offline-api";
 
+export interface MatchedInvoiceInfo {
+  id: string;
+  number: string;
+}
+
 export interface MobileMoneyReconResult {
   entry: {
     id: string;
@@ -20,6 +25,10 @@ export interface MobileMoneyReconResult {
     reference?: string;
     description?: string;
   };
+  /** Set when exactly one invoice matched and was auto-marked paid */
+  matchedInvoice?: MatchedInvoiceInfo;
+  /** Set when 2+ invoices match; user must choose (no auto-apply) */
+  matchedInvoices?: MatchedInvoiceInfo[];
 }
 
 export function createReconciliationApi(token: string | null) {

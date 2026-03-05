@@ -129,6 +129,14 @@ export function createInvoicesApi(token: string | null) {
       return result.data;
     },
 
+    getWhatsAppLink: (invoiceId: string, businessId: string) =>
+      api
+        .get<{ url: string }>(`/api/v1/invoices/${invoiceId}/whatsapp-link`, {
+          token: token ?? undefined,
+          params: { businessId },
+        })
+        .then((r) => r.data.url),
+
     listCustomers: (businessId: string, page = 1, limit = 100) =>
       api.get<ListCustomersResult>("/api/v1/customers", {
         token: token ?? undefined,
