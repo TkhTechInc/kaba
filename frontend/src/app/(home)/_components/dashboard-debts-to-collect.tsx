@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getCurrencySymbol, standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { createDebtsApi } from "@/services/debts.service";
 import { useAuth } from "@/contexts/auth-context";
+import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useFeatures } from "@/hooks/use-features";
 import type { Debt } from "@/services/debts.service";
 
@@ -23,6 +24,7 @@ function formatDate(s: string) {
 
 export function DashboardDebtsToCollect({ className }: { className?: string }) {
   const { businessId, token } = useAuth();
+  const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
   const [loading, setLoading] = useState(true);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -48,12 +50,9 @@ export function DashboardDebtsToCollect({ className }: { className?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token]);
+  }, [businessId, token, refreshTrigger]);
 
   if (!businessId) return null;
-
-  const currency = features.currency ?? "NGN";
-  const symbol = getCurrencySymbol(currency);
 
   return (
     <div
@@ -99,8 +98,7 @@ export function DashboardDebtsToCollect({ className }: { className?: string }) {
                     {debt.debtorName}
                   </h3>
                   <p className="text-sm text-dark-6">
-                    {symbol}
-                    {standardFormat(debt.amount)} · Due {formatDate(debt.dueDate)}
+                    <Price amount={debt.amount} currency={debt.currency} /> · Due {formatDate(debt.dueDate)}
                   </p>
                 </div>
                 {debt.status === "overdue" && (

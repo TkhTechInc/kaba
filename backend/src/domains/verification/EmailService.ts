@@ -71,6 +71,38 @@ export class EmailService {
     return { success: true };
   }
 
+  /** Send password reset link. When disabled (dev), logs to console. */
+  async sendPasswordResetLink(email: string, resetLink: string): Promise<{ success: boolean }> {
+    const subject = 'Reset your QuickBooks password';
+    const body = `You requested a password reset. Click the link below to set a new password:\n\n${resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`;
+    if (!this.enabled) {
+      // eslint-disable-next-line no-console
+      console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
+      return { success: true };
+    }
+    if (this.sesRegion) {
+      try {
+        const input: SendEmailCommandInput = {
+          Source: this.fromEmail,
+          Destination: { ToAddresses: [email] },
+          Message: {
+            Subject: { Data: subject },
+            Body: { Text: { Data: body } },
+          },
+        };
+        await this.getSesClient().send(new SendEmailCommand(input));
+        return { success: true };
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[EmailService] SES sendPasswordResetLink failed:', err);
+        return { success: false };
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
+    return { success: true };
+  }
+
   /** Send invitation email with link. When disabled (dev), logs to console. */
   async sendInvitation(
     email: string,

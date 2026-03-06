@@ -1,8 +1,9 @@
 import 'reflect-metadata';
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD, APP_PIPE } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import { configuration } from './config/configuration';
@@ -47,6 +48,7 @@ import { DashboardModule } from '@/domains/dashboard/DashboardModule';
 import { DebtModule } from '@/domains/debts/DebtModule';
 import { TrustModule } from '@/domains/trust/TrustModule';
 import { UssdModule } from '@/domains/ussd/UssdModule';
+import { PlanModule } from '@/domains/plans/PlanModule';
 import { IdempotencyModule } from '@/domains/idempotency/IdempotencyModule';
 import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
 
@@ -79,6 +81,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     DebtModule,
     TrustModule,
     UssdModule,
+    PlanModule,
     IdempotencyModule,
   ],
   controllers: [HealthController],
@@ -86,6 +89,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: ApiKeyAuthGuard },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     {
       provide: APP_PIPE,
       useValue: new ValidationPipe({ whitelist: true, transform: true }),

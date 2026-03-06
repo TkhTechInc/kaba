@@ -54,6 +54,22 @@ export class AuthController {
     return this.authService.signUp(dto.email, dto.password);
   }
 
+  @Post('forgot-password')
+  async forgotPassword(@Body() body: { email: string }) {
+    if (!body.email?.trim()) {
+      throw new BadRequestException('email is required');
+    }
+    return this.authService.forgotPasswordRequest(body.email.trim());
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() body: { token: string; password: string }) {
+    if (!body.token?.trim() || !body.password?.trim()) {
+      throw new BadRequestException('token and password are required');
+    }
+    return this.authService.resetPassword(body.token.trim(), body.password);
+  }
+
   @Post('send-otp')
   async sendOtp(@Body() body: { phone: string }) {
     return this.authService.sendOtp(body.phone);

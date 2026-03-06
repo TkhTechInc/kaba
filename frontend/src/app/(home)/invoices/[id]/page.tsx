@@ -3,7 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice, type Customer } from "@/services/invoices.service";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -19,8 +19,10 @@ export default function InvoiceDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [paymentLinkError, setPaymentLinkError] = useState<string | null>(null);
-  const [whatsappLoading, setWhatsappLoading] = useState(false);
+  const [whatsappDirectLoading, setWhatsappDirectLoading] = useState(false);
+  const [whatsappShareLoading, setWhatsappShareLoading] = useState(false);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  const [whatsappSent, setWhatsappSent] = useState(false);
 
   const id = params?.id as string;
   const api = createInvoicesApi(token);
@@ -33,11 +35,13 @@ export default function InvoiceDetailPage() {
     invoice.amount > 0 &&
     features.isEnabled("payment_links");
 
-  const canGetWhatsAppLink =
+  const invoiceEligibleForWhatsApp =
     invoice &&
     invoice.status !== "paid" &&
-    invoice.status !== "cancelled" &&
-    invoice.amount > 0;
+    invoice.status !== "cancelled";
+  const canShareViaWhatsApp = invoiceEligibleForWhatsApp;
+  const canSendToCustomer =
+    invoiceEligibleForWhatsApp && features.isEnabled("whatsapp_invoice_delivery");
 
   const handlePaymentLink = () => {
     if (!businessId || !id) return;
@@ -48,27 +52,39 @@ export default function InvoiceDetailPage() {
       .catch((e) => setPaymentLinkError(e.message));
   };
 
-  const handleWhatsApp = () => {
+  const handleWhatsAppDirect = async () => {
     if (!businessId || !id) return;
     setWhatsappError(null);
-    setWhatsappLoading(true);
-    // Open window immediately (synchronous, in event handler) to avoid popup blockers.
-    // Then navigate it to the resolved URL once available.
-    const win = window.open("", "_blank");
-    api
-      .getWhatsAppLink(id, businessId)
-      .then((url) => {
-        if (win) {
-          win.location.href = url;
-        } else {
-          window.open(url, "_blank");
-        }
-      })
-      .catch((e) => {
-        win?.close();
-        setWhatsappError(e.message ?? "Failed to get WhatsApp link");
-      })
-      .finally(() => setWhatsappLoading(false));
+    setWhatsappSent(false);
+    setWhatsappDirectLoading(true);
+    try {
+      const result = await api.sendWhatsApp(id, businessId);
+      if (result?.success) {
+        setWhatsappSent(true);
+      } else {
+        setWhatsappError("Direct send failed. Use Share link to send manually.");
+      }
+    } catch (e) {
+      setWhatsappError(
+        e instanceof Error ? e.message : "WhatsApp API not configured. Use Share link instead."
+      );
+    } finally {
+      setWhatsappDirectLoading(false);
+    }
+  };
+
+  const handleWhatsAppShare = async () => {
+    if (!businessId || !id) return;
+    setWhatsappError(null);
+    setWhatsappShareLoading(true);
+    try {
+      const url = await api.getWhatsAppLink(id, businessId);
+      window.open(url, "_blank");
+    } catch (e) {
+      setWhatsappError(e instanceof Error ? e.message : "Failed to get WhatsApp link");
+    } finally {
+      setWhatsappShareLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -184,22 +200,50 @@ export default function InvoiceDetailPage() {
                 Payment link
               </button>
             )}
-            {canGetWhatsAppLink && (
+            {canShareViaWhatsApp && (
               <button
                 type="button"
-                onClick={handleWhatsApp}
-                disabled={whatsappLoading}
+                onClick={handleWhatsAppShare}
+                disabled={whatsappShareLoading}
+                title="Open WhatsApp with pre-filled message to share manually"
                 className="inline-flex items-center gap-2 rounded-lg border border-green-600 px-4 py-2 text-sm font-medium text-green-600 hover:bg-green-50 dark:border-green-500 dark:text-green-400 dark:hover:bg-green-900/20 disabled:opacity-50"
               >
-                {whatsappLoading ? (
+                {whatsappShareLoading ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
-                    Loading…
+                    Opening…
                   </>
                 ) : (
-                  "Send via WhatsApp"
+                  "Share via WhatsApp"
                 )}
               </button>
+            )}
+            {canSendToCustomer && (
+              <button
+                type="button"
+                onClick={handleWhatsAppDirect}
+                disabled={whatsappDirectLoading}
+                title="Send invoice directly to customer via WhatsApp (requires API setup)"
+                className="inline-flex items-center gap-2 rounded-lg border border-green-600 bg-green-50 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-100 dark:border-green-500 dark:bg-green-950/30 dark:text-green-400 dark:hover:bg-green-900/20 disabled:opacity-50"
+              >
+                {whatsappDirectLoading ? (
+                  <>
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-green-600 border-t-transparent" />
+                    Sending…
+                  </>
+                ) : (
+                  "Send to customer"
+                )}
+              </button>
+            )}
+            {invoiceEligibleForWhatsApp && !canSendToCustomer && (
+              <Link
+                href="/settings"
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                title="Upgrade to Pro or Enterprise to send invoices directly to customers"
+              >
+                Send to customer (Upgrade)
+              </Link>
             )}
           </div>
         </div>
@@ -245,11 +289,10 @@ export default function InvoiceDetailPage() {
                   className="flex justify-between px-4 py-3 text-sm"
                 >
                   <span className="text-dark dark:text-white">
-                    {item.description} × {item.quantity} @ {invoice.currency}{" "}
-                    {standardFormat(item.unitPrice)}
+                    {item.description} × {item.quantity} @ <Price amount={item.unitPrice} currency={invoice.currency} />
                   </span>
                   <span className="font-medium text-dark dark:text-white">
-                    {invoice.currency} {standardFormat(item.amount)}
+                    <Price amount={item.amount} currency={invoice.currency} />
                   </span>
                 </li>
               ))}
@@ -260,13 +303,18 @@ export default function InvoiceDetailPage() {
             <div className="flex justify-between text-lg font-semibold">
               <span className="text-dark dark:text-white">Total</span>
               <span className="text-dark dark:text-white">
-                {invoice.currency} {standardFormat(invoice.amount)}
+                <Price amount={invoice.amount} currency={invoice.currency} />
               </span>
             </div>
           </div>
 
           {paymentLinkError && (
             <div className="rounded bg-red/10 p-3 text-sm text-red">{paymentLinkError}</div>
+          )}
+          {whatsappSent && (
+            <div className="rounded bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+              Invoice sent directly to customer via WhatsApp.
+            </div>
           )}
           {whatsappError && (
             <div className="rounded bg-red/10 p-3 text-sm text-red">{whatsappError}</div>

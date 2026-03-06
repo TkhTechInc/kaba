@@ -3,11 +3,9 @@
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures, invalidateFeaturesCache } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
-import {
-  formatPriceWithCurrency,
-  getCurrencySymbol,
-} from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { updateBusinessTier, type Tier } from "@/services/business.service";
+import { createPlanCheckout } from "@/services/plans.service";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -20,11 +18,6 @@ const PLAN_PRICES: Record<string, Record<Tier, number | null>> = {
   USD: { free: 0, starter: 5, pro: 15, enterprise: 50 },
   EUR: { free: 0, starter: 5, pro: 15, enterprise: 50 },
 };
-
-function formatPrice(amount: number | null, currency: string): string {
-  if (amount === null || amount === 0) return "Free";
-  return formatPriceWithCurrency(amount, currency, "/month");
-}
 
 const TIERS: { id: Tier; name: string; features: string[] }[] = [
   {
@@ -78,19 +71,26 @@ export default function SettingsPage() {
   const { token, businessId } = useAuth();
   const { tier, currency, loading, refetch } = useFeatures(businessId);
   const { hasPermission } = usePermissions(businessId);
-  const canUpgrade = hasPermission("business:tier");
+  const canChangePlan = hasPermission("business:tier");
   const [updating, setUpdating] = useState<Tier | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleUpgrade = async (newTier: Tier) => {
-    if (!businessId || !token || !canUpgrade) return;
-    if (tierIndex(newTier) <= tierIndex((tier ?? "free") as Tier)) {
-      setError("Select a higher plan to upgrade.");
-      return;
-    }
+  const handlePlanChange = async (newTier: Tier) => {
+    if (!businessId || !token || !canChangePlan) return;
+    const currentIdx = tierIndex((tier ?? "free") as Tier);
+    const newIdx = tierIndex(newTier);
+    if (newIdx === currentIdx) return;
     setError(null);
     setUpdating(newTier);
     try {
+      const isUpgrade = newIdx > currentIdx;
+      const prices = currency ? (PLAN_PRICES[currency] ?? PLAN_PRICES.XOF) : PLAN_PRICES.XOF;
+      const price = prices[newTier] ?? 0;
+      if (isUpgrade && price > 0) {
+        const checkout = await createPlanCheckout(businessId, newTier, token);
+        window.location.href = checkout.payUrl;
+        return;
+      }
       await updateBusinessTier(businessId, newTier, token);
       invalidateFeaturesCache(businessId);
       await refetch();
@@ -172,26 +172,28 @@ export default function SettingsPage() {
           </div>
         )}
 
-        {!canUpgrade && (
+        {!canChangePlan && (
           <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
             Only business owners can change the plan. Contact your admin to
-            upgrade.
+            upgrade or downgrade.
           </p>
         )}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {TIERS.map((plan) => {
             const current = (tier ?? "free") === plan.id;
-            const isHigher = tierIndex(plan.id) > tierIndex((tier ?? "free") as Tier);
+            const currentIdx = tierIndex((tier ?? "free") as Tier);
+            const planIdx = tierIndex(plan.id);
+            const isHigher = planIdx > currentIdx;
+            const isLower = planIdx < currentIdx;
             const isUpdating = updating === plan.id;
-            const showButton = canUpgrade && isHigher;
+            const showUpgrade = canChangePlan && isHigher;
+            const showDowngrade = canChangePlan && isLower;
 
             const prices = currency
               ? PLAN_PRICES[currency] ?? PLAN_PRICES.NGN
               : null;
             const price = prices?.[plan.id] ?? null;
-            const priceStr =
-              loading || !currency ? "—" : formatPrice(price, currency);
 
             return (
               <div
@@ -212,7 +214,7 @@ export default function SettingsPage() {
                     )}
                   </h3>
                   <span className="text-sm font-medium text-dark dark:text-white">
-                    {priceStr}
+                    {loading || !currency ? "—" : price === null || price === 0 ? "Free" : <Price amount={price} currency={currency} suffix=" / month" />}
                   </span>
                 </div>
                 <ul className="mb-4 flex-1 space-y-1 text-sm text-dark-4 dark:text-dark-6">
@@ -221,13 +223,21 @@ export default function SettingsPage() {
                   ))}
                 </ul>
                 <div className="mt-auto pt-4">
-                  {showButton ? (
+                  {showUpgrade ? (
                     <button
-                      onClick={() => handleUpgrade(plan.id)}
+                      onClick={() => handlePlanChange(plan.id)}
                       disabled={isUpdating}
                       className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                     >
-                      {loading ? "Upgrading…" : "Upgrade"}
+                      {isUpdating ? "Updating…" : "Upgrade"}
+                    </button>
+                  ) : showDowngrade ? (
+                    <button
+                      onClick={() => handlePlanChange(plan.id)}
+                      disabled={isUpdating}
+                      className="w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-dark-6 hover:bg-gray-50 dark:border-dark-3 dark:text-dark-6 dark:hover:bg-dark-2 disabled:opacity-50"
+                    >
+                      {isUpdating ? "Updating…" : "Downgrade"}
                     </button>
                   ) : (
                     <div className="h-10" />

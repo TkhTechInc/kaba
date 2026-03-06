@@ -11,6 +11,7 @@ import type { CreatePaymentIntentRequest, PaymentGatewayResponse } from '../mode
 
 const KKIAPAY_BASE_URL = 'https://api.kkiapay.me';
 const KKIAPAY_REQUEST_PATH = '/api/v1/transactions/request-payment';
+const KKIAPAY_GET_STATUS_PATH = '/api/v1/transactions';
 
 export class KkiaPayGateway implements IPaymentGateway {
   readonly gatewayType: PaymentGatewayType = 'kkiapay';
@@ -18,13 +19,15 @@ export class KkiaPayGateway implements IPaymentGateway {
   private readonly privateKey: string;
   private readonly webhookSecret: string;
   private readonly baseUrl: string;
+  private readonly sandbox: boolean;
 
   private readonly supportedCurrencies = ['XOF', 'XAF', 'GNF'];
 
-  constructor(privateKey: string, webhookSecret = '', baseUrl?: string) {
+  constructor(privateKey: string, webhookSecret = '', baseUrl?: string, sandbox?: boolean) {
     this.privateKey = privateKey;
     this.webhookSecret = webhookSecret;
     this.baseUrl = (baseUrl ?? process.env['KKIAPAY_BASE_URL'] ?? KKIAPAY_BASE_URL).replace(/\/$/, '');
+    this.sandbox = sandbox ?? process.env['KKIAPAY_SANDBOX'] === 'true';
   }
 
   async createPaymentIntent(request: CreatePaymentIntentRequest): Promise<PaymentGatewayResponse> {
@@ -51,6 +54,8 @@ export class KkiaPayGateway implements IPaymentGateway {
           currency: request.currency,
           reference: paymentId,
           customer_phone_number: (phoneNumber as string).replace(/\s/g, ''),
+          // stateData echoed back in webhook — ensures we can recover businessId/invoiceId
+          stateData: { reference: paymentId },
         }),
       });
 
@@ -75,6 +80,37 @@ export class KkiaPayGateway implements IPaymentGateway {
     return [...this.supportedCurrencies];
   }
 
+  /**
+   * Verify transaction status with KkiaPay (for widget flow).
+   * GET /api/v1/transactions/:id
+   */
+  async getPaymentStatus(transactionId: string): Promise<{ success: boolean; error?: string }> {
+    if (!transactionId?.trim()) {
+      return { success: false, error: 'transactionId is required' };
+    }
+    try {
+      const path = `${KKIAPAY_GET_STATUS_PATH}/${encodeURIComponent(transactionId.trim())}`;
+      const url = `${this.baseUrl}${path}`;
+      const res = await fetch(url, {
+        method: 'GET',
+        headers: { Authorization: `Bearer ${this.privateKey}` },
+      });
+      const data = (await res.json().catch(() => ({}))) as { status?: string; error?: string };
+      if (!res.ok) {
+        // Sandbox: KkiaPay status API may return 404 for widget transactions. Trust the redirect.
+        if (this.sandbox && res.status === 404) {
+          return { success: true };
+        }
+        return { success: false, error: data.error ?? `KkiaPay ${res.status}` };
+      }
+      const status = (data.status ?? '').toUpperCase();
+      const success = status === 'SUCCESS' || status === 'COMPLETED';
+      return { success, error: success ? undefined : (data.error ?? 'Payment not successful') };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
+  }
+
   async handleWebhook(payload: string, signature?: string): Promise<{ success: boolean; invoiceId?: string; businessId?: string }> {
     if (this.webhookSecret) {
       if (!signature) return { success: false };
@@ -89,16 +125,36 @@ export class KkiaPayGateway implements IPaymentGateway {
     }
 
     try {
-      const body = JSON.parse(payload) as { status?: string; reference?: string; business_id?: string };
-      const status = (body.status ?? '').toUpperCase();
-      const success = status === 'SUCCESS' || status === 'COMPLETED';
-      // Parse businessId + invoiceId from reference format: qb-<businessId>-<invoiceId>-<timestamp>
-      const reference = body.reference ?? '';
+      const body = JSON.parse(payload) as {
+        status?: string;
+        reference?: string;
+        business_id?: string;
+        isPaymentSucces?: boolean;
+        event?: string;
+        stateData?: { reference?: string };
+      };
+
+      // KkiaPay docs: isPaymentSucces (boolean) and event (transaction.success | transaction.failed)
+      // Legacy: status (SUCCESS | COMPLETED)
+      const success =
+        body.isPaymentSucces === true ||
+        body.event === 'transaction.success' ||
+        (body.status ?? '').toUpperCase() === 'SUCCESS' ||
+        (body.status ?? '').toUpperCase() === 'COMPLETED';
+
+      // Reference: we send qb-<businessId>-<invoiceId>-<timestamp> in createPaymentIntent.
+      // KkiaPay may echo it in reference, stateData.reference, or not at all.
+      const refFromState =
+        typeof body.stateData === 'object' && body.stateData?.reference
+          ? String(body.stateData.reference)
+          : '';
+      const reference = body.reference ?? refFromState ?? '';
+
       let invoiceId: string | undefined;
       let businessId: string | undefined = body.business_id;
       if (reference.startsWith('qb-')) {
-        const withoutPrefix = reference.slice(3);                      // "<businessId>-<invoiceId>-<timestamp>"
-        const withoutTimestamp = withoutPrefix.replace(/-\d+$/, '');   // "<businessId>-<invoiceId>"
+        const withoutPrefix = reference.slice(3);
+        const withoutTimestamp = withoutPrefix.replace(/-\d+$/, '');
         const dashIdx = withoutTimestamp.indexOf('-');
         if (dashIdx !== -1) {
           businessId = businessId || withoutTimestamp.slice(0, dashIdx) || undefined;
@@ -106,9 +162,10 @@ export class KkiaPayGateway implements IPaymentGateway {
         } else {
           invoiceId = withoutTimestamp || undefined;
         }
-      } else {
-        invoiceId = reference || undefined;
+      } else if (reference) {
+        invoiceId = reference;
       }
+
       return { success, invoiceId, businessId };
     } catch {
       return { success: false };

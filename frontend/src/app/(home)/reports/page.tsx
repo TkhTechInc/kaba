@@ -1,18 +1,11 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { createReportsApi } from "@/services/reports.service";
 import type { CashFlowSummary, PLReport } from "@/services/reports.service";
 import { useEffect, useState } from "react";
@@ -167,13 +160,13 @@ export default function ReportsPage() {
                   <div>
                     <p className="text-sm text-dark-6">Total Income</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
-                      {pl.currency} {standardFormat(pl.totalIncome ?? pl.revenue ?? 0)}
+                      <Price amount={pl.totalIncome ?? pl.revenue ?? 0} currency={pl.currency} />
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-dark-6">Total Expenses</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
-                      {pl.currency} {standardFormat(pl.totalExpenses ?? pl.expenses ?? 0)}
+                      <Price amount={pl.totalExpenses ?? pl.expenses ?? 0} currency={pl.currency} />
                     </p>
                   </div>
                   <div>
@@ -183,31 +176,21 @@ export default function ReportsPage() {
                         (pl.netProfit ?? pl.profit ?? 0) >= 0 ? "text-green-600" : "text-red"
                       }`}
                     >
-                      {pl.currency} {standardFormat(pl.netProfit ?? pl.profit ?? 0)}
+                      <Price amount={pl.netProfit ?? pl.profit ?? 0} currency={pl.currency} />
                     </p>
                   </div>
                 </div>
                 {(pl.byCategory ?? []).length > 0 && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Category</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(pl.byCategory ?? []).map((row, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{row.category}</TableCell>
-                          <TableCell className="capitalize">{row.type}</TableCell>
-                          <TableCell className="text-right">
-                            {pl.currency} {standardFormat(row.amount)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <ResponsiveDataList<{ category: string; type: string; amount: number }>
+                    items={pl.byCategory ?? []}
+                    keyExtractor={(row) => `${row.category}-${row.type}-${row.amount}`}
+                    emptyMessage="No data"
+                    columns={[
+                      { key: "category", label: "Category", render: (r) => r.category, prominent: true },
+                      { key: "type", label: "Type", render: (r) => <span className="capitalize">{r.type}</span> },
+                      { key: "amount", label: "Amount", render: (r) => <Price amount={r.amount} currency={pl.currency} />, align: "right" },
+                    ]}
+                  />
                 )}
               </div>
             </div>
@@ -234,55 +217,40 @@ export default function ReportsPage() {
                   <div>
                     <p className="text-sm text-dark-6">Opening Balance</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
-                      {cashFlow.currency} {standardFormat(cashFlow.openingBalance ?? 0)}
+                      <Price amount={cashFlow.openingBalance ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-dark-6">Inflows</p>
                     <p className="text-lg font-semibold text-green-600">
-                      {cashFlow.currency} {standardFormat(cashFlow.totalInflows ?? 0)}
+                      <Price amount={cashFlow.totalInflows ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-dark-6">Outflows</p>
                     <p className="text-lg font-semibold text-red">
-                      {cashFlow.currency} {standardFormat(cashFlow.totalOutflows ?? 0)}
+                      <Price amount={cashFlow.totalOutflows ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-dark-6">Closing Balance</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
-                      {cashFlow.currency} {standardFormat(cashFlow.closingBalance ?? 0)}
+                      <Price amount={cashFlow.closingBalance ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                 </div>
                 {cashFlow.daily && cashFlow.daily.length > 0 && (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Inflow</TableHead>
-                        <TableHead className="text-right">Outflow</TableHead>
-                        <TableHead className="text-right">Balance</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {cashFlow.daily.map((row) => (
-                        <TableRow key={row.date}>
-                          <TableCell>{row.date}</TableCell>
-                          <TableCell className="text-right text-green-600">
-                            {cashFlow.currency} {standardFormat(row.inflow ?? row.inflows ?? 0)}
-                          </TableCell>
-                          <TableCell className="text-right text-red">
-                            {cashFlow.currency} {standardFormat(row.outflow ?? row.outflows ?? 0)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {cashFlow.currency} {standardFormat(row.balance ?? 0)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <ResponsiveDataList<{ date: string; inflow?: number; inflows?: number; outflow?: number; outflows?: number; balance?: number }>
+                    items={cashFlow.daily}
+                    keyExtractor={(row) => row.date}
+                    emptyMessage="No data"
+                    columns={[
+                      { key: "date", label: "Date", render: (r) => r.date, prominent: true },
+                      { key: "inflow", label: "Inflow", render: (r) => <span className="text-green-600"><Price amount={r.inflow ?? r.inflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
+                      { key: "outflow", label: "Outflow", render: (r) => <span className="text-red"><Price amount={r.outflow ?? r.outflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
+                      { key: "balance", label: "Balance", render: (r) => <Price amount={r.balance ?? 0} currency={cashFlow.currency} />, align: "right" },
+                    ]}
+                  />
                 )}
               </div>
             </div>

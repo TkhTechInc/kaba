@@ -1,31 +1,15 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import InputGroup from "@/components/FormElements/InputGroup";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { standardFormat } from "@/lib/format-number";
-import { getPhonePlaceholder } from "@/lib/country-dial-codes";
+import { Price } from "@/components/ui/Price";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
+import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { useEffect, useState } from "react";
-
-const CURRENCIES = [
-  { value: "NGN", label: "NGN" },
-  { value: "GHS", label: "GHS" },
-  { value: "XOF", label: "XOF" },
-  { value: "XAF", label: "XAF" },
-  { value: "USD", label: "USD" },
-  { value: "EUR", label: "EUR" },
-];
+import Link from "next/link";
 
 export default function DebtsPage() {
   const { token, businessId } = useAuth();
@@ -33,42 +17,25 @@ export default function DebtsPage() {
   const [debts, setDebts] = useState<Debt[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
 
-  const defaultCurrency = features.currency ?? "NGN";
-  const phonePlaceholder = getPhonePlaceholder(features.countryCode);
-
-  const [form, setForm] = useState({
-    debtorName: "",
-    amount: "",
-    currency: defaultCurrency,
-    dueDate: new Date().toISOString().slice(0, 10),
-    phone: "",
-    notes: "",
-  });
-
   const api = createDebtsApi(token);
   const canRemind = features.isEnabled("debt_reminders");
 
-  useEffect(() => {
-    setForm((f) =>
-      !f.debtorName && !f.amount ? { ...f, currency: defaultCurrency } : f
-    );
-  }, [defaultCurrency]);
-
   const load = () => {
     if (!businessId) return;
+    setError(null);
     setLoading(true);
     api
-      .list(businessId, 1, 20, statusFilter === "all" ? undefined : statusFilter)
+      .list(businessId, page, limit, statusFilter === "all" ? undefined : statusFilter)
       .then((r) => {
         setDebts(r.data.items);
         setTotal(r.data.total);
-        setPage(1);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
@@ -76,30 +43,7 @@ export default function DebtsPage() {
 
   useEffect(() => {
     load();
-  }, [businessId, statusFilter]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!businessId || !form.debtorName.trim() || !form.amount || !form.dueDate) return;
-    setSubmitting(true);
-    setError(null);
-    api
-      .create({
-        businessId,
-        debtorName: form.debtorName.trim(),
-        amount: Number(form.amount),
-        currency: form.currency,
-        dueDate: form.dueDate,
-        phone: form.phone.trim() || undefined,
-        notes: form.notes.trim() || undefined,
-      })
-      .then(() => {
-        setForm({ debtorName: "", amount: "", currency: form.currency, dueDate: new Date().toISOString().slice(0, 10), phone: "", notes: "" });
-        load();
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setSubmitting(false));
-  };
+  }, [businessId, statusFilter, page, limit]);
 
   const handleMarkPaid = (id: string) => {
     if (!businessId) return;
@@ -132,7 +76,7 @@ export default function DebtsPage() {
     return (
       <>
         <Breadcrumb pageName="People who owe me" />
-        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
+        <div className="min-w-0 rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to manage debts.</p>
         </div>
       </>
@@ -163,86 +107,26 @@ export default function DebtsPage() {
     <>
       <Breadcrumb pageName="People who owe me" />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <h3 className="mb-4 font-semibold text-dark dark:text-white">Add debt</h3>
-          <p className="mb-4 text-sm text-dark-6">
-            Record when someone owes you money. Add their phone number to send reminders later.
-          </p>
-          {error && (
-            <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">{error}</div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <InputGroup
-              label="Name"
-              type="text"
-              value={form.debtorName}
-              handleChange={(e) => setForm((f) => ({ ...f, debtorName: e.target.value }))}
-              placeholder="Person or business name"
-              required
-            />
-            <div className="grid grid-cols-2 gap-4">
-              <InputGroup
-                label="Amount"
-                type="number"
-                value={form.amount}
-                handleChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                placeholder="0"
-                required
-              />
-              <div>
-                <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">Currency</label>
-                <select
-                  value={form.currency}
-                  onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-                  className="w-full rounded-lg border border-stroke px-4 py-3 dark:border-dark-3 dark:bg-dark-2"
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <InputGroup
-              label="Due date"
-              type="date"
-              value={form.dueDate}
-              handleChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
-              placeholder=""
-              required
-            />
-            <InputGroup
-              label="Phone (for reminders)"
-              type="text"
-              value={form.phone}
-              handleChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-              placeholder={phonePlaceholder}
-            />
-            <InputGroup
-              label="Notes"
-              type="text"
-              value={form.notes}
-              handleChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder="Optional"
-            />
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
-            >
-              {submitting ? "Adding…" : "Add debt"}
-            </button>
-          </form>
+      <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
+          <h3 className="font-semibold text-dark dark:text-white">Outstanding debts</h3>
+          <Link
+            href="/debts/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+          >
+            + Add Debt
+          </Link>
         </div>
-
-        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <h3 className="mb-4 font-semibold text-dark dark:text-white">Outstanding debts</h3>
+        {error && (
+          <div className="mx-4 mt-2 rounded bg-red/10 p-3 text-sm text-red">{error}</div>
+        )}
+        <div className="p-4 sm:p-6">
           <div className="mb-4 flex gap-2">
             {(["all", "pending", "overdue", "paid"] as const).map((s) => (
               <button
                 key={s}
                 type="button"
-                onClick={() => setStatusFilter(s)}
+                onClick={() => { setStatusFilter(s); setPage(1); }}
                 className={`rounded px-3 py-1.5 text-sm font-medium ${
                   statusFilter === s
                     ? "bg-primary text-white"
@@ -258,69 +142,81 @@ export default function DebtsPage() {
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : debts.length === 0 ? (
-            <p className="py-8 text-center text-dark-6">No debts yet. Add one above.</p>
+            <p className="py-8 text-center text-dark-6">
+              No debts yet.{" "}
+              <Link href="/debts/new" className="text-primary hover:underline">
+                Add one to get started
+              </Link>
+              .
+            </p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Due</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {debts.map((d) => (
-                  <TableRow key={d.id}>
-                    <TableCell className="font-medium">{d.debtorName}</TableCell>
-                    <TableCell className="text-right">
-                      {d.currency} {standardFormat(d.amount)}
-                    </TableCell>
-                    <TableCell>{d.dueDate}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
-                          d.status === "overdue"
-                            ? "bg-red/20 text-red"
-                            : d.status === "paid"
+            <ResponsiveDataList<Debt>
+              items={debts}
+              keyExtractor={(d) => d.id}
+              emptyMessage="No debts yet."
+              columns={[
+                { key: "name", label: "Name", render: (d) => d.debtorName, prominent: true },
+                {
+                  key: "amount",
+                  label: "Amount",
+                  render: (d) => <Price amount={d.amount} currency={d.currency} />,
+                  align: "right",
+                },
+                { key: "due", label: "Due", render: (d) => d.dueDate },
+                {
+                  key: "status",
+                  label: "Status",
+                  render: (d) => (
+                    <span
+                      className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                        d.status === "overdue"
+                          ? "bg-red/20 text-red"
+                          : d.status === "paid"
                             ? "bg-green/20 text-green"
                             : "bg-amber/20 text-amber-700 dark:text-amber-300"
-                        }`}
-                      >
-                        {d.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {d.status !== "paid" && (
-                        <>
-                          {canRemind && d.phone && (
-                            <button
-                              type="button"
-                              onClick={() => handleSendReminder(d.id)}
-                              disabled={remindingId === d.id}
-                              className="mr-2 text-sm font-medium text-primary hover:underline disabled:opacity-50"
-                            >
-                              {remindingId === d.id ? "Sending…" : "Send reminder"}
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => handleMarkPaid(d.id)}
-                            disabled={submitting}
-                            className="text-sm font-medium text-green hover:underline disabled:opacity-50"
-                          >
-                            Mark paid
-                          </button>
-                        </>
+                      }`}
+                    >
+                      {d.status}
+                    </span>
+                  ),
+                },
+              ]}
+              renderActions={
+                (d) =>
+                  d.status !== "paid" && (
+                    <>
+                      {canRemind && d.phone && (
+                        <button
+                          type="button"
+                          onClick={() => handleSendReminder(d.id)}
+                          disabled={remindingId === d.id}
+                          className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
+                        >
+                          {remindingId === d.id ? "Sending…" : "Send reminder"}
+                        </button>
                       )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      <button
+                        type="button"
+                        onClick={() => handleMarkPaid(d.id)}
+                        disabled={submitting}
+                        className="text-sm font-medium text-green hover:underline disabled:opacity-50"
+                      >
+                        Mark paid
+                      </button>
+                    </>
+                  )
+              }
+            />
           )}
         </div>
+        <PaginationWithPageSize
+          page={page}
+          total={total}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+          showWhenTotalExceeds={0}
+        />
       </div>
     </>
   );

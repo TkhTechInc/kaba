@@ -1,18 +1,11 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { createTaxApi } from "@/services/tax.service";
 import type { VATSummary } from "@/services/tax.service";
 import { useEffect, useState } from "react";
@@ -159,46 +152,34 @@ export default function TaxReportPage() {
               <div>
                 <p className="text-sm text-dark-6">Total VAT</p>
                 <p className="text-lg font-semibold text-dark dark:text-white">
-                  {vat.currency} {standardFormat(vat.totalVAT)}
+                  <Price amount={vat.totalVAT} currency={vat.currency} />
                 </p>
               </div>
               <div>
                 <p className="text-sm text-dark-6">Total Sales</p>
                 <p className="text-lg font-semibold text-green-600">
-                  {vat.currency} {standardFormat(vat.totalSales)}
+                  <Price amount={vat.totalSales} currency={vat.currency} />
                 </p>
               </div>
               <div>
                 <p className="text-sm text-dark-6">Total Purchases</p>
                 <p className="text-lg font-semibold text-red">
-                  {vat.currency} {standardFormat(vat.totalPurchases)}
+                  <Price amount={vat.totalPurchases} currency={vat.currency} />
                 </p>
               </div>
             </div>
 
             {vat.breakdown && vat.breakdown.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Rate</TableHead>
-                    <TableHead className="text-right">Base</TableHead>
-                    <TableHead className="text-right">VAT Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {vat.breakdown.map((row, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{row.rate}%</TableCell>
-                      <TableCell className="text-right">
-                        {vat.currency} {standardFormat(row.base)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {vat.currency} {standardFormat(row.amount)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <ResponsiveDataList<{ rate: number; base: number; amount: number }>
+                items={vat.breakdown}
+                keyExtractor={(row) => `${row.rate}-${row.base}-${row.amount}`}
+                emptyMessage="No breakdown"
+                columns={[
+                  { key: "rate", label: "Rate", render: (r) => `${r.rate}%`, prominent: true },
+                  { key: "base", label: "Base", render: (r) => <Price amount={r.base} currency={vat.currency} />, align: "right" },
+                  { key: "amount", label: "VAT Amount", render: (r) => <Price amount={r.amount} currency={vat.currency} />, align: "right" },
+                ]}
+              />
             )}
           </div>
         </div>

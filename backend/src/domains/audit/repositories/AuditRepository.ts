@@ -3,6 +3,7 @@ import {
   PutCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
+import type { QueryCommandInput } from '@aws-sdk/lib-dynamodb';
 import { AuditLog, LogAuditInput } from '../models/AuditLog';
 import { DatabaseError } from '@/shared/errors/DomainError';
 import { v4 as uuidv4 } from 'uuid';
@@ -134,6 +135,92 @@ export class AuditRepository {
       };
     } catch (e) {
       throw new DatabaseError('Query audit logs failed', e);
+    }
+  }
+
+  /**
+   * Query audit logs by userId using the userId-index GSI.
+   * businessId is pushed into a DynamoDB FilterExpression so pagination cursors
+   * are tenant-safe — no cross-business data leaks through lastEvaluatedKey.
+   */
+  async queryByUserId(
+    userId: string,
+    businessId?: string,
+    from?: string,
+    to?: string,
+    limit: number = 50,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    return this.queryByGsi('userId-index', 'userId', userId, businessId, from, to, limit, exclusiveStartKey);
+  }
+
+  /**
+   * Query audit logs by entityId using the entityId-index GSI.
+   * businessId is pushed into a DynamoDB FilterExpression so pagination cursors
+   * are tenant-safe — no cross-business data leaks through lastEvaluatedKey.
+   */
+  async queryByEntityId(
+    entityId: string,
+    businessId?: string,
+    from?: string,
+    to?: string,
+    limit: number = 50,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    return this.queryByGsi('entityId-index', 'entityId', entityId, businessId, from, to, limit, exclusiveStartKey);
+  }
+
+  private async queryByGsi(
+    indexName: string,
+    pkName: string,
+    pkValue: string,
+    businessId?: string,
+    from?: string,
+    to?: string,
+    limit: number = 50,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    const hasDateRange = Boolean(from && to);
+
+    const keyCondition = hasDateRange
+      ? `${pkName} = :pk AND #ts BETWEEN :from AND :to`
+      : `${pkName} = :pk`;
+
+    const exprValues: Record<string, unknown> = { ':pk': pkValue };
+    const exprNames: Record<string, string> = {};
+
+    if (hasDateRange) {
+      exprValues[':from'] = from;
+      exprValues[':to'] = to;
+      exprNames['#ts'] = 'timestamp';
+    }
+
+    // Tenant isolation: filter to a specific businessId at the DB level so that
+    // pagination cursors never expose cross-business item counts or positions.
+    let filterExpression: string | undefined;
+    if (businessId?.trim()) {
+      exprValues[':bid'] = businessId.trim();
+      filterExpression = 'businessId = :bid';
+    }
+
+    const params: QueryCommandInput = {
+      TableName: this.tableName,
+      IndexName: indexName,
+      KeyConditionExpression: keyCondition,
+      ExpressionAttributeValues: exprValues,
+      ...(Object.keys(exprNames).length > 0 && { ExpressionAttributeNames: exprNames }),
+      ...(filterExpression && { FilterExpression: filterExpression }),
+      Limit: Math.min(limit, 100),
+      ScanIndexForward: false,
+      ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+    };
+
+    try {
+      const result = await this.docClient.send(new QueryCommand(params));
+      const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
+      return { items, lastEvaluatedKey: result.LastEvaluatedKey };
+    } catch (e) {
+      throw new DatabaseError(`Query audit logs by ${pkName} failed`, e);
     }
   }
 

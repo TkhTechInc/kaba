@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
@@ -10,6 +10,7 @@ import { VerificationModule } from '@/domains/verification/VerificationModule';
 import { TaxModule } from '@/nest/modules/tax/tax.module';
 import { ReceiptModule } from '@/domains/receipts/ReceiptModule';
 import { NotificationsModule } from '@/domains/notifications/NotificationsModule';
+import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { InvoiceRepository } from './repositories/InvoiceRepository';
 import { InvoiceShareRepository } from './repositories/InvoiceShareRepository';
 import { CustomerRepository } from './repositories/CustomerRepository';
@@ -22,9 +23,12 @@ import { RecurringInvoiceService } from './services/RecurringInvoiceService';
 import { InvoiceController } from './InvoiceController';
 import { CustomerController } from './CustomerController';
 import { RecurringInvoiceController } from './RecurringInvoiceController';
+import { PaymentModule } from '@/domains/payments/PaymentModule';
 
 @Module({
   imports: [
+    forwardRef(() => PaymentModule),
+    forwardRef(() => LedgerModule),
     AuditModule,
     AccessModule,
     BusinessModule,

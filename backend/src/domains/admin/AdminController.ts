@@ -23,7 +23,7 @@ import { AdminAIQueryDto } from './dto/admin-ai-query.dto';
 import { CreateUserByPhoneDto } from './dto/create-user-by-phone.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
 import { AuditService } from '@/domains/audit/services/AuditService';
-import { LeakageDetectionService } from './LeakageDetectionService';
+import { AuditAnomalyService } from '@/domains/audit/services/AuditAnomalyService';
 import { FeatureService } from '@/domains/features/FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { UsageRepository } from '@/domains/usage/UsageRepository';
@@ -41,7 +41,7 @@ export class AdminController {
     private readonly metricsService: AdminMetricsService,
     private readonly aiQueryService: AdminAIQueryService,
     private readonly auditService: AuditService,
-    private readonly leakageDetectionService: LeakageDetectionService,
+    private readonly auditAnomalyService: AuditAnomalyService,
     private readonly featureService: FeatureService,
     private readonly businessRepo: BusinessRepository,
     private readonly userRepo: UserRepository,
@@ -120,11 +120,20 @@ export class AdminController {
     if (!businessId?.trim()) {
       throw new BadRequestException('businessId is required');
     }
-    const result = await this.leakageDetectionService.getLeakageReport(
-      businessId,
-      from,
-      to,
-    );
+    const result = await this.auditAnomalyService.getAnomalySummary(businessId, from, to);
+    return { success: true, data: result.leakage };
+  }
+
+  @Get('audit-logs/anomaly-summary')
+  async getAnomalySummary(
+    @Query('businessId') businessId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    const result = await this.auditAnomalyService.getAnomalySummary(businessId, from, to);
     return { success: true, data: result };
   }
 
@@ -159,6 +168,78 @@ export class AdminController {
         items: result.items,
         lastEvaluatedKey: result.lastEvaluatedKey,
       },
+    };
+  }
+
+  @Get('audit-logs/by-user')
+  async getAuditLogsByUser(
+    @Query('userId') userId?: string,
+    @Query('businessId') businessId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('lastEvaluatedKey') lastEvaluatedKey?: string,
+  ) {
+    if (!userId?.trim()) {
+      throw new BadRequestException('userId is required');
+    }
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const safeLimit = isNaN(parsedLimit) ? 50 : Math.min(Math.max(parsedLimit, 1), 100);
+    let parsedKey: Record<string, unknown> | undefined;
+    if (lastEvaluatedKey) {
+      try {
+        parsedKey = JSON.parse(decodeURIComponent(lastEvaluatedKey)) as Record<string, unknown>;
+      } catch {
+        // ignore invalid key
+      }
+    }
+    const result = await this.auditService.queryByUserId(
+      userId,
+      businessId?.trim() || undefined,
+      from,
+      to,
+      safeLimit,
+      parsedKey,
+    );
+    return {
+      success: true,
+      data: { items: result.items, lastEvaluatedKey: result.lastEvaluatedKey },
+    };
+  }
+
+  @Get('audit-logs/by-entity')
+  async getAuditLogsByEntity(
+    @Query('entityId') entityId?: string,
+    @Query('businessId') businessId?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('limit') limit?: string,
+    @Query('lastEvaluatedKey') lastEvaluatedKey?: string,
+  ) {
+    if (!entityId?.trim()) {
+      throw new BadRequestException('entityId is required');
+    }
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const safeLimit = isNaN(parsedLimit) ? 50 : Math.min(Math.max(parsedLimit, 1), 100);
+    let parsedKey: Record<string, unknown> | undefined;
+    if (lastEvaluatedKey) {
+      try {
+        parsedKey = JSON.parse(decodeURIComponent(lastEvaluatedKey)) as Record<string, unknown>;
+      } catch {
+        // ignore invalid key
+      }
+    }
+    const result = await this.auditService.queryByEntityId(
+      entityId,
+      businessId?.trim() || undefined,
+      from,
+      to,
+      safeLimit,
+      parsedKey,
+    );
+    return {
+      success: true,
+      data: { items: result.items, lastEvaluatedKey: result.lastEvaluatedKey },
     };
   }
 

@@ -15,7 +15,6 @@ import { UsageModule } from '@/domains/usage/UsageModule';
 import { AdminController } from './AdminController';
 import { AdminMetricsService } from './AdminMetricsService';
 import { AdminAIQueryService } from './AdminAIQueryService';
-import { LeakageDetectionService } from './LeakageDetectionService';
 import { AdminGuard } from './AdminGuard';
 
 @Module({
@@ -25,7 +24,6 @@ import { AdminGuard } from './AdminGuard';
     AdminGuard,
     AdminMetricsService,
     AdminAIQueryService,
-    LeakageDetectionService,
     {
       provide: LedgerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
@@ -37,7 +35,7 @@ import { AdminGuard } from './AdminGuard';
     {
       provide: UserRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+        const tableName = config.get<string>('dynamodb.usersTable') ?? 'QuickBooks-Users-dev';
         return new UserRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

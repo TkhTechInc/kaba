@@ -9,6 +9,7 @@ import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
 import { FeatureGuard } from '@/nest/common/guards/feature.guard';
 import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
+import { AuditIpAddress, AuditUserAgent } from '@/nest/common/decorators/audit-context.decorator';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 
@@ -26,7 +27,9 @@ export class LedgerController {
   @RequirePermission('ledger:write')
   async createEntry(
     @Body() dto: CreateLedgerEntryDto,
-    @AuditUserId() userId?: string
+    @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
   ) {
     const entry = await this.ledgerService.createEntry(
       {
@@ -44,7 +47,8 @@ export class LedgerController {
         exchangeRate: dto.exchangeRate,
         forexGainLoss: dto.forexGainLoss,
       },
-      userId
+      userId,
+      { ipAddress, userAgent },
     );
     return { success: true, data: entry };
   }
@@ -55,7 +59,9 @@ export class LedgerController {
     const result = await this.ledgerService.listEntries(
       query.businessId,
       query.page ?? 1,
-      query.limit ?? 20
+      query.limit ?? 20,
+      undefined,
+      query.type,
     );
     return {
       success: true,
@@ -99,9 +105,11 @@ export class LedgerController {
   async softDeleteEntry(
     @Param('id') id: string,
     @Query('businessId') businessId: string,
-    @AuditUserId() userId?: string
+    @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
   ) {
-    await this.ledgerService.softDeleteEntry(businessId, id, userId);
+    await this.ledgerService.softDeleteEntry(businessId, id, userId, { ipAddress, userAgent });
     return { success: true };
   }
 }

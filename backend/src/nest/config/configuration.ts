@@ -25,7 +25,7 @@ export function configuration() {
     ],
   },
   dynamodb: {
-    ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-Ledger-dev',
+    ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-LedgerService-dev-ledger',
     invoicesTable: process.env['DYNAMODB_INVOICES_TABLE'] || 'QuickBooks-Invoices-dev',
     inventoryTable: process.env['DYNAMODB_INVENTORY_TABLE'] || 'QuickBooks-Inventory-dev',
     auditLogsTable:
@@ -140,5 +140,10 @@ export function configuration() {
     }
     return {};
   })(),
+  /** Launch promo: enable all features for all tiers until end date. Set LAUNCH_PROMO_ENABLED=true and LAUNCH_PROMO_END_DATE=YYYY-MM-DD */
+  launch_promo: {
+    enabled: process.env['LAUNCH_PROMO_ENABLED'] === 'true',
+    endDate: process.env['LAUNCH_PROMO_END_DATE'] || '',
+  },
 };
 }

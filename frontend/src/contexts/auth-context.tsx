@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { api, apiPost } from "@/lib/api-client";
+import { api, apiPost, apiGetWithOfflineCache } from "@/lib/api-client";
+import { CACHE_KEYS } from "@/lib/offline-cache";
 
 export interface Business {
   businessId: string;
@@ -105,7 +106,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const res = await api.get<Business[]>("/api/v1/access/businesses", { token: t });
+      const res = await apiGetWithOfflineCache<Business[]>(
+        "/api/v1/access/businesses",
+        `${CACHE_KEYS.BUSINESSES}:user`,
+        { token: t }
+      );
       const list = Array.isArray(res.data) ? res.data : [];
       setBusinesses(list);
       const stored = typeof window !== "undefined" ? localStorage.getItem(BUSINESS_KEY) : null;

@@ -1,4 +1,9 @@
-import { api } from "@/lib/api-client";
+import {
+  api,
+  apiGetWithOfflineCache,
+} from "@/lib/api-client";
+import { CACHE_KEYS, listCacheKey, getCached, setCached } from "@/lib/offline-cache";
+import type { ApiResponse } from "@/lib/api-client";
 import { offlineMutation } from "@/lib/offline-api";
 
 export type DebtStatus = "pending" | "paid" | "overdue";
@@ -41,18 +46,62 @@ export interface SendReminderResult {
   channel?: "sms" | "whatsapp";
 }
 
+async function patchDebtsCache(
+  businessId: string,
+  updater: (
+    cached: ApiResponse<ListDebtsResult>
+  ) => { items: Debt[]; total: number }
+) {
+  const cacheKeyVariants = [
+    listCacheKey(CACHE_KEYS.DEBTS, businessId, {
+      businessId,
+      page: "1",
+      limit: "20",
+    }),
+    listCacheKey(CACHE_KEYS.DEBTS, businessId, {
+      businessId,
+      page: "1",
+      limit: "20",
+      status: "pending",
+    }),
+    listCacheKey(CACHE_KEYS.DEBTS, businessId, {
+      businessId,
+      page: "1",
+      limit: "20",
+      status: "paid",
+    }),
+  ];
+  for (const cacheKey of cacheKeyVariants) {
+    try {
+      const cached = await getCached<ApiResponse<ListDebtsResult>>(cacheKey);
+      if (cached?.data) {
+        const { items, total } = updater(cached);
+        await setCached(cacheKey, {
+          ...cached,
+          data: { ...cached.data, items, total },
+        });
+      }
+    } catch {
+      /* best-effort */
+    }
+  }
+}
+
 export function createDebtsApi(token: string | null) {
   return {
-    list: (businessId: string, page = 1, limit = 20, status?: DebtStatus) =>
-      api.get<ListDebtsResult>("/api/v1/debts", {
-        token: token ?? undefined,
-        params: {
-          businessId,
-          page: String(page),
-          limit: String(limit),
-          ...(status && { status }),
-        },
-      }),
+    list: (businessId: string, page = 1, limit = 20, status?: DebtStatus) => {
+      const params: Record<string, string> = {
+        businessId,
+        page: String(page),
+        limit: String(limit),
+        ...(status && { status }),
+      };
+      return apiGetWithOfflineCache<ListDebtsResult>(
+        "/api/v1/debts",
+        listCacheKey(CACHE_KEYS.DEBTS, businessId, params),
+        { token: token ?? undefined, params }
+      );
+    },
 
     create: async (body: CreateDebtInput) => {
       const optimistic: Debt = {
@@ -76,6 +125,13 @@ export function createDebtsApi(token: string | null) {
         token,
         optimistic
       );
+      const debt = result.data;
+      if (debt?.id) {
+        await patchDebtsCache(body.businessId, (cached) => ({
+          items: [debt, ...cached.data.items],
+          total: cached.data.total + 1,
+        }));
+      }
       return result.data;
     },
 
@@ -98,6 +154,19 @@ export function createDebtsApi(token: string | null) {
         token,
         optimistic
       );
+      const debt = result.data;
+      if (debt?.id) {
+        await patchDebtsCache(businessId, (cached) => {
+          const existing = cached.data.items.find((d) => d.id === id);
+          const updated = existing
+            ? { ...existing, status: "paid" as const, updatedAt: debt.updatedAt }
+            : debt;
+          return {
+            items: cached.data.items.map((d) => (d.id === id ? updated : d)),
+            total: cached.data.total,
+          };
+        });
+      }
       return result.data;
     },
 

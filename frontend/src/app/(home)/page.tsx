@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DashboardRefreshProvider } from "./_components/dashboard-refresh-provider";
 import { OverviewCardsGroupClient } from "./_components/overview-cards/overview-cards-client";
 import { DashboardChartsGate } from "./_components/dashboard-charts-gate";
 import { DashboardPaymentsOverview } from "./_components/dashboard-payments-overview";
@@ -9,11 +10,11 @@ import { DashboardDebtsToCollect } from "./_components/dashboard-debts-to-collec
 
 export default async function Home() {
   return (
-    <>
+    <DashboardRefreshProvider>
       <OverviewCardsGroupClient />
       <div className="mt-4 flex flex-wrap gap-3">
         <Link
-          href="/invoices"
+          href="/invoices/new"
           className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
         >
           + New Invoice
@@ -51,6 +52,6 @@ export default async function Home() {
           <DashboardActivityByType />
         </div>
       </DashboardChartsGate>
-    </>
+    </DashboardRefreshProvider>
   );
 }

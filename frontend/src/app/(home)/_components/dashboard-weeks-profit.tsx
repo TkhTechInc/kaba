@@ -7,6 +7,7 @@ import { ChartEmptyState } from "@/components/Charts/chart-empty-state";
 import { cn } from "@/lib/utils";
 import { getWeeksProfit } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
+import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useSearchParams } from "next/navigation";
 
 type PropsType = {
@@ -21,6 +22,7 @@ function parseTimeFrame(selected: string | null, sectionKey: string): "this week
 
 export function DashboardWeeksProfit({ className }: PropsType) {
   const { businessId, token } = useAuth();
+  const { refreshTrigger } = useDashboardRefresh();
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
   const timeFrame = parseTimeFrame(selected, "weeks_profit");
@@ -45,7 +47,7 @@ export function DashboardWeeksProfit({ className }: PropsType) {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token, timeFrame]);
+  }, [businessId, token, timeFrame, refreshTrigger]);
 
   if (!businessId) return null;
 

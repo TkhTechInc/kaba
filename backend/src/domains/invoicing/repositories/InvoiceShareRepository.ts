@@ -14,6 +14,9 @@ export interface InvoiceShareRecord {
 }
 
 const TOKEN_PK_PREFIX = 'INVOICE_TOKEN#';
+// Lookup record: pk=INVOICE_SHARE_BY_INVOICE#{invoiceId}, sk=META
+// Stores the most recent token so callers can reuse it instead of minting a new one each time.
+const INVOICE_LOOKUP_PREFIX = 'INVOICE_SHARE_BY_INVOICE#';
 
 /**
  * Repository for storing invoice share tokens.
@@ -44,6 +47,7 @@ export class InvoiceShareRepository {
     };
 
     try {
+      // Write the token record
       await this.docClient.send(
         new PutCommand({
           TableName: this.tableName,
@@ -56,9 +60,55 @@ export class InvoiceShareRepository {
           },
         })
       );
+      // Write a lookup record keyed by invoiceId so we can find the latest token without a scan
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: {
+            pk: `${INVOICE_LOOKUP_PREFIX}${invoiceId}`,
+            sk: 'META',
+            entityType: 'INVOICE_SHARE_LOOKUP',
+            token,
+            invoiceId,
+            businessId,
+            expiresAt,
+            createdAt: now,
+            ttl: ttlEpoch,
+          },
+        })
+      );
       return record;
     } catch (e) {
       throw new DatabaseError('Create invoice share token failed', e);
+    }
+  }
+
+  /** Find the most recent share token for an invoice (for deduplication). */
+  async getByInvoiceId(invoiceId: string): Promise<InvoiceShareRecord | null> {
+    try {
+      const result = await this.docClient.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: {
+            pk: `${INVOICE_LOOKUP_PREFIX}${invoiceId}`,
+            sk: 'META',
+          },
+        })
+      );
+      if (!result.Item) return null;
+      const item = result.Item;
+      const tokenVal = String(item.token ?? '');
+      const bId = String(item.businessId ?? '');
+      if (!tokenVal || !bId) return null;
+      return {
+        token: tokenVal,
+        invoiceId: String(item.invoiceId ?? invoiceId),
+        businessId: bId,
+        expiresAt: String(item.expiresAt ?? ''),
+        createdAt: String(item.createdAt ?? ''),
+      };
+    } catch (e) {
+      throw new DatabaseError('Get invoice share by invoiceId failed', e);
     }
   }
 

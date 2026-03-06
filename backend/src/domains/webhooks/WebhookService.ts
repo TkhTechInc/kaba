@@ -17,14 +17,14 @@ export class WebhookService {
     const webhook = await this.webhookRepository.create(input);
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Webhook',
         entityId: webhook.id,
         businessId: webhook.businessId,
-        action: 'register',
+        action: 'webhook.register',
         userId,
         changes: { url: { to: webhook.url }, events: { to: webhook.events } },
-      });
+      }).catch(() => {});
     }
 
     return webhook;
@@ -38,14 +38,14 @@ export class WebhookService {
     await this.webhookRepository.delete(businessId, id);
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Webhook',
         entityId: id,
         businessId,
-        action: 'unregister',
+        action: 'webhook.unregister',
         userId,
         changes: { url: { from: existing.url, to: null } },
-      });
+      }).catch(() => {});
     }
   }
 

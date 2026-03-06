@@ -22,7 +22,7 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           <Sidebar />
           <div className="w-full bg-gray-2 dark:bg-[#020d1a]">
             <Header />
-            <main id="main-content" className="isolate mx-auto w-full max-w-screen-2xl overflow-hidden p-4 md:p-6 2xl:p-10" tabIndex={-1}>
+            <main id="main-content" className="isolate mx-auto w-full min-w-0 max-w-screen-2xl overflow-hidden p-3 sm:p-4 md:p-6 2xl:p-10" tabIndex={-1}>
               {children}
             </main>
           </div>

@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Optional } from '@nestjs/common';
 import { DatabaseError } from '@/shared/errors/DomainError';
 import { TeamMemberRepository } from './repositories/TeamMemberRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import type { Role } from './role.types';
 import type { Permission } from './role.types';
 import { roleHasPermission } from './role.types';
+import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
+import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 
 export interface BusinessAccess {
   businessId: string;
@@ -16,6 +18,7 @@ export class AccessService {
   constructor(
     private readonly teamMemberRepo: TeamMemberRepository,
     private readonly businessRepo: BusinessRepository,
+    @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
   /**
@@ -71,6 +74,7 @@ export class AccessService {
     businessId: string,
     targetUserId: string,
     newRole: Role,
+    actorUserId?: string,
   ): Promise<BusinessAccess> {
     try {
       const updated = await this.teamMemberRepo.updateBusinessMemberRole(
@@ -78,12 +82,50 @@ export class AccessService {
         targetUserId,
         newRole,
       );
+
+      if (this.auditLogger && actorUserId) {
+        this.auditLogger.log({
+          entityType: 'access',
+          entityId: `${businessId}#${targetUserId}`,
+          businessId,
+          action: 'update',
+          userId: actorUserId,
+          metadata: { targetUserId, newRole },
+        }).catch(() => {});
+      }
+
       return { businessId: updated.businessId!, role: updated.role };
     } catch (e) {
       if (e instanceof DatabaseError) {
         throw new NotFoundException('Team member not found');
       }
       throw e;
+    }
+  }
+
+  /**
+   * Remove a team member from a business. Logs access.revoke audit event.
+   */
+  async removeMember(
+    businessId: string,
+    targetUserId: string,
+    actorUserId: string,
+  ): Promise<void> {
+    const existing = await this.teamMemberRepo.getByBusinessAndUser(businessId, targetUserId);
+    if (!existing) {
+      throw new NotFoundException('Team member not found');
+    }
+    await this.teamMemberRepo.removeBusinessMember(businessId, targetUserId);
+
+    if (this.auditLogger) {
+      this.auditLogger.log({
+        entityType: 'access',
+        entityId: `${businessId}#${targetUserId}`,
+        businessId,
+        action: 'access.revoke',
+        userId: actorUserId,
+        metadata: { revokedUserId: targetUserId, role: existing.role },
+      }).catch(() => {});
     }
   }
 }

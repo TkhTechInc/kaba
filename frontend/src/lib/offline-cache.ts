@@ -10,11 +10,36 @@ const DB_VERSION = 1;
 const CACHE_KEYS = {
   PREFERENCES: "preferences",
   FEATURES: "features",
+  DEBTS: "debts",
+  INVOICES: "invoices",
+  INVOICES_PENDING_APPROVAL: "invoices_pending",
+  LEDGER_ENTRIES: "ledger_entries",
+  LEDGER_BALANCE: "ledger_balance",
+  CUSTOMERS: "customers",
+  PRODUCTS: "products",
+  BUSINESSES: "businesses",
+  DASHBOARD: "dashboard",
 } as const;
 
 /** Build cache key for features by businessId. */
 export function featuresCacheKey(businessId: string): string {
   return `${CACHE_KEYS.FEATURES}:${businessId}`;
+}
+
+/** Build cache key for list endpoints. */
+export function listCacheKey(
+  resource: string,
+  businessId: string,
+  params?: Record<string, string>
+): string {
+  const parts = [resource, businessId];
+  if (params) {
+    const sorted = Object.keys(params).sort();
+    for (const k of sorted) {
+      if (params[k] != null && params[k] !== "") parts.push(`${k}=${params[k]}`);
+    }
+  }
+  return parts.join(":");
 }
 
 function openDb(): Promise<IDBDatabase> {
@@ -61,6 +86,24 @@ export async function deleteCached(key: string): Promise<void> {
     tx.objectStore(STORE).delete(key);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
+  });
+}
+
+/** Delete all cached entries whose key starts with prefix. Used to invalidate data after seeding. */
+export async function deleteCachedByPrefix(prefix: string): Promise<void> {
+  if (typeof indexedDB === "undefined") return;
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, "readwrite");
+    const store = tx.objectStore(STORE);
+    const req = store.getAllKeys();
+    req.onsuccess = () => {
+      const keys = req.result as string[];
+      const toDelete = keys.filter((k) => k.startsWith(prefix));
+      toDelete.forEach((k) => store.delete(k));
+      tx.oncomplete = () => resolve();
+    };
+    req.onerror = () => reject(req.error);
   });
 }
 

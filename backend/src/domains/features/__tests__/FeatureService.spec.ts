@@ -24,6 +24,29 @@ describe('FeatureService', () => {
     it('ai_query is enabled for pro tier', () => {
       expect(service.isEnabled('ai_query', 'pro')).toBe(true);
     });
+
+    it('whatsapp_invoice_delivery is enabled for pro and enterprise only', () => {
+      expect(service.isEnabled('whatsapp_invoice_delivery', 'free')).toBe(false);
+      expect(service.isEnabled('whatsapp_invoice_delivery', 'starter')).toBe(false);
+      expect(service.isEnabled('whatsapp_invoice_delivery', 'pro')).toBe(true);
+      expect(service.isEnabled('whatsapp_invoice_delivery', 'enterprise')).toBe(true);
+    });
+
+    it('when launch promo active, all features enabled for any tier', () => {
+      const orig = process.env['LAUNCH_PROMO_ENABLED'];
+      const origEnd = process.env['LAUNCH_PROMO_END_DATE'];
+      try {
+        process.env['LAUNCH_PROMO_ENABLED'] = 'true';
+        process.env['LAUNCH_PROMO_END_DATE'] = '2099-12-31';
+        const promoService = new FeatureService(null as unknown as ConfigService);
+        expect(promoService.isEnabled('whatsapp_invoice_delivery', 'free')).toBe(true);
+        expect(promoService.isEnabled('invoicing', 'free')).toBe(true);
+        expect(promoService.isEnabled('receipts', 'starter')).toBe(true);
+      } finally {
+        process.env['LAUNCH_PROMO_ENABLED'] = orig;
+        process.env['LAUNCH_PROMO_END_DATE'] = origEnd;
+      }
+    });
   });
 
   describe('isWithinLimit', () => {
@@ -44,6 +67,21 @@ describe('FeatureService', () => {
     it('ai_query limit for starter tier', () => {
       expect(service.isWithinLimit('ai_query', 'starter', 9)).toBe(true);
       expect(service.isWithinLimit('ai_query', 'starter', 10)).toBe(false);
+    });
+
+    it('when launch promo active, free tier gets enterprise limits', () => {
+      const orig = process.env['LAUNCH_PROMO_ENABLED'];
+      const origEnd = process.env['LAUNCH_PROMO_END_DATE'];
+      try {
+        process.env['LAUNCH_PROMO_ENABLED'] = 'true';
+        process.env['LAUNCH_PROMO_END_DATE'] = '2099-12-31';
+        const promoService = new FeatureService(null as unknown as ConfigService);
+        expect(promoService.isWithinLimit('ledger', 'free', 99999)).toBe(true);
+        expect(promoService.isWithinLimit('ai_query', 'free', 999)).toBe(true);
+      } finally {
+        process.env['LAUNCH_PROMO_ENABLED'] = orig;
+        process.env['LAUNCH_PROMO_END_DATE'] = origEnd;
+      }
     });
   });
 

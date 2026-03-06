@@ -1,5 +1,5 @@
 import { PeriodPicker } from "@/components/period-picker";
-import { getCurrencySymbol, standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverviewData } from "@/services/charts.services";
 import { PaymentsOverviewChart } from "./chart";
@@ -17,8 +17,6 @@ export async function PaymentsOverview({
   currency = "NGN",
 }: PropsType) {
   const data = await getPaymentsOverviewData(timeFrame);
-  const symbol = getCurrencySymbol(currency);
-
   return (
     <div
       className={cn(
@@ -39,14 +37,14 @@ export async function PaymentsOverview({
       <dl className="grid divide-stroke text-center dark:divide-dark-3 sm:grid-cols-2 sm:divide-x [&>div]:flex [&>div]:flex-col-reverse [&>div]:gap-1">
         <div className="dark:border-dark-3 max-sm:mb-3 max-sm:border-b max-sm:pb-3">
           <dt className="text-xl font-bold text-dark dark:text-white">
-            {symbol}{standardFormat(data.received.reduce((acc, { y }) => acc + y, 0))}
+            <Price amount={data.received.reduce((acc, { y }) => acc + y, 0)} currency={currency} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Received Amount</dd>
         </div>
 
         <div>
           <dt className="text-xl font-bold text-dark dark:text-white">
-            {symbol}{standardFormat(data.due.reduce((acc, { y }) => acc + y, 0))}
+            <Price amount={data.due.reduce((acc, { y }) => acc + y, 0)} currency={currency} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Due Amount</dd>
         </div>

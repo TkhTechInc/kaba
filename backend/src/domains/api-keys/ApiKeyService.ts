@@ -39,14 +39,14 @@ export class ApiKeyService {
     const apiKey = await this.apiKeyRepository.create(input, hash, prefix);
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'ApiKey',
         entityId: apiKey.id,
         businessId: apiKey.businessId,
         action: 'create',
         userId,
         changes: { name: { to: apiKey.name }, isTest: { to: input.isTest ?? false } },
-      });
+      }).catch(() => {});
     }
 
     return {
@@ -66,14 +66,14 @@ export class ApiKeyService {
     await this.apiKeyRepository.delete(businessId, id);
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'ApiKey',
         entityId: id,
         businessId,
-        action: 'revoke',
+        action: 'apikey.revoke',
         userId,
         changes: { name: { from: existing.name, to: null } },
-      });
+      }).catch(() => {});
     }
   }
 

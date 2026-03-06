@@ -6,10 +6,6 @@ export class AuditService implements IAuditLogger {
   constructor(private readonly auditRepository: AuditRepository) {}
 
   async log(input: LogAuditInput): Promise<void> {
-    if (!this.auditRepository) {
-      console.warn('[AuditService] auditRepository not initialized, skipping audit log');
-      return;
-    }
     await this.auditRepository.append(input);
   }
 
@@ -20,12 +16,28 @@ export class AuditService implements IAuditLogger {
     limit: number = 50,
     exclusiveStartKey?: Record<string, unknown>
   ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
-    return this.auditRepository.queryByBusiness(
-      businessId,
-      from,
-      to,
-      limit,
-      exclusiveStartKey
-    );
+    return this.auditRepository.queryByBusiness(businessId, from, to, limit, exclusiveStartKey);
+  }
+
+  async queryByUserId(
+    userId: string,
+    businessId?: string,
+    from?: string,
+    to?: string,
+    limit: number = 50,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    return this.auditRepository.queryByUserId(userId, businessId, from, to, limit, exclusiveStartKey);
+  }
+
+  async queryByEntityId(
+    entityId: string,
+    businessId?: string,
+    from?: string,
+    to?: string,
+    limit: number = 50,
+    exclusiveStartKey?: Record<string, unknown>
+  ): Promise<{ items: AuditLog[]; lastEvaluatedKey?: Record<string, unknown> }> {
+    return this.auditRepository.queryByEntityId(entityId, businessId, from, to, limit, exclusiveStartKey);
   }
 }

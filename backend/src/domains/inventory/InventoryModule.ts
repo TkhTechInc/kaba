@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
+import { AuditModule } from '@/domains/audit/AuditModule';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { ProductRepository } from './repositories/ProductRepository';
@@ -12,7 +13,7 @@ import { RestockLoanController } from './RestockLoanController';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 
 @Module({
-  imports: [BusinessModule, forwardRef(() => LedgerModule)],
+  imports: [AuditModule, BusinessModule, forwardRef(() => LedgerModule)],
   controllers: [ProductController, RestockLoanController],
   providers: [
     {

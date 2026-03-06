@@ -1,17 +1,10 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { useEffect, useState } from "react";
 
 export default function PendingApprovalsPage() {
@@ -72,45 +65,28 @@ export default function PendingApprovalsPage() {
 
         {loading ? (
           <p className="py-8 text-center text-gray-500">Loading...</p>
-        ) : invoices.length === 0 ? (
-          <p className="py-8 text-center text-gray-500">
-            No invoices pending approval. 
-          </p>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice ID</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Amount</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {invoices.map((inv) => (
-                <TableRow key={inv.id}>
-                  <TableCell className="font-mono text-xs">{inv.id.slice(0, 8)}…</TableCell>
-                  <TableCell>{inv.customerId}</TableCell>
-                  <TableCell>
-                    {inv.currency} {standardFormat(inv.amount)}
-                  </TableCell>
-                  <TableCell>{inv.dueDate}</TableCell>
-                  <TableCell>{inv.createdAt.slice(0, 10)}</TableCell>
-                  <TableCell>
-                    <button
-                      onClick={() => handleApprove(inv.id)}
-                      disabled={approvingId === inv.id}
-                      className="rounded bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
-                    >
-                      {approvingId === inv.id ? "Approving…" : "Approve"}
-                    </button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <ResponsiveDataList<Invoice>
+            items={invoices}
+            keyExtractor={(inv) => inv.id}
+            emptyMessage="No invoices pending approval."
+            columns={[
+              { key: "id", label: "Invoice ID", render: (inv) => <span className="font-mono text-xs">{inv.id.slice(0, 8)}…</span>, prominent: true },
+              { key: "customer", label: "Customer", render: (inv) => inv.customerId },
+              { key: "amount", label: "Amount", render: (inv) => <Price amount={inv.amount} currency={inv.currency} /> },
+              { key: "dueDate", label: "Due Date", render: (inv) => inv.dueDate },
+              { key: "created", label: "Created", render: (inv) => inv.createdAt.slice(0, 10) },
+            ]}
+            renderActions={(inv) => (
+              <button
+                onClick={() => handleApprove(inv.id)}
+                disabled={approvingId === inv.id}
+                className="rounded bg-green-600 px-3 py-1 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              >
+                {approvingId === inv.id ? "Approving…" : "Approve"}
+              </button>
+            )}
+          />
         )}
       </div>
     </div>

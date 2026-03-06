@@ -6,7 +6,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { compactFormat, getCurrencySymbol, standardFormat } from "@/lib/format-number";
+import { compactFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { getTopChannels } from "../fetch";
@@ -20,8 +21,6 @@ export async function TopChannels({
   currency?: string;
 }) {
   const data = await getTopChannels();
-  const symbol = getCurrencySymbol(currency);
-
   return (
     <div
       className={cn(
@@ -65,7 +64,7 @@ export async function TopChannels({
               <TableCell>{compactFormat(channel.visitors)}</TableCell>
 
               <TableCell className="!text-right text-green-light-1">
-                {symbol}{standardFormat(channel.revenues)}
+                <Price amount={channel.revenues} currency={currency} />
               </TableCell>
 
               <TableCell>{channel.sales}</TableCell>

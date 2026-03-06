@@ -5,7 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import {
   createInvoicesApi,
   type CreateInvoiceInput,
@@ -306,9 +306,7 @@ export default function InvoiceEditPage() {
                       className="flex items-center justify-between rounded border border-stroke px-3 py-2 dark:border-dark-3"
                     >
                       <span className="text-sm">
-                        {item.description} × {item.quantity} @ {form.currency}{" "}
-                        {standardFormat(item.unitPrice)} = {form.currency}{" "}
-                        {standardFormat(item.amount)}
+                        {item.description} × {item.quantity} @ <Price amount={item.unitPrice} currency={form.currency} /> = <Price amount={item.amount} currency={form.currency} />
                       </span>
                       <button
                         type="button"
@@ -323,8 +321,7 @@ export default function InvoiceEditPage() {
               )}
               {form.items.length > 0 && (
                 <p className="mb-3 text-sm font-medium">
-                  Subtotal: {form.currency}{" "}
-                  {standardFormat(form.items.reduce((s, i) => s + i.amount, 0))}
+                  Subtotal: <Price amount={form.items.reduce((s, i) => s + i.amount, 0)} currency={form.currency} />
                 </p>
               )}
               <div className="space-y-2">

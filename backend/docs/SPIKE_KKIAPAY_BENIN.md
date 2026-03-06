@@ -72,6 +72,18 @@ Our `generatePaymentLink` API expects a **URL** the user can share (e.g. Stripe 
 - `KKIAPAY_PRIVATE_KEY` — API key from https://app.kkiapay.me/dashboard
 - `KKIAPAY_WEBHOOK_SECRET` — For webhook signature verification
 - `KKIAPAY_BASE_URL` — Default: `https://api.kkiapay.me`
+- `KKIAPAY_SANDBOX` — Set to `true` when using widget sandbox; 404 from status API is trusted as success
+
+## Testing Failed Transactions
+
+When testing failed payments (e.g. KkiaPay test numbers for "Insufficient fund", "Payment declined"):
+
+1. **If KkiaPay adds status to the redirect URL** — We read `transaction_status`, `status`, or `event` from the URL and reject when it indicates failure.
+2. **Manual override** — Add `?transaction_status=failed` to the return URL to simulate a failed redirect, e.g.:
+   ```
+   http://localhost:3000/pay/kkiapay-return?token=XXX&transaction_id=YYY&transaction_status=failed
+   ```
+   The backend will reject and show "Payment was not successful" without calling the KkiaPay API.
 
 ## Next Steps
 

@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { compactFormat } from "@/lib/format-number";
+import { compactFormat, formatPriceWithCurrency } from "@/lib/format-number";
 import { getDashboardSummary } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
+import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useFeatures } from "@/hooks/use-features";
 import { OverviewCard } from "./card";
 import * as icons from "./icons";
 
 export function OverviewCardsGroupClient() {
   const { token, businessId } = useAuth();
+  const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardSummary>>>(null);
@@ -32,7 +34,7 @@ export function OverviewCardsGroupClient() {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token]);
+  }, [businessId, token, refreshTrigger]);
 
   if (!businessId) {
     return (
@@ -69,10 +71,10 @@ export function OverviewCardsGroupClient() {
       label: "Cash Balance",
       show: features.isEnabled("ledger"),
       data: {
-        value: data.balance != null ? `${data.currency} ${compactFormat(data.balance)}` : "—",
+        value: data.balance != null ? formatPriceWithCurrency(data.balance, data.currency) : "—",
         growthRate: undefined,
       },
-      href: "/ledger/balance",
+      href: "/ledger",
       statusColor: data.balance != null && data.balance < 0 ? "danger" : "ok",
       Icon: icons.Profit,
     },

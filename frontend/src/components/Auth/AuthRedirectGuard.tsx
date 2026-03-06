@@ -18,17 +18,19 @@ function AuthRedirectGuardContent({ children }: { children: ReactNode }) {
   const isAuthenticated = !!auth?.token;
   const isLoading = auth?.isLoading ?? true;
   const isAuthPage = pathname?.startsWith("/auth/");
+  const isResetPassword = pathname === "/auth/reset-password";
   const returnUrl = searchParams.get("returnUrl");
 
   useEffect(() => {
     if (isLoading || !isAuthPage) return;
+    if (isResetPassword) return; // Allow reset-password even when logged in (OAuth user adding password)
     if (isAuthenticated) {
       const target = isValidReturnUrl(returnUrl ?? "") ? (returnUrl ?? "/") : "/";
       router.replace(target);
     }
-  }, [isAuthenticated, isLoading, isAuthPage, returnUrl, router]);
+  }, [isAuthenticated, isLoading, isAuthPage, isResetPassword, returnUrl, router]);
 
-  if (isAuthPage && isAuthenticated && !isLoading) {
+  if (isAuthPage && !isResetPassword && isAuthenticated && !isLoading) {
     return null; // Redirecting
   }
 

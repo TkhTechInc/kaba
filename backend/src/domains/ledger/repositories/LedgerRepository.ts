@@ -91,34 +91,58 @@ export class LedgerRepository {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    type?: 'sale' | 'expense',
   ): Promise<ListByBusinessResult> {
     try {
-      const params = {
+      const limitNum = Number(limit) || 20;
+      const pageNum = Math.max(1, Number(page) || 1);
+
+      const filterParts = ['attribute_not_exists(deletedAt)'];
+      const expressionAttributeValues: Record<string, unknown> = {
+        ':pk': businessId,
+        ':skPrefix': SK_PREFIX,
+      };
+      const expressionAttributeNames: Record<string, string> = {};
+      if (type) {
+        filterParts.push('#entryType = :entryType');
+        expressionAttributeNames['#entryType'] = 'type';
+        expressionAttributeValues[':entryType'] = type;
+      }
+
+      const baseParams = {
         TableName: this.tableName,
         KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-        FilterExpression: 'attribute_not_exists(deletedAt)',
-        ExpressionAttributeValues: {
-          ':pk': businessId,
-          ':skPrefix': SK_PREFIX,
-        },
-        Limit: limit,
+        FilterExpression: filterParts.join(' AND '),
+        ExpressionAttributeValues: expressionAttributeValues,
+        ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
+        Limit: limitNum,
         ScanIndexForward: false,
-        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
       };
 
-      const result = await this.docClient.send(new QueryCommand(params));
+      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
+      for (let i = 0; i < pageNum - 1; i++) {
+        const skipResult = await this.docClient.send(
+          new QueryCommand({ ...baseParams, ...(cursor && { ExclusiveStartKey: cursor }) })
+        );
+        cursor = skipResult.LastEvaluatedKey;
+        if (!cursor) {
+          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
+        }
+      }
+
+      const result = await this.docClient.send(
+        new QueryCommand({ ...baseParams, ...(cursor && { ExclusiveStartKey: cursor }) })
+      );
       const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
-      // DynamoDB cannot return a true total count without scanning all pages;
-      // Count is items returned after filter, ScannedCount is items scanned before filter —
-      // adding them would double-count. Use Count for the current page only.
-      const total = result.Count ?? 0;
+      const hasMore = !!result.LastEvaluatedKey;
+      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
 
       return {
         items,
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {

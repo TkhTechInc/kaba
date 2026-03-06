@@ -43,7 +43,11 @@ export class LedgerService {
     @Optional() @Inject(CATEGORY_SUGGESTER) private readonly categorySuggester?: ICategorySuggester,
   ) {}
 
-  async createEntry(input: CreateLedgerEntryInput, userId?: string): Promise<LedgerEntry> {
+  async createEntry(
+    input: CreateLedgerEntryInput,
+    userId?: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
+  ): Promise<LedgerEntry> {
     if (!input.businessId?.trim()) {
       throw new ValidationError('businessId is required');
     }
@@ -109,21 +113,24 @@ export class LedgerService {
     }
 
     const business = await this.businessRepo.getOrCreate(input.businessId, 'free');
-    const { from, to } = getCurrentMonthRange();
-    const count = await this.ledgerRepository.countByBusinessInDateRange(
-      input.businessId,
-      from,
-      to,
-    );
-    if (!this.featureService.isWithinLimit('ledger', business.tier, count)) {
-      const limit = this.featureService.getLimit('ledger', business.tier);
-      throw new ValidationError(
-        `Ledger entry limit reached (${count}/${limit} this month). Upgrade your plan for more.`,
+    if (!input.skipLimitCheck) {
+      const { from, to } = getCurrentMonthRange();
+      const count = await this.ledgerRepository.countByBusinessInDateRange(
+        input.businessId,
+        from,
+        to,
       );
+      if (!this.featureService.isWithinLimit('ledger', business.tier, count)) {
+        const limit = this.featureService.getLimit('ledger', business.tier);
+        throw new ValidationError(
+          `Ledger entry limit reached (${count}/${limit} this month). Upgrade your plan for more.`,
+        );
+      }
     }
 
+    const { skipLimitCheck: _, ...createInput } = input;
     const entry = await this.ledgerRepository.create({
-      ...input,
+      ...createInput,
       amount,
       description,
       productId,
@@ -170,6 +177,8 @@ export class LedgerService {
           businessId: entry.businessId,
           action: 'create',
           userId,
+          ipAddress: auditContext?.ipAddress,
+          userAgent: auditContext?.userAgent,
         });
       } catch (auditErr) {
         console.error('[LedgerService] Audit log failed:', auditErr);
@@ -207,13 +216,14 @@ export class LedgerService {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    type?: 'sale' | 'expense',
   ): Promise<ListByBusinessResult> {
     if (!businessId?.trim()) {
       throw new ValidationError('businessId is required');
     }
 
-    return this.ledgerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey);
+    return this.ledgerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, type);
   }
 
   async getBalance(businessId: string): Promise<BalanceResult> {
@@ -260,7 +270,8 @@ export class LedgerService {
   async softDeleteEntry(
     businessId: string,
     id: string,
-    userId?: string
+    userId?: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
   ): Promise<void> {
     if (!businessId?.trim()) {
       throw new ValidationError('businessId is required');
@@ -304,6 +315,8 @@ export class LedgerService {
           businessId,
           action: 'delete',
           userId,
+          ipAddress: auditContext?.ipAddress,
+          userAgent: auditContext?.userAgent,
         });
       } catch (auditErr) {
         console.error('[LedgerService] Audit log failed:', auditErr);

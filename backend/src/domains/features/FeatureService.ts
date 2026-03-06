@@ -32,6 +32,7 @@ const DEFAULT_FEATURES: FeatureConfigMap = {
   trust_score: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
   trust_share: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
   trust_lookup: { enabled: true, tiers: ['pro', 'enterprise'] },
+  whatsapp_invoice_delivery: { enabled: true, tiers: ['pro', 'enterprise'] },
 };
 
 @Injectable()
@@ -43,10 +44,21 @@ export class FeatureService {
     this.features = { ...DEFAULT_FEATURES, ...overrides };
   }
 
+  /** True when launch promo is enabled and current date is before end date. */
+  private isLaunchPromoActive(): boolean {
+    const promo = process.env['LAUNCH_PROMO_ENABLED'] === 'true';
+    if (!promo) return false;
+    const endDate = process.env['LAUNCH_PROMO_END_DATE']?.trim();
+    if (!endDate) return true;
+    const today = new Date().toISOString().slice(0, 10);
+    return today <= endDate;
+  }
+
   /** Check if a feature is enabled for the given tier. */
   isEnabled(featureKey: FeatureKey, tier: Tier): boolean {
     const feature = this.features[featureKey];
     if (!feature || !feature.enabled) return false;
+    if (this.isLaunchPromoActive()) return true;
     return feature.tiers.includes(tier);
   }
 
@@ -56,16 +68,18 @@ export class FeatureService {
     tier: Tier,
     currentUsage: number,
   ): boolean {
+    const effectiveTier = this.isLaunchPromoActive() ? 'enterprise' : tier;
     const feature = this.features[featureKey];
     if (!feature?.limits) return true;
-    const limit = feature.limits[tier];
+    const limit = feature.limits[effectiveTier];
     if (limit == null) return true;
     return currentUsage < limit;
   }
 
   /** Get the limit for a feature/tier, or undefined if unlimited. */
   getLimit(featureKey: FeatureKey, tier: Tier): number | undefined {
-    return this.features[featureKey]?.limits?.[tier];
+    const effectiveTier = this.isLaunchPromoActive() ? 'enterprise' : tier;
+    return this.features[featureKey]?.limits?.[effectiveTier];
   }
 
   /** Get all features (for admin/config display). */

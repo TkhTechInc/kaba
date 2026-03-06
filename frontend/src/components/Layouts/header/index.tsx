@@ -16,41 +16,46 @@ export function Header() {
   const { isInstallable, promptInstall } = useInstallPrompt();
 
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between border-b border-stroke bg-white px-4 py-5 shadow-1 dark:border-stroke-dark dark:bg-gray-dark md:px-5 2xl:px-10">
-      <button
-        onClick={toggleSidebar}
-        className="rounded-lg border px-1.5 py-1 dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A] lg:hidden"
-      >
-        <MenuIcon />
-        <span className="sr-only">Toggle Sidebar</span>
-      </button>
+    <header className="sticky top-0 z-30 flex min-w-0 items-center justify-between gap-2 border-b border-stroke bg-white px-3 py-4 shadow-1 dark:border-stroke-dark dark:bg-gray-dark sm:gap-4 sm:px-4 sm:py-5 md:px-5 2xl:px-10">
+      <div className="flex shrink-0 items-center gap-2">
+        <button
+          onClick={toggleSidebar}
+          className="rounded-lg border px-1.5 py-1 dark:border-stroke-dark dark:bg-[#020D1A] hover:dark:bg-[#FFFFFF1A] lg:hidden"
+          aria-label="Toggle menu"
+        >
+          <MenuIcon />
+        </button>
 
-      {isMobile && (
-        <Link href={"/"} className="ml-2 max-[430px]:hidden min-[375px]:ml-4">
-          <Image
-            src={"/images/logo/logo-icon.svg"}
-            width={32}
-            height={32}
-            alt=""
-            role="presentation"
-          />
-        </Link>
-      )}
+        {isMobile && (
+          <Link href={"/"} className="hidden sm:block">
+            <Image
+              src={"/images/logo/logo-icon.svg"}
+              width={32}
+              height={32}
+              alt=""
+              role="presentation"
+            />
+          </Link>
+        )}
+      </div>
 
-      <div className="flex flex-1 items-center justify-end gap-2 min-[375px]:gap-4">
-        <div className="relative w-full max-w-[300px]">
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2 md:gap-4">
+        <div className="relative hidden min-w-0 sm:block sm:max-w-[200px] md:max-w-[260px] lg:max-w-[300px]">
           <input
             type="search"
             placeholder="Search"
-            className="flex w-full items-center gap-3.5 rounded-full border bg-gray-2 py-3 pl-[53px] pr-5 outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary"
+            className="w-full min-w-0 rounded-full border bg-gray-2 py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus-visible:border-primary dark:border-dark-3 dark:bg-dark-2 dark:hover:border-dark-4 dark:hover:bg-dark-3 dark:hover:text-dark-6 dark:focus-visible:border-primary sm:py-3 sm:pl-[42px] sm:pr-5 md:pl-[53px]"
           />
-
-          <SearchIcon className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 max-[1015px]:size-5" />
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 sm:left-4 sm:size-5 md:left-5" />
         </div>
 
-        <LanguagePicker />
+        <div className="shrink-0">
+          <LanguagePicker />
+        </div>
 
-        <ThemeToggleSwitch />
+        <div className="shrink-0">
+          <ThemeToggleSwitch />
+        </div>
 
         {isInstallable && (
           <button
@@ -67,7 +72,9 @@ export function Header() {
           </button>
         )}
 
-        <Notification />
+        <div className="shrink-0">
+          <Notification />
+        </div>
 
         <div className="shrink-0">
           <UserInfo />

@@ -38,4 +38,6 @@ export interface CreateLedgerEntryInput {
   originalCurrency?: string;
   exchangeRate?: number;
   forexGainLoss?: number;
+  /** When true, skip ledger limit check (e.g. for system-generated entries from invoice payment). */
+  skipLimitCheck?: boolean;
 }

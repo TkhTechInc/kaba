@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject, Optional } from '@nestjs/common';
 import { RecurringInvoiceRepository } from '../repositories/RecurringInvoiceRepository';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import type {
@@ -6,6 +6,8 @@ import type {
   RecurrenceInterval,
 } from '../models/RecurringInvoiceSchedule';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
+import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
+import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 
 function addIntervalToDate(baseDate: Date, interval: RecurrenceInterval): Date {
   const d = new Date(baseDate);
@@ -39,7 +41,8 @@ function addIntervalToDate(baseDate: Date, interval: RecurrenceInterval): Date {
 export class RecurringInvoiceService {
   constructor(
     private readonly recurringRepository: RecurringInvoiceRepository,
-    private readonly invoiceRepository: InvoiceRepository
+    private readonly invoiceRepository: InvoiceRepository,
+    @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
   async createSchedule(
@@ -108,6 +111,17 @@ export class RecurringInvoiceService {
         });
 
         createdIds.push(clonedInvoice.id);
+
+        if (this.auditLogger) {
+          this.auditLogger.log({
+            entityType: 'recurring_invoice',
+            entityId: clonedInvoice.id,
+            businessId: clonedInvoice.businessId,
+            action: 'create',
+            userId: schedule.createdBy ?? 'system',
+            metadata: { scheduleId: schedule.id, templateInvoiceId: schedule.templateInvoiceId },
+          }).catch(() => {});
+        }
 
         const nextRunAt = addIntervalToDate(
           new Date(schedule.nextRunAt),

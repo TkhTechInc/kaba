@@ -2,18 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { getCurrencySymbol, standardFormat } from "@/lib/format-number";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
+import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { createInvoicesApi } from "@/services/invoices.service";
 import { useAuth } from "@/contexts/auth-context";
+import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useFeatures } from "@/hooks/use-features";
 import type { Invoice } from "@/services/invoices.service";
 
@@ -50,6 +44,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export function DashboardRecentInvoices({ className }: { className?: string }) {
   const { businessId, token } = useAuth();
+  const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
   const [loading, setLoading] = useState(true);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -74,12 +69,9 @@ export function DashboardRecentInvoices({ className }: { className?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token]);
+  }, [businessId, token, refreshTrigger]);
 
   if (!businessId) return null;
-
-  const currency = features.currency ?? "NGN";
-  const symbol = getCurrencySymbol(currency);
 
   return (
     <div
@@ -105,43 +97,39 @@ export function DashboardRecentInvoices({ className }: { className?: string }) {
       ) : invoices.length === 0 ? (
         <p className="py-8 text-center text-dark-6">
           No invoices yet.{" "}
-          <Link href="/invoices" className="text-primary hover:underline">
+          <Link href="/invoices/new" className="text-primary hover:underline">
             Create your first invoice
           </Link>
         </p>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-none uppercase [&>th]:text-center">
-              <TableHead className="!text-left">Amount</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="!text-right">Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {invoices.map((inv) => (
-              <TableRow
-                key={inv.id}
-                className="text-center font-medium text-dark dark:text-white"
-              >
-                <TableCell className="!text-left font-semibold">
-                  {symbol}
-                  {standardFormat(inv.amount)}
-                </TableCell>
-                <TableCell>{formatDate(inv.dueDate)}</TableCell>
-                <TableCell>
-                  <StatusBadge status={inv.status} />
-                </TableCell>
-                <TableCell className="!text-right">
-                  <Link href="/invoices" className="text-primary hover:underline">
-                    View
-                  </Link>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <ResponsiveDataList<Invoice>
+          items={invoices}
+          keyExtractor={(inv) => inv.id}
+          emptyMessage={
+            <>
+              No invoices yet.{" "}
+              <Link href="/invoices/new" className="text-primary hover:underline">
+                Create your first invoice
+              </Link>
+            </>
+          }
+          columns={[
+            {
+              key: "amount",
+              label: "Amount",
+              render: (inv) => <Price amount={inv.amount} currency={inv.currency} />,
+              prominent: true,
+              cellClassName: "font-semibold",
+            },
+            { key: "dueDate", label: "Due Date", render: (inv) => formatDate(inv.dueDate) },
+            { key: "status", label: "Status", render: (inv) => <StatusBadge status={inv.status} /> },
+          ]}
+          renderActions={(inv) => (
+            <Link href={`/invoices/${inv.id}`} className="text-primary hover:underline">
+              View
+            </Link>
+          )}
+        />
       )}
     </div>
   );

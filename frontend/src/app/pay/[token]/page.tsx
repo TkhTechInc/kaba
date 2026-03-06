@@ -1,20 +1,95 @@
 "use client";
 
 import { Logo } from "@/components/logo";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { Skeleton } from "@/components/ui/skeleton";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { apiGet } from "@/lib/api-client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+
+/** KkiaPay widget: load script and open payment modal. */
+function KkiaPayWidgetButton({
+  token,
+  amount,
+  currency,
+}: {
+  token: string;
+  amount: number;
+  currency: string;
+}) {
+  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const publicKey = process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY ?? "";
+  const sandbox = (process.env.NEXT_PUBLIC_KKIAPAY_SANDBOX ?? "true") === "true";
+  const amountWhole = ["XOF", "XAF", "GNF"].includes(currency?.toUpperCase?.() ?? "")
+    ? Math.round(amount)
+    : Math.round(amount * 100);
+  const callbackUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/pay/kkiapay-return?token=${encodeURIComponent(token)}`
+      : "";
+
+  useEffect(() => {
+    if (!publicKey) {
+      setError("KkiaPay not configured");
+      return;
+    }
+    if (document.querySelector('script[src="https://cdn.kkiapay.me/k.js"]')) {
+      setScriptLoaded(true);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdn.kkiapay.me/k.js";
+    script.async = true;
+    script.onload = () => setScriptLoaded(true);
+    script.onerror = () => setError("Could not load KkiaPay");
+    document.body.appendChild(script);
+  }, [publicKey]);
+
+  const openWidget = () => {
+    const win = typeof window !== "undefined" ? (window as Window & { openKkiapayWidget?: (opts: Record<string, unknown>) => void }) : null;
+    if (!win?.openKkiapayWidget) {
+      setError("KkiaPay not ready");
+      return;
+    }
+    setError(null);
+    win.openKkiapayWidget({
+      amount: String(amountWhole),
+      key: publicKey,
+      callback: callbackUrl,
+      sandbox,
+      position: "center",
+      theme: "#0095ff",
+    });
+  };
+
+  if (error) {
+    return (
+      <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+        {error}
+      </p>
+    );
+  }
+  if (!scriptLoaded) {
+    return (
+      <div className="flex items-center justify-center gap-2 py-3 text-sm text-dark-4 dark:text-dark-6">
+        <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        Loading payment…
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={openWidget}
+      className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+    >
+      Pay with KkiaPay (Mobile Money / Card)
+    </button>
+  );
+}
 
 interface InvoicePayItem {
   description: string;
@@ -33,6 +108,7 @@ interface InvoicePayData {
   items?: InvoicePayItem[];
   status: string;
   paymentUrl?: string;
+  useKkiaPayWidget?: boolean;
   dueDate?: string;
 }
 
@@ -54,6 +130,9 @@ function isPaid(status: string): boolean {
   return status?.toLowerCase() === "paid";
 }
 
+const POLL_INTERVAL_MS = 5_000;
+const POLL_MAX_MS = 120_000;
+
 function PayContent() {
   const params = useParams();
   const tokenParam = params?.token as string | undefined;
@@ -61,6 +140,50 @@ function PayContent() {
   const [data, setData] = useState<InvoicePayData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [polling, setPolling] = useState(false);
+
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollStartRef = useRef<number | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    setPolling(false);
+  }, []);
+
+  const fetchInvoice = useCallback(async (token: string) => {
+    const res = await apiGet<InvoicePayResponse>(
+      `/api/v1/invoices/pay/${encodeURIComponent(token)}`,
+      { skip401Redirect: true }
+    );
+    if (res?.success && res.data) return res.data;
+    return null;
+  }, []);
+
+  // Start polling after customer clicks Pay Now
+  const startPolling = useCallback((token: string) => {
+    if (pollTimerRef.current) return; // already polling
+    setPolling(true);
+    pollStartRef.current = Date.now();
+    pollTimerRef.current = setInterval(async () => {
+      const elapsed = Date.now() - (pollStartRef.current ?? 0);
+      if (elapsed > POLL_MAX_MS) {
+        stopPolling();
+        return;
+      }
+      try {
+        const fresh = await fetchInvoice(token);
+        if (fresh) {
+          setData(fresh);
+          if (isPaid(fresh.status)) stopPolling();
+        }
+      } catch {
+        // Silently ignore poll errors; stop polling after timeout
+      }
+    }, POLL_INTERVAL_MS);
+  }, [fetchInvoice, stopPolling]);
 
   useEffect(() => {
     if (!tokenParam?.trim()) {
@@ -69,27 +192,24 @@ function PayContent() {
       return;
     }
 
-    apiGet<InvoicePayResponse>(
-      `/api/v1/invoices/pay/${encodeURIComponent(tokenParam)}`,
-      { skip401Redirect: true }
-    )
-      .then((res) => {
-        if (res?.success && res.data) {
-          setData(res.data);
+    fetchInvoice(tokenParam)
+      .then((d) => {
+        if (d) {
+          setData(d);
           setError(null);
         } else {
-          setData(null);
           setError("Invalid or expired payment link");
         }
       })
       .catch((err) => {
-        setData(null);
         setError(
           err instanceof Error ? err.message : "Invalid or expired payment link"
         );
       })
       .finally(() => setLoading(false));
-  }, [tokenParam]);
+
+    return () => stopPolling();
+  }, [tokenParam, fetchInvoice, stopPolling]);
 
   // No token
   if (!tokenParam?.trim()) {
@@ -200,7 +320,7 @@ function PayContent() {
               <div>
                 <p className="text-sm font-medium text-dark-6">Amount</p>
                 <p className="text-lg font-semibold text-dark dark:text-white">
-                  {data.currency} {standardFormat(data.amount)}
+                  <Price amount={data.amount} currency={data.currency} />
                 </p>
               </div>
               <div>
@@ -230,41 +350,45 @@ function PayContent() {
                 Line items
               </p>
               <div className="overflow-hidden rounded-lg border border-stroke dark:border-dark-3">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-dark-6">Description</TableHead>
-                      <TableHead className="text-right text-dark-6">
-                        Amount
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {data.items?.map((item, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-dark dark:text-white">
+                <ResponsiveDataList<{ description: string; quantity: number; unitPrice: number; amount: number }>
+                  items={data.items ?? []}
+                  keyExtractor={(item) => `${item.description}-${item.quantity}-${item.amount}`}
+                  emptyMessage="No line items"
+                  columns={[
+                    {
+                      key: "description",
+                      label: "Description",
+                      render: (item) => (
+                        <span className="text-dark dark:text-white">
                           {item.description}
                           {item.quantity > 1 && (
                             <span className="ml-1 text-dark-6">
-                              × {item.quantity} @ {data.currency}{" "}
-                              {standardFormat(item.unitPrice)}
+                              × {item.quantity} @ <Price amount={item.unitPrice} currency={data.currency} />
                             </span>
                           )}
-                        </TableCell>
-                        <TableCell className="text-right font-medium text-dark dark:text-white">
-                          {data.currency} {standardFormat(item.amount)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                        </span>
+                      ),
+                      prominent: true,
+                    },
+                    {
+                      key: "amount",
+                      label: "Amount",
+                      render: (item) => (
+                        <span className="font-medium text-dark dark:text-white">
+                          <Price amount={item.amount} currency={data.currency} />
+                        </span>
+                      ),
+                      align: "right",
+                    },
+                  ]}
+                />
               </div>
             </div>
 
             <div className="flex justify-between border-t border-stroke pt-4 text-lg font-semibold dark:border-dark-3">
               <span className="text-dark dark:text-white">Total</span>
               <span className="text-dark dark:text-white">
-                {data.currency} {standardFormat(data.amount)}
+                <Price amount={data.amount} currency={data.currency} />
               </span>
             </div>
 
@@ -293,20 +417,40 @@ function PayContent() {
                   paid.
                 </p>
               </div>
+            ) : data.useKkiaPayWidget && tokenParam ? (
+              <div className="flex flex-col gap-3">
+                <KkiaPayWidgetButton
+                  token={tokenParam}
+                  amount={data.amount}
+                  currency={data.currency}
+                />
+                <p className="text-center text-xs text-dark-4 dark:text-dark-6">
+                  Pay with Mobile Money or Card via KkiaPay
+                </p>
+              </div>
             ) : (
               data.paymentUrl && (
-                <a
-                  href={data.paymentUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
-                >
-                  Pay Now
-                </a>
+                <div className="flex flex-col gap-3">
+                  <a
+                    href={data.paymentUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => tokenParam && startPolling(tokenParam)}
+                    className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+                  >
+                    Pay Now
+                  </a>
+                  {polling && (
+                    <p className="flex items-center justify-center gap-2 text-sm text-dark-4 dark:text-dark-6">
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      Waiting for payment confirmation…
+                    </p>
+                  )}
+                </div>
               )
             )}
 
-            {!paid && !data.paymentUrl && (
+            {!paid && !data.paymentUrl && !data.useKkiaPayWidget && (
               <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
                 Payment link is not available for this invoice. Please contact
                 the business for payment instructions.

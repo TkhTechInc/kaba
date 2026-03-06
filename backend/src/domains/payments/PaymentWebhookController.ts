@@ -4,6 +4,8 @@ import { Public } from '@/nest/common/decorators/auth.decorator';
 import { PaymentGatewayManager } from './gateways/PaymentGatewayManager';
 import { PaymentGatewayType } from './interfaces/IPaymentGateway';
 import { InvoiceService } from '@/domains/invoicing/services/InvoiceService';
+import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
+import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 
 /**
  * Payment webhook controller.
@@ -16,6 +18,7 @@ export class PaymentWebhookController {
   constructor(
     private readonly gatewayManager: PaymentGatewayManager,
     @Optional() private readonly invoiceService?: InvoiceService,
+    @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
   @Post(':gateway')
@@ -50,6 +53,28 @@ export class PaymentWebhookController {
           // Log but don't fail the webhook response — gateway must receive 200 to stop retries.
           console.error('[PaymentWebhookController] markPaidFromWebhook failed:', invoiceErr);
         }
+
+        if (this.auditLogger && result.invoiceId && result.businessId) {
+          this.auditLogger.log({
+            entityType: 'payment',
+            entityId: result.invoiceId,
+            businessId: result.businessId,
+            action: 'payment.confirmed',
+            userId: 'system',
+            metadata: { gateway: gatewayType },
+          }).catch(() => {});
+        }
+      } else if (!result.success && result.invoiceId && result.businessId) {
+        if (this.auditLogger) {
+          this.auditLogger.log({
+            entityType: 'payment',
+            entityId: result.invoiceId,
+            businessId: result.businessId,
+            action: 'payment.failed',
+            userId: 'system',
+            metadata: { gateway: gatewayType },
+          }).catch(() => {});
+        }
       }
 
       return res.status(200).json({ success: result.success });
@@ -73,7 +98,8 @@ export class PaymentWebhookController {
       case 'stripe':
         return req.headers['stripe-signature'] as string | undefined;
       case 'kkiapay':
-        return req.headers['x-kkiapay-signature'] as string | undefined;
+        // KkiaPay docs: x-kkiapay-secret header contains the HMAC signature
+        return (req.headers['x-kkiapay-secret'] ?? req.headers['x-kkiapay-signature']) as string | undefined;
       case 'momo':
         return req.headers['x-momo-signature'] as string | undefined;
       case 'paystack':

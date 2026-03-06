@@ -1,17 +1,10 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { createReportsApi } from "@/services/reports.service";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { useState } from "react";
 
 export default function ConsolidatedReportPage() {
@@ -94,59 +87,78 @@ export default function ConsolidatedReportPage() {
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
                 <p className="text-sm text-gray-500">Total Income</p>
                 <p className="text-xl font-bold text-green-600">
-                  {report.currency} {standardFormat(report.totalIncome)}
+                  <Price amount={report.totalIncome} currency={report.currency} />
                 </p>
               </div>
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
                 <p className="text-sm text-gray-500">Total Expenses</p>
                 <p className="text-xl font-bold text-red-600">
-                  {report.currency} {standardFormat(report.totalExpenses)}
+                  <Price amount={report.totalExpenses} currency={report.currency} />
                 </p>
               </div>
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
                 <p className="text-sm text-gray-500">Net Profit</p>
                 <p className={`text-xl font-bold ${colorClass(report.netProfit)}`}>
-                  {report.currency} {standardFormat(report.netProfit)}
+                  <Price amount={report.netProfit} currency={report.currency} />
                 </p>
               </div>
             </div>
 
             {/* Per-branch breakdown */}
             <h3 className="mb-3 font-semibold text-dark dark:text-white">Branch Breakdown</h3>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Branch</TableHead>
-                  <TableHead>Income</TableHead>
-                  <TableHead>Expenses</TableHead>
-                  <TableHead>Net Profit</TableHead>
-                </TableRow>
-              </TableHeader>
-                  <TableBody>
-                {report.branches.map((branch) => {
-                  const income = branch.report.totalIncome ?? 0;
-                  const expenses = branch.report.totalExpenses ?? 0;
-                  const netProfit = branch.report.netProfit ?? (income - expenses);
-                  return (
-                  <TableRow key={branch.businessId}>
-                    <TableCell>
-                      <div className="font-medium">{branch.businessName ?? "—"}</div>
-                      <div className="text-xs text-gray-400 font-mono">{branch.businessId}</div>
-                    </TableCell>
-                    <TableCell className="text-green-600">
-                      {branch.report.currency} {standardFormat(income)}
-                    </TableCell>
-                    <TableCell className="text-red-600">
-                      {branch.report.currency} {standardFormat(expenses)}
-                    </TableCell>
-                    <TableCell className={colorClass(netProfit)}>
-                      {branch.report.currency} {standardFormat(netProfit)}
-                    </TableCell>
-                  </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <ResponsiveDataList<typeof report.branches[0]>
+              items={report.branches}
+              keyExtractor={(b) => b.businessId}
+              emptyMessage="No branches"
+              columns={[
+                {
+                  key: "branch",
+                  label: "Branch",
+                  render: (b) => (
+                    <>
+                      <div className="font-medium">{b.businessName ?? "—"}</div>
+                      <div className="text-xs text-gray-400 font-mono">{b.businessId}</div>
+                    </>
+                  ),
+                  prominent: true,
+                },
+                {
+                  key: "income",
+                  label: "Income",
+                  render: (b) => (
+                    <span className="text-green-600">
+                      <Price amount={b.report.totalIncome ?? 0} currency={b.report.currency} />
+                    </span>
+                  ),
+                  align: "right",
+                },
+                {
+                  key: "expenses",
+                  label: "Expenses",
+                  render: (b) => (
+                    <span className="text-red-600">
+                      <Price amount={b.report.totalExpenses ?? 0} currency={b.report.currency} />
+                    </span>
+                  ),
+                  align: "right",
+                },
+                {
+                  key: "netProfit",
+                  label: "Net Profit",
+                  render: (b) => {
+                    const income = b.report.totalIncome ?? 0;
+                    const expenses = b.report.totalExpenses ?? 0;
+                    const netProfit = b.report.netProfit ?? (income - expenses);
+                    return (
+                      <span className={colorClass(netProfit)}>
+                        <Price amount={netProfit} currency={b.report.currency} />
+                      </span>
+                    );
+                  },
+                  align: "right",
+                },
+              ]}
+            />
           </>
         )}
       </div>

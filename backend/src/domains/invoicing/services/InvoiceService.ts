@@ -9,6 +9,7 @@ import { AccessService } from '@/domains/access/AccessService';
 import { EmailService } from '@/domains/verification/EmailService';
 import { InvoicePdfService } from './InvoicePdfService';
 import { ReceiptStorageService } from '@/domains/receipts/ReceiptStorageService';
+import { LedgerService } from '@/domains/ledger/services/LedgerService';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
@@ -30,13 +31,18 @@ export class InvoiceService {
     private readonly emailService: EmailService,
     private readonly invoicePdfService: InvoicePdfService,
     private readonly receiptStorageService: ReceiptStorageService,
+    @Optional() private readonly ledgerService?: LedgerService,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
     @Optional() @Inject(MECEF_PROVIDER) private readonly mecefProvider?: IMECeFProvider,
     @Optional() @Inject(FNE_PROVIDER) private readonly fneProvider?: IFNEProvider,
     @Optional() @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider?: IWhatsAppProvider,
   ) {}
 
-  async create(input: CreateInvoiceInput, userId?: string): Promise<Invoice> {
+  async create(
+    input: CreateInvoiceInput,
+    userId?: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
+  ): Promise<Invoice> {
     const totalAmount = input.items.reduce((s, i) => s + i.amount, 0);
     if (totalAmount <= 0 || input.items.length === 0) {
       throw new ValidationError('Invoice must have at least one line item with a positive amount');
@@ -91,19 +97,27 @@ export class InvoiceService {
     }
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Invoice',
         entityId: invoice.id,
         businessId: invoice.businessId,
         action: 'create',
         userId,
-      });
+        ipAddress: auditContext?.ipAddress,
+        userAgent: auditContext?.userAgent,
+      }).catch(() => {});
     }
 
     return invoice;
   }
 
-  async update(businessId: string, id: string, input: UpdateInvoiceInput, userId?: string): Promise<Invoice> {
+  async update(
+    businessId: string,
+    id: string,
+    input: UpdateInvoiceInput,
+    userId?: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
+  ): Promise<Invoice> {
     const existing = await this.invoiceRepository.getById(businessId, id);
     if (!existing) {
       throw new NotFoundError('Invoice', id);
@@ -138,17 +152,24 @@ export class InvoiceService {
 
     const updated = await this.invoiceRepository.update(businessId, id, merged);
     if (!updated) {
-      throw new NotFoundError('Invoice', id);
+      // Re-fetch to distinguish not-found from non-editable status (race condition)
+      const current = await this.invoiceRepository.getById(businessId, id);
+      if (!current) {
+        throw new NotFoundError('Invoice', id);
+      }
+      throw new ValidationError(`Invoice cannot be edited in status '${current.status}'`);
     }
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Invoice',
         entityId: updated.id,
         businessId: updated.businessId,
         action: 'update',
         userId,
-      });
+        ipAddress: auditContext?.ipAddress,
+        userAgent: auditContext?.userAgent,
+      }).catch(() => {});
     }
 
     return updated;
@@ -241,7 +262,12 @@ export class InvoiceService {
    * Approve a pending_approval invoice. Only callable by accountant/owner.
    * Emits invoice.created webhook after approval.
    */
-  async approveInvoice(businessId: string, invoiceId: string, approverId: string): Promise<Invoice> {
+  async approveInvoice(
+    businessId: string,
+    invoiceId: string,
+    approverId: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
+  ): Promise<Invoice> {
     const role = await this.accessService.getUserRole(businessId, approverId);
     if (!role || role === 'sales' || role === 'viewer') {
       throw new ValidationError('Only accountants and owners can approve invoices');
@@ -261,14 +287,15 @@ export class InvoiceService {
     });
 
     if (this.auditLogger) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Invoice',
         entityId: invoiceId,
         businessId,
-        action: 'update',
+        action: 'approve',
         userId: approverId,
-        metadata: { action: 'approve' },
-      });
+        ipAddress: auditContext?.ipAddress,
+        userAgent: auditContext?.userAgent,
+      }).catch(() => {});
     }
 
     return approved;
@@ -333,7 +360,7 @@ export class InvoiceService {
    * Generate a payment link for an invoice. Uses PaymentGatewayManager to select
    * gateway by currency and create payment intent.
    */
-  async generatePaymentLink(businessId: string, invoiceId: string): Promise<{ paymentUrl: string }> {
+  async generatePaymentLink(businessId: string, invoiceId: string, userId?: string): Promise<{ paymentUrl: string }> {
     const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
     if (!invoice) {
       throw new NotFoundError('Invoice', invoiceId);
@@ -385,10 +412,40 @@ export class InvoiceService {
     });
 
     if (!response.success || !response.paymentUrl) {
+      if (this.auditLogger) {
+        this.auditLogger.log({
+          entityType: 'payment',
+          entityId: invoice.id,
+          businessId: invoice.businessId,
+          action: 'payment.failed',
+          userId: userId ?? 'system',
+          metadata: {
+            amount,
+            currency: invoice.currency,
+            error: response.error ?? 'Failed to create payment link',
+          },
+        }).catch(() => {});
+      }
       throw new ValidationError(
         response.error ?? 'Failed to create payment link',
         { gatewayTransactionId: response.gatewayTransactionId }
       );
+    }
+
+    if (this.auditLogger) {
+      this.auditLogger.log({
+        entityType: 'payment',
+        entityId: invoice.id,
+        businessId: invoice.businessId,
+        action: 'payment.initiated',
+        userId: userId ?? 'system',
+        metadata: {
+          amount,
+          currency: invoice.currency,
+          gateway: response.gatewayTransactionId ? 'gateway' : 'unknown',
+          gatewayTransactionId: response.gatewayTransactionId,
+        },
+      }).catch(() => {});
     }
 
     return { paymentUrl: response.paymentUrl };
@@ -396,8 +453,10 @@ export class InvoiceService {
 
   /**
    * Mark invoice as paid (e.g. from payment webhook). Emits invoice.paid webhook.
+   * Creates a ledger sale entry so paid invoices appear in reports and balance.
    */
   async markPaidFromWebhook(businessId: string, invoiceId: string): Promise<Invoice | null> {
+    if (!invoiceId?.trim()) return null;
     const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
     if (!invoice) return null;
     if (invoice.status === 'paid') return invoice;
@@ -410,6 +469,27 @@ export class InvoiceService {
         currency: updated.currency,
         customerId: updated.customerId,
       });
+      // Create ledger sale entry so paid invoice appears in reports and balance
+      if (this.ledgerService) {
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          await this.ledgerService.createEntry(
+            {
+              businessId: updated.businessId,
+              type: 'sale',
+              amount: updated.amount,
+              currency: updated.currency,
+              description: `Invoice #${updated.id.slice(0, 8)} paid`,
+              category: 'Sales',
+              date: today,
+              skipLimitCheck: true,
+            },
+            undefined
+          );
+        } catch (ledgerErr) {
+          console.error('[InvoiceService] Failed to create ledger entry for paid invoice:', ledgerErr);
+        }
+      }
     }
     return updated;
   }

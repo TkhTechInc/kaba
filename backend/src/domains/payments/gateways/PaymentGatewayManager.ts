@@ -59,7 +59,8 @@ export class PaymentGatewayManager {
 
     const kkiapayKey = process.env['KKIAPAY_PRIVATE_KEY'] || process.env['KKIAPAY_API_KEY'];
     if (kkiapayKey?.trim()) {
-      this.registerGateway(new KkiaPayGateway(kkiapayKey, process.env['KKIAPAY_WEBHOOK_SECRET'] ?? '', process.env['KKIAPAY_BASE_URL']));
+      const sandbox = process.env['KKIAPAY_SANDBOX'] === 'true';
+      this.registerGateway(new KkiaPayGateway(kkiapayKey, process.env['KKIAPAY_WEBHOOK_SECRET'] ?? '', process.env['KKIAPAY_BASE_URL'], sandbox));
     }
 
     const momoApiKey = process.env['MOMO_API_KEY'];
@@ -138,5 +139,21 @@ export class PaymentGatewayManager {
   /** True if at least one real (non-mock) gateway is configured. */
   hasRealGateway(): boolean {
     return this.gateways.has('stripe') || this.gateways.has('kkiapay') || this.gateways.has('momo') || this.gateways.has('paystack');
+  }
+
+  /** Verify KkiaPay transaction (for widget flow). Returns success if payment completed. */
+  async verifyKkiaPayTransaction(transactionId: string): Promise<{ success: boolean; error?: string }> {
+    const gw = this.gateways.get('kkiapay');
+    if (!gw) return { success: false, error: 'KkiaPay not configured' };
+    const withStatus = gw as IPaymentGateway & { getPaymentStatus?: (id: string) => Promise<{ success: boolean; error?: string }> };
+    if (typeof withStatus.getPaymentStatus !== 'function') {
+      return { success: false, error: 'KkiaPay getPaymentStatus not available' };
+    }
+    return withStatus.getPaymentStatus(transactionId);
+  }
+
+  /** True if KkiaPay gateway is registered. */
+  isKkiaPayAvailable(): boolean {
+    return this.gateways.has('kkiapay');
   }
 }

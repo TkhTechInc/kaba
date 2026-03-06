@@ -8,6 +8,8 @@ import { SmsService } from '@/domains/notifications/SmsService';
 import { NotFoundError } from '@/shared/errors/DomainError';
 import type { Invitation } from './models/Invitation';
 import type { Role } from './role.types';
+import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
+import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 
 function isEmail(s: string): boolean {
   return s.includes('@');
@@ -22,6 +24,7 @@ export class InvitationService {
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
     @Optional() @Inject(ConfigService) private readonly config: ConfigService | null,
+    @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
   async create(input: {
@@ -66,6 +69,17 @@ export class InvitationService {
       }
     }
 
+    if (this.auditLogger) {
+      this.auditLogger.log({
+        entityType: 'access',
+        entityId: invitation.id,
+        businessId: invitation.businessId,
+        action: 'access.invite',
+        userId: input.invitedBy,
+        metadata: { invitedEmail: input.emailOrPhone, role: input.role },
+      }).catch(() => {});
+    }
+
     return invitation;
   }
 
@@ -86,6 +100,18 @@ export class InvitationService {
       createdAt: new Date().toISOString(),
     });
     await this.invitationRepo.delete(invitation);
+
+    if (this.auditLogger) {
+      this.auditLogger.log({
+        entityType: 'access',
+        entityId: invitation.id,
+        businessId: invitation.businessId,
+        action: 'access.accept',
+        userId: input.userId,
+        metadata: { role: invitation.role },
+      }).catch(() => {});
+    }
+
     return { success: true };
   }
 

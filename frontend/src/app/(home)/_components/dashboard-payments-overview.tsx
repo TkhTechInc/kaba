@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { PeriodPicker } from "@/components/period-picker";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
 import { ChartEmptyState } from "@/components/Charts/chart-empty-state";
-import { getCurrencySymbol, standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverview } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
+import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useFeatures } from "@/hooks/use-features";
 import { useSearchParams } from "next/navigation";
 
@@ -23,6 +24,7 @@ function parseTimeFrame(selected: string | null, sectionKey: string): "monthly" 
 
 export function DashboardPaymentsOverview({ className }: PropsType) {
   const { businessId, token } = useAuth();
+  const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
@@ -48,12 +50,11 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
     return () => {
       cancelled = true;
     };
-  }, [businessId, token, timeFrame]);
+  }, [businessId, token, timeFrame, refreshTrigger]);
 
   if (!businessId) return null;
 
   const currency = data?.currency ?? features.currency ?? "NGN";
-  const symbol = getCurrencySymbol(currency);
   const hasData = data && (data.received.some((d) => d.y > 0) || data.due.some((d) => d.y > 0));
   const receivedTotal = data?.received.reduce((acc, { y }) => acc + y, 0) ?? 0;
   const dueTotal = data?.due.reduce((acc, { y }) => acc + y, 0) ?? 0;
@@ -85,13 +86,13 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
       <dl className="grid divide-stroke text-center dark:divide-dark-3 sm:grid-cols-2 sm:divide-x [&>div]:flex [&>div]:flex-col-reverse [&>div]:gap-1">
         <div className="dark:border-dark-3 max-sm:mb-3 max-sm:border-b max-sm:pb-3">
           <dt className="text-xl font-bold text-dark dark:text-white">
-            {symbol}{standardFormat(receivedTotal)}
+            <Price amount={receivedTotal} currency={currency} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Received Amount</dd>
         </div>
         <div>
           <dt className="text-xl font-bold text-dark dark:text-white">
-            {symbol}{standardFormat(dueTotal)}
+            <Price amount={dueTotal} currency={currency} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Due Amount</dd>
         </div>

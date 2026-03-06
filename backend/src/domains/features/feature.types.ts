@@ -30,7 +30,8 @@ export type FeatureKey =
   | 'image_compression'
   | 'trust_score'
   | 'trust_share'
-  | 'trust_lookup';
+  | 'trust_lookup'
+  | 'whatsapp_invoice_delivery';
 
 export interface FeatureConfig {
   enabled: boolean;

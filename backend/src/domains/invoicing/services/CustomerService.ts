@@ -12,7 +12,7 @@ export class CustomerService {
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
-  async create(input: CreateCustomerInput): Promise<Customer> {
+  async create(input: CreateCustomerInput, userId?: string): Promise<Customer> {
     if (!input.businessId?.trim()) {
       throw new ValidationError('businessId is required');
     }
@@ -27,7 +27,19 @@ export class CustomerService {
       throw new ValidationError('email must be a valid email address');
     }
 
-    return this.customerRepository.create(input);
+    const customer = await this.customerRepository.create(input);
+
+    if (this.auditLogger && userId) {
+      this.auditLogger.log({
+        entityType: 'Customer',
+        entityId: customer.id,
+        businessId: customer.businessId,
+        action: 'create',
+        userId,
+      }).catch(() => {});
+    }
+
+    return customer;
   }
 
   async list(
@@ -79,14 +91,14 @@ export class CustomerService {
       if (input.name !== undefined) changes['name'] = { from: existing.name, to: input.name };
       if (input.email !== undefined) changes['email'] = { from: existing.email, to: input.email };
       if (input.phone !== undefined) changes['phone'] = { from: existing.phone, to: input.phone };
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Customer',
         entityId: id,
         businessId,
         action: 'update',
         userId,
         changes: Object.keys(changes).length > 0 ? changes : undefined,
-      });
+      }).catch(() => {});
     }
 
     return updated;
@@ -101,7 +113,7 @@ export class CustomerService {
     await this.customerRepository.delete(businessId, id);
 
     if (this.auditLogger && userId) {
-      await this.auditLogger.log({
+      this.auditLogger.log({
         entityType: 'Customer',
         entityId: id,
         businessId,
@@ -111,7 +123,7 @@ export class CustomerService {
           name: { from: existing.name, to: null },
           email: { from: existing.email, to: null },
         },
-      });
+      }).catch(() => {});
     }
   }
 }

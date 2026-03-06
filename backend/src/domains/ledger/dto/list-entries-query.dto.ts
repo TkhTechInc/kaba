@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsIn, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class ListEntriesQueryDto {
@@ -17,4 +17,8 @@ export class ListEntriesQueryDto {
   @Min(1)
   @Max(100)
   limit?: number = 20;
+
+  @IsOptional()
+  @IsIn(['sale', 'expense'])
+  type?: 'sale' | 'expense';
 }

@@ -5,6 +5,7 @@ import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
 import { BusinessModule } from '@/domains/business/BusinessModule';
 import { VerificationModule } from '@/domains/verification/VerificationModule';
 import { NotificationsModule } from '@/domains/notifications/NotificationsModule';
+import { AuditModule } from '@/domains/audit/AuditModule';
 import { OrganizationRepository } from './repositories/OrganizationRepository';
 import { TeamMemberRepository } from './repositories/TeamMemberRepository';
 import { InvitationRepository } from './repositories/InvitationRepository';
@@ -15,7 +16,7 @@ import { InvitationController } from './InvitationController';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 
 @Module({
-  imports: [forwardRef(() => BusinessModule), VerificationModule, NotificationsModule],
+  imports: [forwardRef(() => BusinessModule), VerificationModule, NotificationsModule, AuditModule],
   controllers: [AccessController, InvitationController],
   providers: [
     {

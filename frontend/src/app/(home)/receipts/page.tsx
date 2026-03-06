@@ -1,18 +1,11 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createReceiptsApi } from "@/services/receipts.service";
 import { createLedgerApi } from "@/services/ledger.service";
@@ -321,8 +314,7 @@ export default function ReceiptsPage() {
                     <div>
                       <dt className="inline font-medium text-dark-6">Total: </dt>
                       <dd className="inline">
-                        {result.extracted.currency ?? "NGN"}{" "}
-                        {standardFormat(result.extracted.total)}
+                        <Price amount={result.extracted.total} currency={result.extracted.currency ?? "NGN"} />
                       </dd>
                     </div>
                   )}
@@ -401,32 +393,17 @@ export default function ReceiptsPage() {
                 </div>
               )}
               {result.extracted.lineItems.length > 0 && (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Description</TableHead>
-                      <TableHead className="text-right">Qty</TableHead>
-                      <TableHead className="text-right">Unit Price</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {result.extracted.lineItems.map((item, i) => (
-                      <TableRow key={i}>
-                        <TableCell>{item.description}</TableCell>
-                        <TableCell className="text-right">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {standardFormat(item.unitPrice)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {standardFormat(item.total)}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <ResponsiveDataList<{ description: string; quantity: number; unitPrice: number; total: number }>
+                  items={result.extracted.lineItems}
+                  keyExtractor={(item) => `${item.description}-${item.quantity}-${item.total}`}
+                  emptyMessage="No line items"
+                  columns={[
+                    { key: "description", label: "Description", render: (item) => item.description, prominent: true },
+                    { key: "qty", label: "Qty", render: (item) => String(item.quantity), align: "right" },
+                    { key: "unitPrice", label: "Unit Price", render: (item) => <Price amount={item.unitPrice} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
+                    { key: "total", label: "Total", render: (item) => <Price amount={item.total} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
+                  ]}
+                />
               )}
               {result.extracted.rawText && (
                 <details className="text-sm">

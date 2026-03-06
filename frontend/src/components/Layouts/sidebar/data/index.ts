@@ -78,14 +78,6 @@ export const NAV_DATA: NavSection[] = [
         featureKey: "ledger",
         permission: "ledger:read",
       },
-      {
-        title: "Ledger Balance",
-        icon: Icons.Table,
-        url: "/ledger/balance",
-        items: [],
-        featureKey: "ledger",
-        permission: "ledger:read",
-      },
     ],
   },
   {

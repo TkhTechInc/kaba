@@ -165,6 +165,32 @@ export class TeamMemberRepository {
     return updated;
   }
 
+  /** Remove a member from a business. Deletes both BUSINESS# and USER# items. */
+  async removeBusinessMember(businessId: string, userId: string): Promise<void> {
+    try {
+      await this.docClient.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: {
+            pk: `${PK_BUSINESS_PREFIX}${businessId}`,
+            sk: `${SK_MEMBER_PREFIX}${userId}`,
+          },
+        }),
+      );
+      await this.docClient.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: {
+            pk: `${PK_USER_PREFIX}${userId}`,
+            sk: `${SK_BUSINESS_PREFIX}${businessId}`,
+          },
+        }),
+      );
+    } catch (e) {
+      throw new DatabaseError('Remove business member failed', e);
+    }
+  }
+
   /** Add member to organization */
   async addOrgMember(member: TeamMember): Promise<TeamMember> {
     if (!member.organizationId || !member.userId) {

@@ -13,6 +13,7 @@ import { FeatureGuard } from '@/nest/common/guards/feature.guard';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
+import { AuditIpAddress, AuditUserAgent } from '@/nest/common/decorators/audit-context.decorator';
 import { IsString, IsOptional } from 'class-validator';
 
 class ApproveInvoiceDto {
@@ -40,7 +41,12 @@ export class InvoiceController {
   ) {}
 
   @Post()
-  async create(@Body() dto: CreateInvoiceDto, @AuditUserId() userId?: string) {
+  async create(
+    @Body() dto: CreateInvoiceDto,
+    @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
+  ) {
     const invoice = await this.invoiceService.create(
       {
         businessId: dto.businessId,
@@ -53,7 +59,8 @@ export class InvoiceController {
         earlyPaymentDiscountPercent: dto.earlyPaymentDiscountPercent,
         earlyPaymentDiscountDays: dto.earlyPaymentDiscountDays,
       },
-      userId
+      userId,
+      { ipAddress, userAgent },
     );
     return { success: true, data: invoice };
   }
@@ -72,8 +79,23 @@ export class InvoiceController {
         customerName: raw.customer.name,
         invoiceNumber: raw.invoice.id.slice(0, 8),
         paymentUrl: raw.paymentUrl,
+        useKkiaPayWidget: raw.useKkiaPayWidget,
       },
     };
+  }
+
+  @Post('pay/confirm-kkiapay')
+  @Public()
+  async confirmKkiaPay(@Body() body: { token: string; transactionId: string; redirectStatus?: string }) {
+    const { token, transactionId, redirectStatus } = body;
+    if (!token?.trim() || !transactionId?.trim()) {
+      throw new NotFoundException('token and transactionId are required');
+    }
+    const result = await this.invoiceShareService.confirmKkiaPayPayment(token.trim(), transactionId.trim(), redirectStatus?.trim());
+    if (!result.success) {
+      throw new NotFoundException(result.error ?? 'Payment confirmation failed');
+    }
+    return { success: true };
   }
 
   @Get()
@@ -116,11 +138,13 @@ export class InvoiceController {
     @Param('id') id: string,
     @Body() dto: ApproveInvoiceDto,
     @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
   ) {
     if (!userId) {
       return { success: false, error: 'Authentication required' };
     }
-    const invoice = await this.invoiceService.approveInvoice(dto.businessId, id, userId);
+    const invoice = await this.invoiceService.approveInvoice(dto.businessId, id, userId, { ipAddress, userAgent });
     return { success: true, data: invoice };
   }
 
@@ -148,6 +172,8 @@ export class InvoiceController {
     @Body() dto: UpdateInvoiceDto & { businessId?: string },
     @Query('businessId') businessId: string,
     @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
   ) {
     const bid = dto.businessId ?? businessId;
     if (!bid) {
@@ -161,7 +187,7 @@ export class InvoiceController {
       dueDate: dto.dueDate,
       earlyPaymentDiscountPercent: dto.earlyPaymentDiscountPercent,
       earlyPaymentDiscountDays: dto.earlyPaymentDiscountDays,
-    }, userId);
+    }, userId, { ipAddress, userAgent });
     return { success: true, data: invoice };
   }
 
@@ -170,9 +196,10 @@ export class InvoiceController {
   @RequirePermission('invoices:write')
   async generatePaymentLink(
     @Param('id') id: string,
-    @Body() dto: GeneratePaymentLinkDto
+    @Body() dto: GeneratePaymentLinkDto,
+    @AuditUserId() userId?: string,
   ) {
-    const { paymentUrl } = await this.invoiceService.generatePaymentLink(dto.businessId, id);
+    const { paymentUrl } = await this.invoiceService.generatePaymentLink(dto.businessId, id, userId);
     return { success: true, data: { paymentUrl } };
   }
 
@@ -197,6 +224,7 @@ export class InvoiceController {
   }
 
   @Post(':id/send-whatsapp')
+  @Feature('whatsapp_invoice_delivery')
   @RequirePermission('invoices:write')
   async sendWhatsApp(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
     const result = await this.invoiceService.sendInvoiceViaWhatsApp(dto.businessId, id);

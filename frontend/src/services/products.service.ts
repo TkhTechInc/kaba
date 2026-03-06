@@ -1,4 +1,9 @@
-import { api } from "@/lib/api-client";
+import {
+  api,
+  apiGetWithOfflineCache,
+} from "@/lib/api-client";
+import { CACHE_KEYS, listCacheKey, getCached, setCached } from "@/lib/offline-cache";
+import type { ApiResponse } from "@/lib/api-client";
 import { offlineMutation } from "@/lib/offline-api";
 
 export interface Product {
@@ -40,13 +45,45 @@ export interface ListProductsResult {
   limit: number;
 }
 
+async function patchProductsCache(
+  businessId: string,
+  updater: (
+    cached: ApiResponse<ListProductsResult>
+  ) => { items: Product[]; total: number }
+) {
+  const cacheKey = listCacheKey(CACHE_KEYS.PRODUCTS, businessId, {
+    businessId,
+    page: "1",
+    limit: "50",
+  });
+  try {
+    const cached = await getCached<ApiResponse<ListProductsResult>>(cacheKey);
+    if (cached?.data) {
+      const { items, total } = updater(cached);
+      await setCached(cacheKey, {
+        ...cached,
+        data: { ...cached.data, items, total },
+      });
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+
 export function createProductsApi(token: string | null) {
   return {
-    list: (businessId: string, page = 1, limit = 50) =>
-      api.get<ListProductsResult>("/api/v1/products", {
-        token: token ?? undefined,
-        params: { businessId, page: String(page), limit: String(limit) },
-      }),
+    list: (businessId: string, page = 1, limit = 50) => {
+      const params = {
+        businessId,
+        page: String(page),
+        limit: String(limit),
+      };
+      return apiGetWithOfflineCache<ListProductsResult>(
+        "/api/v1/products",
+        listCacheKey(CACHE_KEYS.PRODUCTS, businessId, params),
+        { token: token ?? undefined, params }
+      );
+    },
 
     getById: (businessId: string, id: string) =>
       api.get<Product>("/api/v1/products/" + id, {
@@ -74,7 +111,14 @@ export function createProductsApi(token: string | null) {
         token,
         optimistic
       );
-      return result.data;
+      const product = result.data;
+      if (product?.id) {
+        await patchProductsCache(body.businessId, (cached) => ({
+          items: [product, ...cached.data.items],
+          total: cached.data.total + 1,
+        }));
+      }
+      return result;
     },
 
     update: async (id: string, body: UpdateProductInput & { businessId: string }) => {
@@ -98,6 +142,13 @@ export function createProductsApi(token: string | null) {
         token,
         optimistic
       );
+      const product = result.data;
+      if (product?.id) {
+        await patchProductsCache(businessId, (cached) => ({
+          items: cached.data.items.map((p) => (p.id === id ? product : p)),
+          total: cached.data.total,
+        }));
+      }
       return result.data;
     },
 
@@ -109,6 +160,12 @@ export function createProductsApi(token: string | null) {
         token,
         { deleted: true, id }
       );
+      if (result.data?.id) {
+        await patchProductsCache(businessId, (cached) => ({
+          items: cached.data.items.filter((p) => p.id !== id),
+          total: Math.max(0, cached.data.total - 1),
+        }));
+      }
       return result.data;
     },
 

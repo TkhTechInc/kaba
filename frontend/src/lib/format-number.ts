@@ -28,22 +28,26 @@ export function getCurrencySymbol(code: string): string {
 }
 
 /** Currencies where the code goes after the amount (e.g. "2 500 XOF"). */
-const CURRENCY_SUFFIX = new Set(["XOF", "XAF"]);
+const CURRENCY_SUFFIX = new Set(["XOF", "XAF", "EUR"]);
 
 /**
  * Format a price in the given currency. Uses correct position for symbol/code:
- * - Prefix (NGN, GHS, USD): "₦5,000"
- * - Suffix (XOF, XAF, EUR): "2 500 XOF"
+ * - Prefix (NGN, GHS, USD): "₦5,000.00" or "₦800" when whole number
+ * - Suffix (XOF, XAF, EUR): "2 500,00 XOF" or "800 XOF" when whole number
+ * Hides decimals when the amount is a whole number (e.g. 800.00 → 800).
  */
 export function formatPriceWithCurrency(
   amount: number,
   currency: string,
-  suffix = ""
+  suffix = "",
+  decimals = 2
 ): string {
   const symbol = getCurrencySymbol(currency);
+  const isWhole = Number.isInteger(amount) || Math.abs(amount % 1) < 1e-9;
+  const fracDigits = isWhole ? 0 : decimals;
   const formatted = amount.toLocaleString(
     CURRENCY_SUFFIX.has(currency) ? "fr-FR" : "en-US",
-    { minimumFractionDigits: 0, maximumFractionDigits: 0 }
+    { minimumFractionDigits: fracDigits, maximumFractionDigits: fracDigits }
   );
   const part = CURRENCY_SUFFIX.has(currency)
     ? `${formatted} ${symbol}`

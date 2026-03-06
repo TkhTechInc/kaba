@@ -307,27 +307,48 @@ export class InvoiceRepository {
   ): Promise<ListByBusinessResult> {
     try {
       const limitNum = Number(limit) || 20;
-      const params = {
-        TableName: this.tableName,
-        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-        ExpressionAttributeValues: {
-          ':pk': businessId,
-          ':skPrefix': SK_PREFIX,
-        },
-        Limit: limitNum,
-        ScanIndexForward: false,
-        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
-      };
+      const pageNum = Math.max(1, Number(page) || 1);
 
-      const result = await this.docClient.send(new QueryCommand(params));
+      // DynamoDB uses cursor-based pagination. Skip to the correct page by chaining queries.
+      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
+      for (let i = 0; i < pageNum - 1; i++) {
+        const skipResult = await this.docClient.send(
+          new QueryCommand({
+            TableName: this.tableName,
+            KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+            FilterExpression: 'attribute_not_exists(deletedAt)',
+            ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+            Limit: limitNum,
+            ScanIndexForward: false,
+            ...(cursor && { ExclusiveStartKey: cursor }),
+          })
+        );
+        cursor = skipResult.LastEvaluatedKey;
+        if (!cursor) {
+          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
+        }
+      }
+
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: 'attribute_not_exists(deletedAt)',
+          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+          Limit: limitNum,
+          ScanIndexForward: false,
+          ...(cursor && { ExclusiveStartKey: cursor }),
+        })
+      );
       const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
-      const total = (result.Count ?? 0) + (result.ScannedCount ?? 0);
+      const hasMore = !!result.LastEvaluatedKey;
+      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
 
       return {
         items,
         total,
-        page,
-        limit,
+        page: pageNum,
+        limit: limitNum,
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {

@@ -6,6 +6,7 @@ import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { InvoiceService } from './InvoiceService';
+import { PaymentGatewayManager } from '@/domains/payments/gateways/PaymentGatewayManager';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import type { Invoice, InvoiceItem } from '../models/Invoice';
 
@@ -24,6 +25,8 @@ export interface PublicInvoicePayResponse {
   business: { name: string };
   customer: { name: string };
   paymentUrl?: string;
+  /** When true, frontend should show KkiaPay widget instead of redirect. */
+  useKkiaPayWidget?: boolean;
 }
 
 @Injectable()
@@ -34,6 +37,7 @@ export class InvoiceShareService {
     private readonly customerRepository: CustomerRepository,
     private readonly businessRepository: BusinessRepository,
     private readonly invoiceService: InvoiceService,
+    private readonly paymentGatewayManager: PaymentGatewayManager,
     private readonly configService: ConfigService
   ) {}
 
@@ -60,16 +64,17 @@ export class InvoiceShareService {
       );
     }
 
-    const normalizedPhone = this.normalizePhone(phone);
-    if (!normalizedPhone) {
-      throw new ValidationError(
-        'Invalid phone number format. Use E.164 format (e.g. +2348012345678).'
-      );
-    }
-
     const business = await this.businessRepository.getById(businessId);
     const businessName = business?.name ?? 'Your Business';
     const customerName = customer.name ?? 'there';
+    const countryCode = business?.countryCode ?? undefined;
+
+    const normalizedPhone = this.normalizePhone(phone, countryCode);
+    if (!normalizedPhone) {
+      throw new ValidationError(
+        'Invalid phone number format. Please use E.164 format (e.g. +2348012345678) or add the customer\'s country code.'
+      );
+    }
 
     const text = [
       `Hello ${customerName},`,
@@ -87,19 +92,75 @@ export class InvoiceShareService {
     return { url };
   }
 
-  private normalizePhone(phone: string): string | null {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 9) return null;
-    if (digits.startsWith('0') && digits.length >= 11) return `+234${digits.slice(1)}`;
-    if (digits.length === 10 && digits[0] >= '2' && digits[0] <= '9') return `+1${digits}`;
-    if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-    if (!phone.startsWith('+')) return `+${digits}`;
-    return phone;
+  /**
+   * Normalize a phone number to E.164 format.
+   *
+   * Priority:
+   * 1. Already E.164 (+countrycode digits) → return as-is after stripping non-digits
+   * 2. Local number starting with 0 → strip leading 0, prepend country dialing code
+   * 3. Correct digit length for a known country and no leading 0 → prepend dialing code
+   * 4. Fallback: return null (caller shows validation error)
+   *
+   * countryCode is ISO 3166-1 alpha-2 (NG, GH, BJ, CI, SN, CM, etc.)
+   */
+  private normalizePhone(phone: string, countryCode?: string): string | null {
+    const trimmed = phone.trim();
+
+    // Already E.164 — starts with + and has 7–15 digits after it
+    if (/^\+\d{7,15}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    const digits = trimmed.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15) return null;
+
+    // West Africa dialing code table (ISO 3166-1 alpha-2 → [dialingCode, localDigits])
+    // localDigits: expected total digits after stripping leading 0 (without country code)
+    const dialingTable: Record<string, { code: string; localLen: number }> = {
+      NG: { code: '234', localLen: 10 }, // Nigeria: 080XXXXXXXX → +234 80XXXXXXXX
+      GH: { code: '233', localLen: 9  }, // Ghana: 024XXXXXXX → +233 24XXXXXXX
+      BJ: { code: '229', localLen: 8  }, // Benin: 97XXXXXX → +229 97XXXXXX
+      CI: { code: '225', localLen: 10 }, // Côte d'Ivoire: 07XXXXXXXX → +225 07XXXXXXXX
+      SN: { code: '221', localLen: 9  }, // Senegal: 77XXXXXXX → +221 77XXXXXXX
+      ML: { code: '223', localLen: 8  }, // Mali: 7XXXXXXX → +223 7XXXXXXX
+      BF: { code: '226', localLen: 8  }, // Burkina Faso: 70XXXXXX → +226 70XXXXXX
+      TG: { code: '228', localLen: 8  }, // Togo: 90XXXXXX → +228 90XXXXXX
+      NE: { code: '227', localLen: 8  }, // Niger: 90XXXXXX → +227 90XXXXXX
+      CM: { code: '237', localLen: 9  }, // Cameroon: 6XXXXXXXX → +237 6XXXXXXXX
+      GN: { code: '224', localLen: 9  }, // Guinea: 6XXXXXXXX → +224 6XXXXXXXX
+    };
+
+    const entry = countryCode ? dialingTable[countryCode.toUpperCase()] : undefined;
+
+    if (entry) {
+      const localDigits = digits.startsWith('0') ? digits.slice(1) : digits;
+      if (localDigits.length === entry.localLen) {
+        return `+${entry.code}${localDigits}`;
+      }
+      // If already includes country code prefix
+      if (digits.startsWith(entry.code) && digits.length === entry.code.length + entry.localLen) {
+        return `+${digits}`;
+      }
+    }
+
+    // No country context — try to infer from leading 0 (common West Africa pattern)
+    if (digits.startsWith('0') && digits.length >= 9) {
+      // Cannot determine country without context; return null to force E.164 entry
+      return null;
+    }
+
+    // Last resort: if it looks like a full international number (9–15 digits, no leading 0)
+    if (!digits.startsWith('0') && digits.length >= 9) {
+      return `+${digits}`;
+    }
+
+    return null;
   }
 
   /**
-   * Generate a public share token for an invoice. Token expires in 7 days.
-   * Returns token and payUrl for the frontend payment portal.
+   * Generate (or reuse) a public share token for an invoice.
+   * If a valid token exists for this invoice (not expired, not expiring within 1 hour),
+   * it is returned as-is. Otherwise a new 7-day token is minted.
    */
   async generatePublicToken(
     invoiceId: string,
@@ -110,26 +171,32 @@ export class InvoiceShareService {
       throw new NotFoundError('Invoice', invoiceId);
     }
 
+    const baseUrl =
+      this.configService.get<string>('oauth.frontendUrl') ??
+      process.env.FRONTEND_URL ??
+      process.env.APP_URL ??
+      'http://localhost:3000';
+
+    // Reuse existing valid token if it won't expire within 1 hour
+    const existing = await this.invoiceShareRepository.getByInvoiceId(invoiceId);
+    if (existing) {
+      const expiresAt = new Date(existing.expiresAt);
+      const oneHourFromNow = new Date(Date.now() + 60 * 60 * 1000);
+      if (expiresAt > oneHourFromNow && existing.businessId === businessId) {
+        const payUrl = `${baseUrl.replace(/\/$/, '')}/pay/${existing.token}`;
+        return { token: existing.token, payUrl };
+      }
+    }
+
     const token = uuidv4();
     const now = new Date();
     const expiresAt = new Date(
       now.getTime() + TTL_DAYS * 24 * 60 * 60 * 1000
     ).toISOString();
 
-    await this.invoiceShareRepository.create(
-      token,
-      invoiceId,
-      businessId,
-      expiresAt
-    );
+    await this.invoiceShareRepository.create(token, invoiceId, businessId, expiresAt);
 
-    const baseUrl =
-      this.configService.get<string>('oauth.frontendUrl') ??
-      process.env.FRONTEND_URL ??
-      process.env.APP_URL ??
-      'http://localhost:3000';
     const payUrl = `${baseUrl.replace(/\/$/, '')}/pay/${token}`;
-
     return { token, payUrl };
   }
 
@@ -155,16 +222,24 @@ export class InvoiceShareService {
     ]);
 
     let paymentUrl: string | undefined;
+    let useKkiaPayWidget = false;
     if (invoice.status !== 'paid' && invoice.status !== 'cancelled') {
-      try {
-        const link = await this.invoiceService.generatePaymentLink(
-          record.businessId,
-          record.invoiceId
-        );
-        paymentUrl = link.paymentUrl;
-      } catch {
-        // Payment link generation may fail (e.g. gateway not configured)
-        paymentUrl = undefined;
+      const currency = invoice.currency?.toUpperCase() ?? '';
+      const kkiapayAvailable =
+        this.paymentGatewayManager.isKkiaPayAvailable() &&
+        this.paymentGatewayManager.getSupportedCurrencies().includes(currency);
+      if (kkiapayAvailable && ['XOF', 'XAF', 'GNF'].includes(currency)) {
+        useKkiaPayWidget = true;
+      } else {
+        try {
+          const link = await this.invoiceService.generatePaymentLink(
+            record.businessId,
+            record.invoiceId
+          );
+          paymentUrl = link.paymentUrl;
+        } catch {
+          paymentUrl = undefined;
+        }
       }
     }
 
@@ -173,7 +248,37 @@ export class InvoiceShareService {
       business: { name: business?.name ?? 'Business' },
       customer: { name: customer?.name ?? 'Customer' },
       ...(paymentUrl && { paymentUrl }),
+      ...(useKkiaPayWidget && { useKkiaPayWidget }),
     };
+  }
+
+  /**
+   * Confirm KkiaPay widget payment. Verifies transaction with KkiaPay, then marks invoice paid.
+   * @param redirectStatus - Optional status from KkiaPay redirect URL (e.g. "error", "transaction.failed").
+   *   If present and indicates failure, we reject without calling the API. Use ?transaction_status=failed for testing.
+   */
+  async confirmKkiaPayPayment(token: string, transactionId: string, redirectStatus?: string): Promise<{ success: boolean; error?: string }> {
+    const record = await this.invoiceShareRepository.getByToken(token);
+    if (!record) return { success: false, error: 'Invalid or expired link' };
+    if (!record.invoiceId?.trim() || !record.businessId?.trim()) {
+      return { success: false, error: 'Invalid payment link' };
+    }
+    if (new Date(record.expiresAt) < new Date()) return { success: false, error: 'Link expired' };
+
+    const failedStatuses = ['error', 'failed', 'transaction.failed', 'transaction_error'];
+    if (redirectStatus && failedStatuses.includes(redirectStatus.toLowerCase())) {
+      return { success: false, error: 'Payment was not successful' };
+    }
+
+    const verify = await this.paymentGatewayManager.verifyKkiaPayTransaction(transactionId);
+    if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
+
+    try {
+      await this.invoiceService.markPaidFromWebhook(record.businessId, record.invoiceId);
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: (err as Error).message };
+    }
   }
 
   private toPublicInvoice(invoice: Invoice): PublicInvoicePayResponse['invoice'] {

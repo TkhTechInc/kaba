@@ -82,32 +82,51 @@ export class DebtRepository {
     exclusiveStartKey?: Record<string, unknown>,
   ): Promise<ListDebtsResult> {
     try {
-      const params: Record<string, unknown> = {
+      const limitNum = Number(limit) || 20;
+      const pageNum = Math.max(1, Number(page) || 1);
+
+      const baseParams: Record<string, unknown> = {
         TableName: this.tableName,
         KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-        ExpressionAttributeValues: {
-          ':pk': businessId,
-          ':skPrefix': SK_PREFIX,
-        },
-        Limit: limit,
+        ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+        Limit: limitNum,
         ScanIndexForward: false,
-        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
       };
-
       if (status) {
-        params.FilterExpression = '#st = :status';
-        params.ExpressionAttributeNames = { '#st': 'status' };
-        (params.ExpressionAttributeValues as Record<string, unknown>)[':status'] = status;
+        baseParams.FilterExpression = '#st = :status';
+        baseParams.ExpressionAttributeNames = { '#st': 'status' };
+        (baseParams.ExpressionAttributeValues as Record<string, unknown>)[':status'] = status;
       }
 
-      const result = await this.docClient.send(new QueryCommand(params as import('@aws-sdk/lib-dynamodb').QueryCommandInput));
+      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
+      for (let i = 0; i < pageNum - 1; i++) {
+        const skipResult = await this.docClient.send(
+          new QueryCommand({
+            ...baseParams,
+            ...(cursor && { ExclusiveStartKey: cursor }),
+          } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
+        );
+        cursor = skipResult.LastEvaluatedKey;
+        if (!cursor) {
+          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
+        }
+      }
+
+      const result = await this.docClient.send(
+        new QueryCommand({
+          ...baseParams,
+          ...(cursor && { ExclusiveStartKey: cursor }),
+        } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
+      );
       const items = (result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>));
+      const hasMore = !!result.LastEvaluatedKey;
+      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
 
       return {
         items,
-        total: items.length,
-        page,
-        limit,
+        total,
+        page: pageNum,
+        limit: limitNum,
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {

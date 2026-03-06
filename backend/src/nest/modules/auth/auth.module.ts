@@ -17,6 +17,7 @@ import { NotificationsModule } from '@/domains/notifications/NotificationsModule
 import { OtpModule } from '@/domains/otp/OtpModule';
 import { VerificationModule } from '@/domains/verification/VerificationModule';
 import { VoiceModule } from '@/domains/voice/VoiceModule';
+import { AuditModule } from '@/domains/audit/AuditModule';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { VoiceModule } from '@/domains/voice/VoiceModule';
     OtpModule,
     VerificationModule,
     VoiceModule,
+    AuditModule,
   ],
   controllers: [AuthController, UserController],
   providers: [

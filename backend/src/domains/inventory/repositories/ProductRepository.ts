@@ -83,28 +83,45 @@ export class ProductRepository {
     limit: number = 50,
     exclusiveStartKey?: Record<string, unknown>
   ): Promise<ListByBusinessResult> {
-    const limitClamped = Math.min(Math.max(limit, 1), 100);
+    const limitClamped = Math.min(Math.max(Number(limit) || 50, 1), 100);
+    const pageNum = Math.max(1, Number(page) || 1);
 
     try {
+      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
+      for (let i = 0; i < pageNum - 1; i++) {
+        const skipResult = await this.docClient.send(
+          new QueryCommand({
+            TableName: this.tableName,
+            KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+            ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+            Limit: limitClamped,
+            ...(cursor && { ExclusiveStartKey: cursor }),
+          })
+        );
+        cursor = skipResult.LastEvaluatedKey;
+        if (!cursor) {
+          return { items: [], total: (pageNum - 1) * limitClamped, page: pageNum, limit: limitClamped };
+        }
+      }
+
       const result = await this.docClient.send(
         new QueryCommand({
           TableName: this.tableName,
           KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-          ExpressionAttributeValues: {
-            ':pk': businessId,
-            ':skPrefix': SK_PREFIX,
-          },
+          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
           Limit: limitClamped,
-          ExclusiveStartKey: exclusiveStartKey,
+          ...(cursor && { ExclusiveStartKey: cursor }),
         })
       );
 
       const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+      const hasMore = !!result.LastEvaluatedKey;
+      const total = (pageNum - 1) * limitClamped + items.length + (hasMore ? limitClamped : 0);
 
       return {
         items,
-        total: items.length,
-        page,
+        total,
+        page: pageNum,
         limit: limitClamped,
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
@@ -192,10 +209,14 @@ export class ProductRepository {
             pk: businessId,
             sk: `${SK_PREFIX}${id}`,
           },
+          ConditionExpression: 'attribute_exists(sk)',
         })
       );
       return true;
-    } catch (e) {
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        return false;
+      }
       throw new DatabaseError('Delete product failed', e);
     }
   }

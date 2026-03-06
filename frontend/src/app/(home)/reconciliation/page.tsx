@@ -4,7 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { standardFormat } from "@/lib/format-number";
+import { Price } from "@/components/ui/Price";
 import { createReconciliationApi } from "@/services/reconciliation.service";
 import { useState } from "react";
 import Link from "next/link";
@@ -163,7 +163,7 @@ export default function ReconciliationPage() {
                   <div>
                     <dt className="inline font-medium text-dark-6">Amount: </dt>
                     <dd className="inline">
-                      {result.parsed.currency} {standardFormat(result.parsed.amount)}
+                      <Price amount={result.parsed.amount} currency={result.parsed.currency} />
                     </dd>
                   </div>
                   <div>
@@ -184,7 +184,7 @@ export default function ReconciliationPage() {
                 </h4>
                 <p className="text-sm text-dark-6">
                   {result.entry.type === "sale" ? "Sale" : "Expense"} •{" "}
-                  {result.entry.currency} {standardFormat(result.entry.amount)} •{" "}
+                  <Price amount={result.entry.amount} currency={result.entry.currency} /> •{" "}
                   {result.entry.date}
                 </p>
               </div>

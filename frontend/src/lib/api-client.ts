@@ -3,6 +3,8 @@
  * Base URL from NEXT_PUBLIC_API_URL. Supports Bearer token and X-API-Key auth.
  */
 
+import { getCached, setCached } from "@/lib/offline-cache";
+
 const getBaseUrl = () =>
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -27,6 +29,10 @@ async function handleResponse<T>(
   skip401Redirect?: boolean
 ): Promise<T> {
   if (res.status === 401 && typeof window !== "undefined" && !skip401Redirect) {
+    // Clear auth so sign-in page doesn't redirect back to dashboard (prevents flicker loop)
+    localStorage.removeItem("qb_auth_token");
+    localStorage.removeItem("qb_auth_user");
+    localStorage.removeItem("qb_business_id");
     window.location.href = "/auth/sign-in";
     throw new Error("Unauthorized");
   }
@@ -109,6 +115,58 @@ export async function apiGet<T = unknown>(
   options: RequestConfig = {}
 ): Promise<T> {
   return request<T>("GET", path, undefined, options);
+}
+
+export type ApiGetWithOfflineCacheOptions = RequestConfig & {
+  params?: Record<string, string>;
+};
+
+/**
+ * GET request with offline cache. When offline, returns cached data if available.
+ * When online, fetches and caches on success. On network error, falls back to cache.
+ */
+export async function apiGetWithOfflineCache<T>(
+  path: string,
+  cacheKey: string,
+  options: ApiGetWithOfflineCacheOptions = {}
+): Promise<ApiResponse<T>> {
+  const { params, ...rest } = options;
+  const fullPath =
+    params && Object.keys(params).length > 0
+      ? `${path}${path.includes("?") ? "&" : "?"}${new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(params).filter(
+              ([, v]) => v !== undefined && v !== ""
+            )
+          )
+        ).toString()}`
+      : path;
+
+  const isOffline =
+    typeof window !== "undefined" && navigator && !navigator.onLine;
+
+  if (isOffline) {
+    const cached = await getCached<ApiResponse<T>>(cacheKey);
+    if (cached) return cached;
+    throw new Error("Offline and no cached data");
+  }
+
+  try {
+    const res = await request<ApiResponse<T>>(
+      "GET",
+      fullPath,
+      undefined,
+      rest
+    );
+    if (res && typeof res === "object") {
+      await setCached(cacheKey, res as ApiResponse<T>);
+    }
+    return res as ApiResponse<T>;
+  } catch (e) {
+    const cached = await getCached<ApiResponse<T>>(cacheKey);
+    if (cached) return cached;
+    throw e;
+  }
 }
 
 export async function apiPost<T = unknown>(

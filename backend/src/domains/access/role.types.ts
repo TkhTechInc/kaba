@@ -29,7 +29,8 @@ export type Permission =
   | 'members:manage'
   | 'invitations:manage'
   | 'compliance:export'
-  | 'compliance:erasure';
+  | 'compliance:erasure'
+  | 'audit:read';
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [
@@ -58,6 +59,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'invitations:manage',
     'compliance:export',
     'compliance:erasure',
+    'audit:read',
   ],
   accountant: [
     'ledger:read',
