@@ -100,7 +100,7 @@ export class InvoiceController {
 
   @Get()
   @RequirePermission('invoices:read')
-  async list(@Query() query: ListInvoicesQueryDto & { status?: string }) {
+  async list(@Query() query: ListInvoicesQueryDto & { status?: string; fromDate?: string; toDate?: string }) {
     if (query.status) {
       const result = await this.invoiceService.listByStatus(
         query.businessId,
@@ -112,7 +112,10 @@ export class InvoiceController {
     const result = await this.invoiceService.list(
       query.businessId,
       Number(query.page) || 1,
-      Number(query.limit) || 20
+      Number(query.limit) || 20,
+      undefined,
+      query.fromDate,
+      query.toDate,
     );
     return {
       success: true,

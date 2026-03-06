@@ -48,13 +48,15 @@ export class DebtService {
     page: number = 1,
     limit: number = 20,
     status?: Debt['status'],
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListDebtsResult> {
     const business = await this.businessRepo.getOrCreate(businessId, 'free');
     if (!this.featureService.isEnabled('debt_tracker', business.tier)) {
       throw new ValidationError('Debt tracker is not available for your plan');
     }
 
-    return this.debtRepo.listByBusiness(businessId, page, limit, status);
+    return this.debtRepo.listByBusiness(businessId, page, limit, status, undefined, fromDate, toDate);
   }
 
   async getById(businessId: string, id: string): Promise<Debt | null> {

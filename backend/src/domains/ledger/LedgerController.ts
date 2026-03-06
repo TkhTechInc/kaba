@@ -62,6 +62,8 @@ export class LedgerController {
       query.limit ?? 20,
       undefined,
       query.type,
+      query.fromDate,
+      query.toDate,
     );
     return {
       success: true,

@@ -51,13 +51,15 @@ export class CustomerService {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
     if (!businessId?.trim()) {
       throw new ValidationError('businessId is required');
     }
 
-    return this.customerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey);
+    return this.customerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, fromDate, toDate);
   }
 
   async getById(businessId: string, id: string): Promise<Customer> {

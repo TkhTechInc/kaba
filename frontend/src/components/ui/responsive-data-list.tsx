@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useLocale } from "@/contexts/locale-context";
 import {
   Table,
   TableBody,
@@ -40,6 +41,7 @@ export function ResponsiveDataList<T>({
   renderActions,
   tableBreakpoint = "sm",
 }: ResponsiveDataListProps<T>) {
+  const { t } = useLocale();
   const tableWrapperClass = tableBreakpoint === "sm" ? "hidden sm:block" : "hidden md:block";
   const cardsClass = tableBreakpoint === "sm" ? "sm:hidden" : "md:hidden";
 
@@ -62,7 +64,7 @@ export function ResponsiveDataList<T>({
                   {col.label}
                 </TableHead>
               ))}
-              {renderActions && <TableHead className="text-right">Actions</TableHead>}
+              {renderActions && <TableHead className="text-right">{t("common.actions")}</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -90,8 +92,10 @@ export function ResponsiveDataList<T>({
                     </TableCell>
                   ))}
                   {renderActions && (
-                    <TableCell className="text-right">
-                      {renderActions(item) || "—"}
+                    <TableCell className="whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-3">
+                        {renderActions(item) || "—"}
+                      </div>
                     </TableCell>
                   )}
                 </TableRow>
@@ -145,7 +149,7 @@ export function ResponsiveDataList<T>({
                   ))}
                 </div>
                 {renderActions && renderActions(item) && (
-                  <div className="mt-3 flex flex-wrap justify-end gap-2 border-t border-stroke pt-3 dark:border-dark-3">
+                  <div className="mt-3 flex flex-wrap items-center justify-end gap-3 border-t border-stroke pt-3 dark:border-dark-3">
                     {renderActions(item)}
                   </div>
                 )}

@@ -9,6 +9,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -30,6 +31,7 @@ export default function InvoicesPage() {
   const [paymentLinkId, setPaymentLinkId] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
+  const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
 
   const api = createInvoicesApi(token);
 
@@ -38,14 +40,14 @@ export default function InvoicesPage() {
     setError(null);
     setLoading(true);
     api
-      .list(businessId, page, limit, statusFilter === "all" ? undefined : statusFilter)
+      .list(businessId, page, limit, statusFilter === "all" ? undefined : statusFilter, dateRange.fromDate || undefined, dateRange.toDate || undefined)
       .then((r) => {
         setInvoices(r.data.items);
         setTotal(r.data.total);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [businessId, page, limit, statusFilter]);
+  }, [businessId, page, limit, statusFilter, dateRange]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -112,12 +114,19 @@ export default function InvoicesPage() {
       <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-6 py-4 dark:border-dark-3">
           <h3 className="font-semibold text-dark dark:text-white">{t("invoices.title")}</h3>
-          <Link
-            href="/invoices/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            {t("invoices.newInvoice")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(r) => { setDateRange(r); setPage(1); }}
+              onClear={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
+            />
+            <Link
+              href="/invoices/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              {t("invoices.newInvoice")}
+            </Link>
+          </div>
         </div>
         <div className="flex gap-1 overflow-x-auto border-b border-stroke px-6 py-2 dark:border-dark-3" role="tablist" aria-label={t("invoices.title")}>
               {(["all", "draft", "sent", "paid", "overdue"] as const).map((s) => (
@@ -170,7 +179,9 @@ export default function InvoicesPage() {
                                       : "bg-gray-100 text-gray-700 dark:bg-dark-2 dark:text-dark-6"
                             }`}
                           >
-                            {inv.status === "pending_approval" ? t("invoices.status.pendingApproval") : inv.status}
+                            {inv.status === "pending_approval"
+                              ? t("invoices.status.pendingApproval")
+                              : t(`invoices.filter.${inv.status}` as Parameters<typeof t>[0]) || inv.status}
                           </span>
                           {inv.mecefStatus === "confirmed" && (
                             <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800" title={`MECeF Serial: ${inv.mecefSerialNumber ?? ""}`}>
@@ -194,7 +205,7 @@ export default function InvoicesPage() {
                     },
                   ]}
                   renderActions={(inv) => (
-                    <div className="flex flex-wrap items-center gap-2">
+                    <>
                       <Link href={`/invoices/${inv.id}/edit`} className="text-sm font-medium text-primary hover:underline">
                         {t("invoices.action.edit")}
                       </Link>
@@ -206,7 +217,7 @@ export default function InvoicesPage() {
                       >
                         {t("invoices.action.paymentLink")}
                       </button>
-                    </div>
+                    </>
                   )}
                 />
               )}

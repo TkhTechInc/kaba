@@ -9,6 +9,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createLedgerApi, type LedgerEntry } from "@/services/ledger.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
@@ -33,6 +34,7 @@ export default function LedgerPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "sale" | "expense">(
     "all"
   );
+  const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
 
   const api = createLedgerApi(token);
 
@@ -41,14 +43,14 @@ export default function LedgerPage() {
     setError(null);
     setLoading(true);
     api
-      .listEntries(businessId, page, limit, typeFilter)
+      .listEntries(businessId, page, limit, typeFilter, dateRange.fromDate || undefined, dateRange.toDate || undefined)
       .then((r) => {
         setEntries(r.data.items);
         setTotal(r.data.total);
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, [businessId, page, limit, typeFilter]);
+  }, [businessId, page, limit, typeFilter, dateRange]);
 
   useEffect(() => {
     if (!businessId) return;
@@ -134,14 +136,21 @@ export default function LedgerPage() {
           <h3 className="font-semibold text-dark dark:text-white">
             {t("ledger.entries.title")}
           </h3>
-          {canWrite && (
-            <Link
-              href="/ledger/entries/new"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-            >
-              {t("ledger.entries.newEntry")}
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(r) => { setDateRange(r); setPage(1); }}
+              onClear={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
+            />
+            {canWrite && (
+              <Link
+                href="/ledger/entries/new"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                {t("ledger.entries.newEntry")}
+              </Link>
+            )}
+          </div>
         </div>
 
         <div

@@ -113,6 +113,8 @@ export class LedgerRepository {
     limit: number = 20,
     exclusiveStartKey?: Record<string, unknown>,
     type?: 'sale' | 'expense',
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
     try {
       const limitNum = Number(limit) || 20;
@@ -124,10 +126,21 @@ export class LedgerRepository {
         ':skPrefix': SK_PREFIX,
       };
       const expressionAttributeNames: Record<string, string> = {};
+
       if (type) {
         filterParts.push('#entryType = :entryType');
         expressionAttributeNames['#entryType'] = 'type';
         expressionAttributeValues[':entryType'] = type;
+      }
+      if (fromDate) {
+        filterParts.push('#dt >= :fromDate');
+        expressionAttributeNames['#dt'] = 'date';
+        expressionAttributeValues[':fromDate'] = fromDate;
+      }
+      if (toDate) {
+        filterParts.push('#dt <= :toDate');
+        expressionAttributeNames['#dt'] = 'date';
+        expressionAttributeValues[':toDate'] = toDate;
       }
 
       const baseParams = {
@@ -136,14 +149,31 @@ export class LedgerRepository {
         FilterExpression: filterParts.join(' AND '),
         ExpressionAttributeValues: expressionAttributeValues,
         ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
-        Limit: limitNum,
         ScanIndexForward: false,
       };
+
+      // When date filtering, fetch all and do in-app pagination + sort by date desc
+      if (fromDate || toDate) {
+        const allItems: LedgerEntry[] = [];
+        let lastKey: Record<string, unknown> | undefined;
+        do {
+          const result = await this.docClient.send(
+            new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
+          );
+          allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+          lastKey = result.LastEvaluatedKey;
+        } while (lastKey);
+
+        allItems.sort((a, b) => b.date.localeCompare(a.date));
+        const total = allItems.length;
+        const start = (pageNum - 1) * limitNum;
+        return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
+      }
 
       let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
       for (let i = 0; i < pageNum - 1; i++) {
         const skipResult = await this.docClient.send(
-          new QueryCommand({ ...baseParams, ...(cursor && { ExclusiveStartKey: cursor }) })
+          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
         );
         cursor = skipResult.LastEvaluatedKey;
         if (!cursor) {
@@ -152,7 +182,7 @@ export class LedgerRepository {
       }
 
       const result = await this.docClient.send(
-        new QueryCommand({ ...baseParams, ...(cursor && { ExclusiveStartKey: cursor }) })
+        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
       );
       const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
       const hasMore = !!result.LastEvaluatedKey;

@@ -1,5 +1,7 @@
-import { IsString, IsOptional, IsInt, IsIn, Min, Max } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsIn, Min, Max, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
+
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export class ListEntriesQueryDto {
   @IsString()
@@ -21,4 +23,14 @@ export class ListEntriesQueryDto {
   @IsOptional()
   @IsIn(['sale', 'expense'])
   type?: 'sale' | 'expense';
+
+  @IsOptional()
+  @IsString()
+  @Matches(DATE_REGEX)
+  fromDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(DATE_REGEX)
+  toDate?: string;
 }

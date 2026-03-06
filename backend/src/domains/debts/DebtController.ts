@@ -37,12 +37,16 @@ export class DebtController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: 'pending' | 'paid' | 'overdue',
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
   ) {
     const result = await this.debtService.list(
       businessId,
       page ? parseInt(page, 10) : 1,
       limit ? parseInt(limit, 10) : 20,
       status,
+      fromDate,
+      toDate,
     );
     return {
       success: true,

@@ -323,25 +323,69 @@ export class InvoiceRepository {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
     try {
       const limitNum = Number(limit) || 20;
       const pageNum = Math.max(1, Number(page) || 1);
 
-      // DynamoDB uses cursor-based pagination. Skip to the correct page by chaining queries.
+      const filterParts = ['attribute_not_exists(deletedAt)'];
+      const exprValues: Record<string, unknown> = { ':pk': businessId, ':skPrefix': SK_PREFIX };
+      const exprNames: Record<string, string> = {};
+
+      if (fromDate) {
+        filterParts.push('#ca >= :fromDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':fromDate'] = fromDate;
+      }
+      if (toDate) {
+        // toDate is inclusive: compare against end of that day
+        filterParts.push('#ca <= :toDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':toDate'] = toDate + 'T23:59:59.999Z';
+      }
+
+      const baseParams = {
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: filterParts.join(' AND '),
+        ExpressionAttributeValues: exprValues,
+        ...(Object.keys(exprNames).length > 0 && { ExpressionAttributeNames: exprNames }),
+        ScanIndexForward: false,
+      };
+
+      // When date filtering, fetch all matching items and do in-app pagination
+      // (DynamoDB FilterExpression doesn't reduce capacity units; pagination is still needed)
+      if (fromDate || toDate) {
+        const allItems: Invoice[] = [];
+        let lastKey: Record<string, unknown> | undefined;
+        do {
+          const result = await this.docClient.send(
+            new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
+          );
+          allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+          lastKey = result.LastEvaluatedKey;
+        } while (lastKey);
+
+        // Sort newest first by createdAt
+        allItems.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const total = allItems.length;
+        const start = (pageNum - 1) * limitNum;
+        return {
+          items: allItems.slice(start, start + limitNum),
+          total,
+          page: pageNum,
+          limit: limitNum,
+        };
+      }
+
+      // Standard cursor-based pagination (no date filter)
       let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
       for (let i = 0; i < pageNum - 1; i++) {
         const skipResult = await this.docClient.send(
-          new QueryCommand({
-            TableName: this.tableName,
-            KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-            FilterExpression: 'attribute_not_exists(deletedAt)',
-            ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-            Limit: limitNum,
-            ScanIndexForward: false,
-            ...(cursor && { ExclusiveStartKey: cursor }),
-          })
+          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
         );
         cursor = skipResult.LastEvaluatedKey;
         if (!cursor) {
@@ -350,15 +394,7 @@ export class InvoiceRepository {
       }
 
       const result = await this.docClient.send(
-        new QueryCommand({
-          TableName: this.tableName,
-          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-          FilterExpression: 'attribute_not_exists(deletedAt)',
-          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-          Limit: limitNum,
-          ScanIndexForward: false,
-          ...(cursor && { ExclusiveStartKey: cursor }),
-        })
+        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
       );
       const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
       const hasMore = !!result.LastEvaluatedKey;

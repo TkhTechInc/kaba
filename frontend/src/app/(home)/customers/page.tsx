@@ -12,6 +12,7 @@ import {
 } from "@/services/invoices.service";
 import { createReportsApi } from "@/services/reports.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -40,6 +41,8 @@ export default function CustomersPage() {
   const [creditLoading, setCreditLoading] = useState(false);
   const [creditError, setCreditError] = useState<string | null>(null);
 
+  const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
+
   const api = createInvoicesApi(token);
   const reportsApi = createReportsApi(token);
 
@@ -66,7 +69,7 @@ export default function CustomersPage() {
     setError(null);
     setLoading(true);
     api
-      .listCustomers(businessId, page, limit)
+      .listCustomers(businessId, page, limit, dateRange.fromDate || undefined, dateRange.toDate || undefined)
       .then((r) => {
         setCustomers(r.data.items);
         setTotal(r.data.total);
@@ -77,7 +80,7 @@ export default function CustomersPage() {
 
   useEffect(() => {
     load();
-  }, [businessId, page, limit]);
+  }, [businessId, page, limit, dateRange]);
 
   if (!businessId) {
     return (
@@ -119,12 +122,19 @@ export default function CustomersPage() {
           <h3 className="font-semibold text-dark dark:text-white">
             {t("customers.title")}
           </h3>
-          <Link
-            href="/customers/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            {t("customers.addCustomer")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(r) => { setDateRange(r); setPage(1); }}
+              onClear={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
+            />
+            <Link
+              href="/customers/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              {t("customers.addCustomer")}
+            </Link>
+          </div>
         </div>
             <div className="-mx-4 sm:mx-0">
               {loading ? (

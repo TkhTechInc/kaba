@@ -87,13 +87,15 @@ async function patchLedgerCaches(
 
 export function createLedgerApi(token: string | null) {
   return {
-    listEntries: (businessId: string, page = 1, limit = 20, type?: string) => {
+    listEntries: (businessId: string, page = 1, limit = 20, type?: string, fromDate?: string, toDate?: string) => {
       const params: Record<string, string> = {
         businessId,
         page: String(page),
         limit: String(limit),
       };
       if (type && type !== "all") params.type = type;
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
       return apiGetWithOfflineCache<ListEntriesResult>(
         "/api/v1/ledger/entries",
         listCacheKey(CACHE_KEYS.LEDGER_ENTRIES, businessId, params),

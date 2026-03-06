@@ -51,6 +51,24 @@
     "viewerDesc": "Read-only",
     "salesDesc": "Sales & invoicing only"
   },
+  "search": {
+    "label": "Global search",
+    "placeholder": "Search…",
+    "searching": "Searching…",
+    "resultsLabel": "Search results",
+    "noResults": "No results for \"{query}\"",
+    "group": {
+      "invoice": "Invoices",
+      "customer": "Customers",
+      "product": "Products",
+      "debt": "Debts"
+    },
+    "hint": {
+      "navigate": "navigate",
+      "open": "open",
+      "close": "close"
+    }
+  },
   "common": {
     "loading": "Loading…",
     "noData": "No data",
@@ -61,7 +79,8 @@
     "to": "To",
     "noBusinessSelected": "Select a business to continue.",
     "loadError": "Unable to load data.",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "actions": "Actions"
   },
   "dashboard": {
     "action": {
@@ -571,6 +590,8 @@
     "subtitle": "Add items you sell. Use them when recording sales in the Ledger.",
     "noBusinessSelected": "Select a business to manage products.",
     "addProduct": "+ Add Product",
+    "search": "Search products…",
+    "noResults": "No products match your search.",
     "empty": "No products yet.",
     "emptyCta": "Add your first product.",
     "column": {
@@ -898,5 +919,22 @@
       "cancel": "Cancel"
     },
     "error": "Export failed"
+  },
+  "dateFilter": {
+    "button": "Filter by date",
+    "label": "Date range",
+    "activeRange": "{from} → {to}",
+    "from": "From",
+    "to": "To",
+    "apply": "Apply",
+    "clear": "Clear",
+    "preset": {
+      "today": "Today",
+      "thisWeek": "This week",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "last3Months": "Last 3 months",
+      "thisYear": "This year"
+    }
   }
 }

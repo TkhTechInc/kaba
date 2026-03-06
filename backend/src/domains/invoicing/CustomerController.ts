@@ -42,11 +42,14 @@ export class CustomerController {
 
   @Get()
   @RequirePermission('invoices:read')
-  async list(@Query() query: ListCustomersQueryDto) {
+  async list(@Query() query: ListCustomersQueryDto & { fromDate?: string; toDate?: string }) {
     const result = await this.customerService.list(
       query.businessId,
       query.page ?? 1,
-      query.limit ?? 20
+      query.limit ?? 20,
+      undefined,
+      query.fromDate,
+      query.toDate,
     );
     return {
       success: true,

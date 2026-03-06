@@ -80,22 +80,63 @@ export class DebtRepository {
     limit: number = 20,
     status?: Debt['status'],
     exclusiveStartKey?: Record<string, unknown>,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListDebtsResult> {
     try {
       const limitNum = Number(limit) || 20;
       const pageNum = Math.max(1, Number(page) || 1);
 
+      const filterParts: string[] = [];
+      const exprNames: Record<string, string> = {};
+      const exprValues: Record<string, unknown> = { ':pk': businessId, ':skPrefix': SK_PREFIX };
+
+      if (status) {
+        filterParts.push('#st = :status');
+        exprNames['#st'] = 'status';
+        exprValues[':status'] = status;
+      }
+      if (fromDate) {
+        filterParts.push('#ca >= :fromDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':fromDate'] = fromDate;
+      }
+      if (toDate) {
+        filterParts.push('#ca <= :toDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':toDate'] = toDate + 'T23:59:59.999Z';
+      }
+
       const baseParams: Record<string, unknown> = {
         TableName: this.tableName,
         KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-        ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-        Limit: limitNum,
+        ExpressionAttributeValues: exprValues,
         ScanIndexForward: false,
       };
-      if (status) {
-        baseParams.FilterExpression = '#st = :status';
-        baseParams.ExpressionAttributeNames = { '#st': 'status' };
-        (baseParams.ExpressionAttributeValues as Record<string, unknown>)[':status'] = status;
+      if (filterParts.length > 0) {
+        baseParams.FilterExpression = filterParts.join(' AND ');
+        baseParams.ExpressionAttributeNames = exprNames;
+      }
+
+      // When date filtering, fetch all and paginate in-app sorted by createdAt desc
+      if (fromDate || toDate) {
+        const allItems: Debt[] = [];
+        let lastKey: Record<string, unknown> | undefined;
+        do {
+          const result = await this.docClient.send(
+            new QueryCommand({
+              ...baseParams,
+              ...(lastKey && { ExclusiveStartKey: lastKey }),
+            } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
+          );
+          allItems.push(...(result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>)));
+          lastKey = result.LastEvaluatedKey;
+        } while (lastKey);
+
+        allItems.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+        const total = allItems.length;
+        const start = (pageNum - 1) * limitNum;
+        return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
       }
 
       let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
@@ -103,6 +144,7 @@ export class DebtRepository {
         const skipResult = await this.docClient.send(
           new QueryCommand({
             ...baseParams,
+            Limit: limitNum,
             ...(cursor && { ExclusiveStartKey: cursor }),
           } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
         );
@@ -115,6 +157,7 @@ export class DebtRepository {
       const result = await this.docClient.send(
         new QueryCommand({
           ...baseParams,
+          Limit: limitNum,
           ...(cursor && { ExclusiveStartKey: cursor }),
         } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
       );

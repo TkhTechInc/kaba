@@ -89,12 +89,14 @@ async function patchDebtsCache(
 
 export function createDebtsApi(token: string | null) {
   return {
-    list: (businessId: string, page = 1, limit = 20, status?: DebtStatus) => {
+    list: (businessId: string, page = 1, limit = 20, status?: DebtStatus, fromDate?: string, toDate?: string) => {
       const params: Record<string, string> = {
         businessId,
         page: String(page),
         limit: String(limit),
         ...(status && { status }),
+        ...(fromDate && { fromDate }),
+        ...(toDate && { toDate }),
       };
       return apiGetWithOfflineCache<ListDebtsResult>(
         "/api/v1/debts",

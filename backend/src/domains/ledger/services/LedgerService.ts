@@ -218,12 +218,14 @@ export class LedgerService {
     limit: number = 20,
     exclusiveStartKey?: Record<string, unknown>,
     type?: 'sale' | 'expense',
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
     if (!businessId?.trim()) {
       throw new ValidationError('businessId is required');
     }
 
-    return this.ledgerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, type);
+    return this.ledgerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, type, fromDate, toDate);
   }
 
   async countEntries(businessId: string): Promise<number> {

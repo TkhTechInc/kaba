@@ -336,9 +336,11 @@ export class InvoiceService {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
-    return this.invoiceRepository.listByBusiness(businessId, page, limit, exclusiveStartKey);
+    return this.invoiceRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, fromDate, toDate);
   }
 
   /** List all unpaid invoices (draft, sent, overdue) for dashboard/reporting. */

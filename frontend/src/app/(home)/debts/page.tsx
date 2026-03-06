@@ -8,6 +8,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -25,6 +26,7 @@ export default function DebtsPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
 
   const api = createDebtsApi(token);
   const canRemind = features.isEnabled("debt_reminders");
@@ -34,7 +36,7 @@ export default function DebtsPage() {
     setError(null);
     setLoading(true);
     api
-      .list(businessId, page, limit, statusFilter === "all" ? undefined : statusFilter)
+      .list(businessId, page, limit, statusFilter === "all" ? undefined : statusFilter, dateRange.fromDate || undefined, dateRange.toDate || undefined)
       .then((r) => {
         setDebts(r.data.items);
         setTotal(r.data.total);
@@ -45,7 +47,7 @@ export default function DebtsPage() {
 
   useEffect(() => {
     load();
-  }, [businessId, statusFilter, page, limit]);
+  }, [businessId, statusFilter, page, limit, dateRange]);
 
   const handleMarkPaid = (id: string) => {
     if (!businessId) return;
@@ -112,12 +114,19 @@ export default function DebtsPage() {
       <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
           <h3 className="font-semibold text-dark dark:text-white">{t("debts.title")}</h3>
-          <Link
-            href="/debts/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-          >
-            {t("dashboard.debtsToCollect.addDebt")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangeFilter
+              value={dateRange}
+              onChange={(r) => { setDateRange(r); setPage(1); }}
+              onClear={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
+            />
+            <Link
+              href="/debts/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+            >
+              {t("dashboard.debtsToCollect.addDebt")}
+            </Link>
+          </div>
         </div>
         {error && (
           <div className="mx-4 mt-2 rounded bg-red/10 p-3 text-sm text-red">{error}</div>

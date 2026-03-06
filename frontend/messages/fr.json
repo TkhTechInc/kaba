@@ -51,6 +51,24 @@
     "viewerDesc": "Lecture seule",
     "salesDesc": "Ventes et facturation uniquement"
   },
+  "search": {
+    "label": "Recherche globale",
+    "placeholder": "Rechercher…",
+    "searching": "Recherche en cours…",
+    "resultsLabel": "Résultats de recherche",
+    "noResults": "Aucun résultat pour « {query} »",
+    "group": {
+      "invoice": "Factures",
+      "customer": "Clients",
+      "product": "Produits",
+      "debt": "Dettes"
+    },
+    "hint": {
+      "navigate": "naviguer",
+      "open": "ouvrir",
+      "close": "fermer"
+    }
+  },
   "common": {
     "loading": "Chargement…",
     "noData": "Aucune donnée",
@@ -61,7 +79,8 @@
     "to": "Au",
     "noBusinessSelected": "Sélectionnez une entreprise pour continuer.",
     "loadError": "Impossible de charger les données.",
-    "loadMore": "Charger plus"
+    "loadMore": "Charger plus",
+    "actions": "Actions"
   },
   "dashboard": {
     "action": {
@@ -571,6 +590,8 @@
     "subtitle": "Ajoutez les articles que vous vendez. Utilisez-les lors de l'enregistrement des ventes dans le grand livre.",
     "noBusinessSelected": "Sélectionnez une entreprise pour gérer les produits.",
     "addProduct": "+ Ajouter un produit",
+    "search": "Rechercher des produits…",
+    "noResults": "Aucun produit ne correspond à votre recherche.",
     "empty": "Aucun produit pour l'instant.",
     "emptyCta": "Ajoutez votre premier produit.",
     "column": {
@@ -898,5 +919,22 @@
       "cancel": "Annuler"
     },
     "error": "Échec de l'export"
+  },
+  "dateFilter": {
+    "button": "Filtrer par date",
+    "label": "Plage de dates",
+    "activeRange": "{from} → {to}",
+    "from": "Du",
+    "to": "Au",
+    "apply": "Appliquer",
+    "clear": "Effacer",
+    "preset": {
+      "today": "Aujourd'hui",
+      "thisWeek": "Cette semaine",
+      "thisMonth": "Ce mois",
+      "lastMonth": "Mois dernier",
+      "last3Months": "3 derniers mois",
+      "thisYear": "Cette année"
+    }
   }
 }

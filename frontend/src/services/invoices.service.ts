@@ -110,13 +110,15 @@ async function patchInvoicesPendingCache(businessId: string, removedInvoiceId: s
 
 export function createInvoicesApi(token: string | null) {
   return {
-    list: (businessId: string, page = 1, limit = 20, status?: string) => {
+    list: (businessId: string, page = 1, limit = 20, status?: string, fromDate?: string, toDate?: string) => {
       const params: Record<string, string> = {
         businessId,
         page: String(page),
         limit: String(limit),
       };
       if (status) params.status = status;
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
       return apiGetWithOfflineCache<ListInvoicesResult>(
         "/api/v1/invoices",
         listCacheKey(CACHE_KEYS.INVOICES, businessId, params),
@@ -216,12 +218,14 @@ export function createInvoicesApi(token: string | null) {
         { token: token ?? undefined }
       ),
 
-    listCustomers: (businessId: string, page = 1, limit = 100) => {
-      const params = {
+    listCustomers: (businessId: string, page = 1, limit = 100, fromDate?: string, toDate?: string) => {
+      const params: Record<string, string> = {
         businessId,
         page: String(page),
         limit: String(limit),
       };
+      if (fromDate) params.fromDate = fromDate;
+      if (toDate) params.toDate = toDate;
       return apiGetWithOfflineCache<ListCustomersResult>(
         "/api/v1/customers",
         listCacheKey(CACHE_KEYS.CUSTOMERS, businessId, params),

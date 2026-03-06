@@ -9,6 +9,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createProductsApi, type Product } from "@/services/products.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { SearchIcon } from "@/assets/icons";
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
@@ -46,6 +47,7 @@ export default function ProductsPage() {
     null
   );
   const [forecastLoading, setForecastLoading] = useState(false);
+  const [search, setSearch] = useState("");
 
   const api = createProductsApi(token);
 
@@ -144,6 +146,15 @@ export default function ProductsPage() {
     );
   }
 
+  const query = search.trim().toLowerCase();
+  const visibleProducts = query
+    ? products.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          (p.brand ?? "").toLowerCase().includes(query)
+      )
+    : products;
+
   return (
     <>
       <Breadcrumb pageName={t("products.title")} />
@@ -155,7 +166,7 @@ export default function ProductsPage() {
       )}
 
       <div className="min-w-0 rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stroke px-4 py-3 dark:border-dark-3 sm:px-6 sm:py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stroke px-4 py-3 dark:border-dark-3 sm:px-6 sm:py-4">
           <div>
             <h3 className="font-semibold text-dark dark:text-white">
               {t("products.title")}
@@ -164,14 +175,27 @@ export default function ProductsPage() {
               {t("products.subtitle")}
             </p>
           </div>
-          {canWrite && (
-            <Link
-              href="/products/new"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-            >
-              {t("products.addProduct")}
-            </Link>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Search */}
+            <div className="relative">
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("products.search")}
+                className="w-48 rounded-lg border border-stroke bg-gray-2 py-1.5 pl-8 pr-3 text-sm text-dark placeholder:text-dark-4 focus:border-primary focus:outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:placeholder:text-dark-6 sm:w-56"
+              />
+              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dark-4 dark:text-dark-6" />
+            </div>
+            {canWrite && (
+              <Link
+                href="/products/new"
+                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+              >
+                {t("products.addProduct")}
+              </Link>
+            )}
+          </div>
         </div>
 
         <div className="-mx-4 sm:mx-0">
@@ -179,10 +203,12 @@ export default function ProductsPage() {
             <div className="p-6 text-center text-dark-6">{t("common.loading")}</div>
           ) : (
             <ResponsiveDataList<Product>
-              items={products}
+              items={visibleProducts}
               keyExtractor={(p) => p.id}
               emptyMessage={
-                canWrite ? (
+                query ? (
+                  t("products.noResults")
+                ) : canWrite ? (
                   <>
                     {t("products.empty")}{" "}
                     <Link href="/products/new" className="text-primary hover:underline">
@@ -218,7 +244,7 @@ export default function ProductsPage() {
               renderActions={
                 canWrite
                   ? (p) => (
-                      <div className="flex flex-wrap items-center justify-end gap-3">
+                      <>
                         <button
                           type="button"
                           onClick={() => openForecast(p)}
@@ -233,7 +259,7 @@ export default function ProductsPage() {
                         >
                           {t("products.action.delete")}
                         </button>
-                      </div>
+                      </>
                     )
                   : undefined
               }

@@ -34,6 +34,7 @@ export class CustomerRepository {
       name: input.name,
       email: input.email,
       phone: input.phone,
+      createdAt: new Date().toISOString(),
     };
 
     const item = this.mapToDynamoDB(customer);
@@ -204,23 +205,60 @@ export class CustomerRepository {
     businessId: string,
     page: number = 1,
     limit: number = 20,
-    exclusiveStartKey?: Record<string, unknown>
+    exclusiveStartKey?: Record<string, unknown>,
+    fromDate?: string,
+    toDate?: string,
   ): Promise<ListByBusinessResult> {
     try {
       const limitNum = Number(limit) || 20;
       const pageNum = Math.max(1, Number(page) || 1);
 
+      const filterParts: string[] = [];
+      const exprNames: Record<string, string> = {};
+      const exprValues: Record<string, unknown> = { ':pk': businessId, ':skPrefix': SK_PREFIX };
+
+      if (fromDate) {
+        filterParts.push('#ca >= :fromDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':fromDate'] = fromDate;
+      }
+      if (toDate) {
+        filterParts.push('#ca <= :toDate');
+        exprNames['#ca'] = 'createdAt';
+        exprValues[':toDate'] = toDate + 'T23:59:59.999Z';
+      }
+
+      const baseParams = {
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        ExpressionAttributeValues: exprValues,
+        ScanIndexForward: false,
+        ...(filterParts.length > 0 && { FilterExpression: filterParts.join(' AND ') }),
+        ...(Object.keys(exprNames).length > 0 && { ExpressionAttributeNames: exprNames }),
+      };
+
+      // When date filtering, fetch all and paginate in-app sorted by createdAt desc
+      if (fromDate || toDate) {
+        const allItems: Customer[] = [];
+        let lastKey: Record<string, unknown> | undefined;
+        do {
+          const result = await this.docClient.send(
+            new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
+          );
+          allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+          lastKey = result.LastEvaluatedKey;
+        } while (lastKey);
+
+        allItems.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+        const total = allItems.length;
+        const start = (pageNum - 1) * limitNum;
+        return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
+      }
+
       let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
       for (let i = 0; i < pageNum - 1; i++) {
         const skipResult = await this.docClient.send(
-          new QueryCommand({
-            TableName: this.tableName,
-            KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-            ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-            Limit: limitNum,
-            ScanIndexForward: false,
-            ...(cursor && { ExclusiveStartKey: cursor }),
-          })
+          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
         );
         cursor = skipResult.LastEvaluatedKey;
         if (!cursor) {
@@ -229,14 +267,7 @@ export class CustomerRepository {
       }
 
       const result = await this.docClient.send(
-        new QueryCommand({
-          TableName: this.tableName,
-          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-          Limit: limitNum,
-          ScanIndexForward: false,
-          ...(cursor && { ExclusiveStartKey: cursor }),
-        })
+        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
       );
       const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
       const hasMore = !!result.LastEvaluatedKey;
@@ -264,6 +295,7 @@ export class CustomerRepository {
       name: customer.name,
       email: customer.email,
       phone: customer.phone,
+      ...(customer.createdAt != null && { createdAt: customer.createdAt }),
     };
   }
 
@@ -274,6 +306,7 @@ export class CustomerRepository {
       name: String(item.name ?? ''),
       email: String(item.email ?? ''),
       phone: item.phone != null ? String(item.phone) : undefined,
+      createdAt: item.createdAt != null ? String(item.createdAt) : undefined,
     };
   }
 }
