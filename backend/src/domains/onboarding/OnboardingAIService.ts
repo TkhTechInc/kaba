@@ -62,7 +62,7 @@ Extract any business name, business type, country, currency, or tax regime from 
     const result = await this.llm.generateStructured<OnboardingAISuggestion>({
       prompt,
       systemPrompt:
-        'You are a helpful assistant for QuickBooks West Africa. Extract onboarding fields from user messages. Return only fields you can confidently infer. Use ISO codes for country and currency.',
+        'You are a helpful assistant for Kaba. Extract onboarding fields from user messages. Return only fields you can confidently infer. Use ISO codes for country and currency.',
       jsonSchema: schema,
     });
 

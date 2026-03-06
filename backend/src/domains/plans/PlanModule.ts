@@ -16,7 +16,7 @@ import { PlanPaymentController } from './PlanPaymentController';
     {
       provide: PlanPaymentRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-LedgerService-dev-ledger';
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-LedgerService-dev-ledger';
         return new PlanPaymentRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

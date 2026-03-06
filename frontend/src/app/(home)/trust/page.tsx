@@ -3,22 +3,16 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { createTrustApi } from "@/services/trust.service";
 import type { TrustScoreResult } from "@/services/trust.service";
 import { useEffect, useState } from "react";
 
-const BREAKDOWN_LABELS: Record<string, string> = {
-  repaymentVelocity: "Repayment velocity",
-  transactionRecency: "Transaction recency",
-  momoReconciliation: "MoMo reconciliation",
-  customerRetention: "Customer retention",
-  networkDiversity: "Network diversity",
-};
-
 export default function TrustPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [score, setScore] = useState<TrustScoreResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,9 +51,9 @@ export default function TrustPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Trust Score" />
+        <Breadcrumb pageName={t("trust.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to view your trust score.</p>
+          <p className="text-dark-6">{t("trust.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -68,7 +62,7 @@ export default function TrustPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Trust Score" />
+        <Breadcrumb pageName={t("trust.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -79,7 +73,7 @@ export default function TrustPage() {
   if (!features.isEnabled("trust_score")) {
     return (
       <>
-        <Breadcrumb pageName="Trust Score" />
+        <Breadcrumb pageName={t("trust.pageName")} />
         <UpgradePrompt feature="Trust score (Sika Trust)" />
       </>
     );
@@ -87,7 +81,7 @@ export default function TrustPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Trust Score" />
+      <Breadcrumb pageName={t("trust.pageName")} />
 
       {error && (
         <div className="mb-6 rounded-lg bg-red/10 p-4 text-red">{error}</div>
@@ -95,14 +89,14 @@ export default function TrustPage() {
 
       {loading ? (
         <div className="rounded-lg border border-stroke bg-white p-12 text-center dark:border-dark-3 dark:bg-gray-dark">
-          Loading trust score...
+          {t("trust.loading")}
         </div>
       ) : score ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
             <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
               <h3 className="font-semibold text-dark dark:text-white">
-                Sika Trust Score
+                {t("trust.scoreTitle")}
               </h3>
               {features.isEnabled("trust_share") && (
                 <button
@@ -111,7 +105,7 @@ export default function TrustPage() {
                   disabled={sharing}
                   className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {sharing ? "Generating..." : "Share score"}
+                  {sharing ? t("trust.sharing") : t("trust.shareScore")}
                 </button>
               )}
             </div>
@@ -132,22 +126,22 @@ export default function TrustPage() {
                 </div>
               </div>
               <p className="mb-4 text-center text-sm capitalize text-dark-6">
-                {score.recommendation} • Last scored {new Date(score.scoredAt).toLocaleDateString()}
+                {score.recommendation} • {t("trust.lastScored", { date: new Date(score.scoredAt).toLocaleDateString() })}
               </p>
               {score.marketDayAwarenessApplied && (
                 <p className="mb-4 text-center text-xs text-dark-6">
-                  Market day awareness applied
+                  {t("trust.marketDayApplied")}
                 </p>
               )}
 
               <h4 className="mb-3 text-sm font-medium text-dark dark:text-white">
-                Score breakdown
+                {t("trust.scoreBreakdown")}
               </h4>
               <div className="space-y-2">
                 {Object.entries(score.breakdown).map(([key, value]) => (
                   <div key={key} className="flex items-center justify-between text-sm">
                     <span className="text-dark-6">
-                      {BREAKDOWN_LABELS[key] ?? key}
+                      {t(`trust.breakdown.${key}` as Parameters<typeof t>[0]) || key}
                     </span>
                     <span className="font-medium text-dark dark:text-white">
                       {Math.round(value)}
@@ -161,10 +155,10 @@ export default function TrustPage() {
           {shareUrl && (
             <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
               <h3 className="mb-4 font-semibold text-dark dark:text-white">
-                Share link
+                {t("trust.shareLink.title")}
               </h3>
               <p className="mb-3 text-sm text-dark-6">
-                Anyone with this link can view your trust badge.
+                {t("trust.shareLink.subtitle")}
               </p>
               <div className="flex gap-2">
                 <input
@@ -178,7 +172,7 @@ export default function TrustPage() {
                   onClick={copyShareUrl}
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
                 >
-                  Copy
+                  {t("trust.shareLink.copy")}
                 </button>
               </div>
             </div>
@@ -186,7 +180,7 @@ export default function TrustPage() {
         </div>
       ) : (
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Unable to load trust score.</p>
+          <p className="text-dark-6">{t("trust.unableToLoad")}</p>
         </div>
       )}
     </>

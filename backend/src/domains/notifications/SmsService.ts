@@ -18,7 +18,7 @@ export class SmsService {
     africastalkingProvider: AfricasTalkingSmsProvider,
   ) {
     this.enabled = config?.get<boolean>('sms.enabled') ?? process.env['SMS_ENABLED'] === 'true';
-    this.senderId = config?.get<string>('sms.senderId') || process.env['SMS_SENDER_ID'] || 'QuickBooks';
+    this.senderId = config?.get<string>('sms.senderId') || process.env['SMS_SENDER_ID'] || 'Kaba';
 
     const providerName = config?.get<string>('sms.provider') || process.env['SMS_PROVIDER'] || 'aws_sns';
     switch (providerName) {

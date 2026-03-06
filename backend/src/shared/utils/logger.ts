@@ -13,7 +13,7 @@ export interface LogContext {
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-const service = process.env['SERVICE_NAME'] || 'quickbooks-backend';
+const service = process.env['SERVICE_NAME'] || 'kaba-backend';
 
 /** Minimum level to emit. Set LOG_LEVEL env var in Lambda config or locally. */
 const LEVELS: Record<LogLevel, number> = { debug: 0, info: 1, warn: 2, error: 3 };

@@ -1,5 +1,5 @@
 /**
- * Environment Configuration for QuickBooks West Africa CDK Stacks
+ * Environment Configuration for Kaba CDK Stacks
  *
  * Usage:
  *   cdk deploy -c environment=dev
@@ -28,7 +28,7 @@ export interface EnvironmentConfig {
     provider?: 'aws_sns' | 'twilio' | 'africastalking';
     senderId?: string;
   };
-  /** Frontend URL for CORS (e.g. https://dev.quickbooks.example.com). Localhost is always allowed. */
+  /** Frontend URL for CORS (e.g. https://dev.kaba.example.com). Localhost is always allowed. */
   frontendUrl?: string;
   /** Google OAuth — pass via cdk deploy -c googleClientId=... -c googleClientSecret=... */
   googleClientId?: string;
@@ -62,7 +62,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       enableAlarms: false,
       logRetentionDays: 7,
     },
-    sms: { enabled: false, provider: 'aws_sns', senderId: 'QuickBooks' },
+    sms: { enabled: false, provider: 'aws_sns', senderId: 'Kaba' },
     frontendUrl: 'http://localhost:3000',
     database: {
       useOnDemand: true,
@@ -85,7 +85,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       enableAlarms: true,
       logRetentionDays: 14,
     },
-    sms: { enabled: true, provider: 'aws_sns', senderId: 'QuickBooks' },
+    sms: { enabled: true, provider: 'aws_sns', senderId: 'Kaba' },
     frontendUrl: undefined, // Set via: cdk deploy -c frontendUrl=https://staging.example.com
     database: {
       useOnDemand: true,
@@ -108,7 +108,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       enableAlarms: true,
       logRetentionDays: 30,
     },
-    sms: { enabled: true, provider: 'aws_sns', senderId: 'QuickBooks' },
+    sms: { enabled: true, provider: 'aws_sns', senderId: 'Kaba' },
     frontendUrl: undefined, // Set via: cdk deploy -c frontendUrl=https://app.example.com
     database: {
       useOnDemand: true,

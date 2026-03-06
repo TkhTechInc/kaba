@@ -1,4 +1,4 @@
-# SMS Pricing – QuickBooks
+# SMS Pricing – Kaba
 
 Approximate per-message costs for OTP and receipts. Prices vary by carrier and volume. **AWS SNS has no free tier** – new accounts have a $1/month default spending limit.
 

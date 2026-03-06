@@ -1,11 +1,18 @@
 /**
- * Role and permission types - aligned with backend role.types
+ * Role and permission types - aligned with backend role.types.ts
+ *
+ * owner     – full access including team management, plan changes, data erasure
+ * manager   – trusted cross-branch assistant; all operational access + audit logs, no admin rights
+ * accountant – ledger, invoices, reports; no team management
+ * viewer    – read-only
+ * sales     – invoicing/inventory only
  */
-export type Role = "owner" | "accountant" | "viewer";
+export type Role = "owner" | "manager" | "accountant" | "viewer" | "sales";
 
 export type Permission =
   | "ledger:read"
   | "ledger:write"
+  | "ledger:delete"
   | "inventory:read"
   | "inventory:write"
   | "invoices:read"
@@ -15,6 +22,7 @@ export type Permission =
   | "receipts:read"
   | "receipts:write"
   | "ai:read"
+  | "lending:read"
   | "tax:read"
   | "features:read"
   | "api_keys:read"
@@ -26,12 +34,14 @@ export type Permission =
   | "members:manage"
   | "invitations:manage"
   | "compliance:export"
-  | "compliance:erasure";
+  | "compliance:erasure"
+  | "audit:read";
 
 const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   owner: [
     "ledger:read",
     "ledger:write",
+    "ledger:delete",
     "inventory:read",
     "inventory:write",
     "invoices:read",
@@ -41,6 +51,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "receipts:read",
     "receipts:write",
     "ai:read",
+    "lending:read",
     "tax:read",
     "features:read",
     "api_keys:read",
@@ -53,6 +64,28 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "invitations:manage",
     "compliance:export",
     "compliance:erasure",
+    "audit:read",
+  ],
+  manager: [
+    "ledger:read",
+    "ledger:write",
+    "inventory:read",
+    "inventory:write",
+    "invoices:read",
+    "invoices:write",
+    "reports:read",
+    "reports:write",
+    "receipts:read",
+    "receipts:write",
+    "ai:read",
+    "lending:read",
+    "tax:read",
+    "features:read",
+    "api_keys:read",
+    "webhooks:read",
+    "webhooks:write",
+    "compliance:export",
+    "audit:read",
   ],
   accountant: [
     "ledger:read",
@@ -66,10 +99,10 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "receipts:read",
     "receipts:write",
     "ai:read",
+    "lending:read",
     "tax:read",
     "features:read",
     "api_keys:read",
-    "api_keys:write",
     "webhooks:read",
     "webhooks:write",
     "compliance:export",
@@ -81,7 +114,19 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "reports:read",
     "receipts:read",
     "ai:read",
+    "lending:read",
     "tax:read",
+    "features:read",
+  ],
+  sales: [
+    "ledger:read",
+    "ledger:write",
+    "inventory:read",
+    "inventory:write",
+    "invoices:read",
+    "invoices:write",
+    "receipts:read",
+    "receipts:write",
     "features:read",
   ],
 };

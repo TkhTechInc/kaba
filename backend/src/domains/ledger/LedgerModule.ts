@@ -34,7 +34,7 @@ import { KeywordCategorySuggester } from './services/KeywordCategorySuggester';
     {
       provide: LedgerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
         return new LedgerRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

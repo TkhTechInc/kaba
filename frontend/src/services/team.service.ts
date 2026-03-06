@@ -1,7 +1,7 @@
 import { apiGet } from "@/lib/api-client";
 import { offlineMutation } from "@/lib/offline-api";
 
-export type TeamMemberRole = "owner" | "accountant" | "viewer" | "sales";
+export type TeamMemberRole = "owner" | "manager" | "accountant" | "viewer" | "sales";
 
 export interface TeamMember {
   userId: string;

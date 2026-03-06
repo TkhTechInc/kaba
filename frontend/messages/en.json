@@ -1,18 +1,902 @@
 {
-  "auth": {
-    "signIn": "Sign In",
-    "signUp": "Sign Up",
-    "phoneNumber": "Phone number",
-    "verificationCode": "Verification code",
-    "email": "Email",
-    "password": "Password",
-    "confirmPassword": "Confirm password",
-    "sendOtp": "Send OTP",
-    "createAccount": "Create account",
-    "forgotPassword": "Forgot Password?"
+  "nav": {
+    "section": {
+      "overview": "OVERVIEW",
+      "sales": "SALES",
+      "finances": "FINANCES",
+      "inventory": "INVENTORY",
+      "reports": "REPORTS",
+      "account": "ACCOUNT",
+      "admin": "ADMIN"
+    },
+    "dashboard": "Dashboard",
+    "invoices": "Invoices",
+    "customers": "Customers",
+    "pendingApprovals": "Pending Approvals",
+    "ledger": "Ledger",
+    "receipts": "Receipts",
+    "mobileMoney": "Mobile Money",
+    "debts": "Debts",
+    "products": "Products",
+    "reports": "Reports",
+    "reportsSub": {
+      "pl": "P&L",
+      "cashFlow": "Cash Flow",
+      "taxVat": "Tax / VAT",
+      "consolidated": "Consolidated"
+    },
+    "trustScore": "Trust Score",
+    "branches": "Branches",
+    "settings": "Settings",
+    "settingsSub": {
+      "plans": "Plans",
+      "team": "Team",
+      "activityLog": "Activity Log",
+      "preferences": "Preferences",
+      "apiKeys": "API Keys",
+      "webhooks": "Webhooks",
+      "compliance": "Compliance"
+    },
+    "admin": "Admin"
+  },
+  "roles": {
+    "owner": "Owner",
+    "manager": "Manager",
+    "accountant": "Accountant",
+    "viewer": "Viewer",
+    "sales": "Sales",
+    "ownerDesc": "Full access including team & settings",
+    "managerDesc": "Cross-branch access, reports & audit logs — no team management",
+    "accountantDesc": "Ledger, invoices, reports",
+    "viewerDesc": "Read-only",
+    "salesDesc": "Sales & invoicing only"
   },
   "common": {
-    "skipToContent": "Skip to main content",
-    "readAloud": "Read aloud"
+    "loading": "Loading…",
+    "noData": "No data",
+    "cancel": "Cancel",
+    "save": "Save",
+    "search": "Search",
+    "from": "From",
+    "to": "To",
+    "noBusinessSelected": "Select a business to continue.",
+    "loadError": "Unable to load data.",
+    "loadMore": "Load more"
+  },
+  "dashboard": {
+    "action": {
+      "newInvoice": "+ New Invoice",
+      "recordTransaction": "+ Record Transaction",
+      "uploadReceipt": "Upload Receipt",
+      "viewReports": "View Reports"
+    },
+    "cards": {
+      "noBusinessSelected": "Select a business to view the dashboard.",
+      "loadError": "Unable to load dashboard.",
+      "noFeaturesEnabled": "No features enabled for this business.",
+      "cashBalance": "Cash Balance",
+      "invoices": "Invoices",
+      "customers": "Customers",
+      "ledgerEntries": "Ledger Entries",
+      "negativeBalanceAlert": "Your cash balance is negative. Review your ledger entries or add a sale.",
+      "viewLedger": "View Ledger →",
+      "decreasedBy": "{label} Decreased by {growthRate}%",
+      "increasedBy": "{label} Increased by {growthRate}%"
+    },
+    "paymentsOverview": {
+      "title": "Payments Overview",
+      "loadError": "Unable to load payments overview.",
+      "noData": "No data yet. Add ledger entries or invoices.",
+      "receivedAmount": "Received Amount",
+      "dueAmount": "Due Amount"
+    },
+    "weeksProfit": {
+      "title": "Profit {timeFrame}",
+      "thisWeek": "this week",
+      "lastWeek": "last week",
+      "loadError": "Unable to load profit data.",
+      "noData": "No data yet. Add ledger entries."
+    },
+    "activityByType": {
+      "title": "Activity by Type",
+      "centerLabel": "Total",
+      "loadError": "Unable to load activity data.",
+      "noData": "No data yet. Add ledger entries."
+    },
+    "recentInvoices": {
+      "title": "Recent Invoices",
+      "viewAll": "View all →",
+      "noInvoices": "No invoices yet.",
+      "createFirst": "Create your first invoice",
+      "amount": "Amount",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "view": "View"
+    },
+    "debtsToCollect": {
+      "title": "People who owe me",
+      "viewAll": "View all →",
+      "noPending": "No pending debts.",
+      "addDebt": "Add a debt",
+      "due": "Due {date}",
+      "overdue": "Overdue"
+    }
+  },
+  "invoices": {
+    "title": "Invoices",
+    "newInvoice": "+ New Invoice",
+    "noBusinessSelected": "Select a business to view invoices.",
+    "loading": "Loading…",
+    "empty": "No invoices yet",
+    "filter": {
+      "all": "All",
+      "draft": "Draft",
+      "sent": "Sent",
+      "paid": "Paid",
+      "overdue": "Overdue"
+    },
+    "column": {
+      "customer": "Customer",
+      "dueDate": "Due Date",
+      "status": "Status",
+      "amount": "Amount"
+    },
+    "status": {
+      "pendingApproval": "Pending Approval",
+      "dgiCertified": "✓ DGI {serialNumber}",
+      "dgiPending": "⏳ DGI Pending",
+      "dgiRejected": "✗ DGI Rejected"
+    },
+    "action": {
+      "edit": "Edit",
+      "paymentLink": "Payment link",
+      "paymentLinkAriaLabel": "Generate payment link for invoice {id}"
+    },
+    "paymentLinkLabel": "Payment link:",
+    "upgradeToDownload": "Upgrade to download PDF"
+  },
+  "customers": {
+    "title": "Customers",
+    "addCustomer": "+ Add Customer",
+    "noBusinessSelected": "Select a business to manage customers.",
+    "loading": "Loading…",
+    "empty": "No customers yet.",
+    "emptyCta": "Add one to get started",
+    "column": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "trustScore": "Trust Score"
+    },
+    "action": {
+      "viewScore": "View Score"
+    },
+    "creditModal": {
+      "title": "Trust Score — {customerName}",
+      "calculating": "Calculating score…",
+      "scoreLabel": "Trust Score / 100",
+      "approve": "✓ Approve Credit",
+      "review": "⚠ Review Manually",
+      "deny": "✗ Deny Credit",
+      "transactionFrequency": "Transaction Frequency",
+      "debtRepaymentRatio": "Debt Repayment Ratio",
+      "volumeConsistency": "Volume Consistency",
+      "outOf": "{value}/100",
+      "loadError": "Failed to load credit score"
+    }
+  },
+  "ledger": {
+    "title": "Ledger",
+    "noBusinessSelected": "Select a business to view the ledger.",
+    "balance": {
+      "label": "Current balance",
+      "loading": "Loading…"
+    },
+    "entries": {
+      "title": "Entries",
+      "newEntry": "+ New Entry",
+      "loading": "Loading…",
+      "empty": "No entries yet.",
+      "emptyCta": "Create your first entry."
+    },
+    "filter": {
+      "all": "All",
+      "sale": "Sale",
+      "expense": "Expense"
+    },
+    "column": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "category": "Category",
+      "amount": "Amount"
+    },
+    "type": {
+      "sale": "↑ Sale",
+      "expense": "↓ Expense"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "noBusinessSelected": "Select a business to view reports.",
+    "loading": "Loading reports…",
+    "filter": {
+      "from": "From",
+      "to": "To"
+    },
+    "pl": {
+      "title": "Profit & Loss ({startDate} – {endDate})",
+      "download": "Download PDF",
+      "downloading": "Downloading…",
+      "upgradeToDownload": "Upgrade to download PDF",
+      "totalIncome": "Total Income",
+      "totalExpenses": "Total Expenses",
+      "netProfit": "Net Profit",
+      "category": "Category",
+      "type": "Type",
+      "amount": "Amount",
+      "noData": "No data"
+    },
+    "cashFlow": {
+      "title": "Cash Flow ({startDate} – {endDate})",
+      "download": "Download PDF",
+      "downloading": "Downloading…",
+      "upgradeToDownload": "Upgrade to download PDF",
+      "openingBalance": "Opening Balance",
+      "inflows": "Inflows",
+      "outflows": "Outflows",
+      "closingBalance": "Closing Balance",
+      "date": "Date",
+      "inflow": "Inflow",
+      "outflow": "Outflow",
+      "balance": "Balance",
+      "noData": "No data"
+    },
+    "consolidated": {
+      "breadcrumb": "Consolidated P&L",
+      "heading": "Multi-Branch Consolidated Report",
+      "loadingOrgs": "Loading organizations…",
+      "noOrgs": "No organizations with branches",
+      "selectOrg": "Select organization",
+      "loadReport": "Load Report",
+      "branchBreakdown": "Branch Breakdown",
+      "noBranches": "No branches",
+      "branch": "Branch",
+      "income": "Income",
+      "expenses": "Expenses"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Configure your business settings.",
+    "nav": {
+      "plans": "Plans",
+      "team": "Team",
+      "activityLog": "Activity Log",
+      "preferences": "Preferences",
+      "apiKeys": "API Keys",
+      "webhooks": "Webhooks",
+      "compliance": "Compliance"
+    },
+    "card": {
+      "teamLabel": "Team",
+      "teamDesc": "Manage who has access to this business",
+      "preferencesLabel": "Preferences",
+      "preferencesDesc": "Notifications, language, and timezone"
+    },
+    "plans": {
+      "title": "Plans",
+      "currentPlan": "Your current plan:",
+      "pricesIn": "Prices in {currency}",
+      "restrictedNotice": "Only business owners can change the plan. Contact your admin to upgrade or downgrade.",
+      "currentBadge": "(current)",
+      "upgrade": "Upgrade",
+      "downgrade": "Downgrade",
+      "updating": "Updating…",
+      "updateFailed": "Failed to update plan",
+      "perMonth": " / month",
+      "tiers": {
+        "free": {
+          "name": "Free",
+          "f1": "Track your sales and expenses",
+          "f2": "See simple reports",
+          "f3": "Good for getting started"
+        },
+        "starter": {
+          "name": "Starter",
+          "f1": "Send invoices and get paid online",
+          "f2": "Ask the AI assistant questions (10/month)",
+          "f3": "Tax support for your business",
+          "f4": "Track more transactions"
+        },
+        "pro": {
+          "name": "Pro",
+          "f1": "Save receipts on your phone",
+          "f2": "Send receipts by SMS to customers",
+          "f3": "Ask the AI in your voice (100 questions/month)",
+          "f4": "Help with loan applications",
+          "f5": "Print professional reports"
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "f1": "Everything in Pro",
+          "f2": "For bigger businesses",
+          "f3": "Priority support when you need help"
+        }
+      }
+    }
+  },
+  "team": {
+    "title": "Team",
+    "subtitle": "Manage who has access to this business.",
+    "breadcrumb": {
+      "settings": "Settings",
+      "team": "Team"
+    },
+    "inviteBtn": "+ Invite member",
+    "restrictedNotice": "Only owners can manage team members. Contact your administrator to change roles or invite new people.",
+    "members": {
+      "title": "Members",
+      "loading": "Loading…",
+      "empty": "No members yet.",
+      "member": "Member",
+      "role": "Role"
+    },
+    "loadError": "Failed to load members",
+    "updateError": "Failed to update role"
+  },
+  "invite": {
+    "title": "Invite new member",
+    "subtitle": "Send an invitation to add someone to your team.",
+    "breadcrumb": {
+      "settings": "Settings",
+      "team": "Team",
+      "invite": "Invite"
+    },
+    "restricted": "Only owners can invite team members. Contact your administrator.",
+    "form": {
+      "inviteTo": "Invite to",
+      "thisBusiness": "This business",
+      "specificBranch": "A specific branch",
+      "organization": "Organization",
+      "orgLoading": "Loading…",
+      "orgEmpty": "No organizations found",
+      "orgDefault": "Select organization",
+      "branch": "Branch",
+      "branchLoading": "Loading…",
+      "branchEmpty": "No branches found",
+      "branchDefault": "Select branch",
+      "emailOrPhone": "Email or phone",
+      "emailOrPhonePlaceholder": "email@example.com or +234...",
+      "role": "Role",
+      "send": "Send invitation",
+      "sending": "Sending…",
+      "cancel": "Cancel",
+      "emptyField": "Enter an email or phone number.",
+      "selectBranch": "Select an organization and branch.",
+      "sendFailed": "Failed to send invitation"
+    }
+  },
+  "branches": {
+    "title": "Branches",
+    "subtitle": "Group business locations under one organization and manage per-branch teams.",
+    "newOrg": "+ New organization",
+    "addBranch": "+ Add branch",
+    "restricted": "Only owners can manage organizations and branches.",
+    "createOrg": {
+      "title": "Create organization",
+      "subtitle": "Your current business will become the first branch of this organization.",
+      "namePlaceholder": "e.g. Kaba Group",
+      "nameLabel": "Organization name",
+      "submit": "Create organization",
+      "submitting": "Creating…",
+      "cancel": "Cancel",
+      "failed": "Failed to create organization"
+    },
+    "createBranch": {
+      "title": "New branch",
+      "nameLabel": "Branch name",
+      "namePlaceholder": "e.g. Lagos Branch",
+      "countryLabel": "Country",
+      "countryPlaceholder": "Select country",
+      "currencyLabel": "Currency",
+      "currencyPlaceholder": "e.g. XOF",
+      "submit": "Create branch",
+      "submitting": "Creating…",
+      "cancel": "Cancel",
+      "failed": "Failed to create branch"
+    },
+    "emptyState": {
+      "title": "No organizations yet",
+      "description": "Create an organization to group multiple business locations and view consolidated reports.",
+      "createBtn": "+ Create organization"
+    },
+    "orgSelector": {
+      "label": "Organization",
+      "loading": "Loading…",
+      "default": "Select organization"
+    },
+    "list": {
+      "title": "Branches",
+      "empty": "No branches yet. Use \"+ Add branch\" above to add one.",
+      "loadError": "Failed to load branches"
+    },
+    "row": {
+      "team": "Team",
+      "close": "Close",
+      "unlink": "Unlink",
+      "unlinking": "Removing…",
+      "unlinkConfirm": "Remove this branch from the organization? The business will continue to exist independently."
+    },
+    "panel": {
+      "members": "Members",
+      "invite": "+ Invite",
+      "membersEmpty": "No members yet. Use \"+ Invite\" to add someone.",
+      "membersLoadError": "Failed to load members",
+      "remove": "Remove",
+      "removing": "Removing…",
+      "removeConfirm": "Remove this member from the branch?",
+      "emailOrPhone": "Email or phone",
+      "emailOrPhonePlaceholder": "email@example.com or +234…",
+      "roleLabel": "Role",
+      "send": "Send invitation",
+      "sending": "Sending…",
+      "cancel": "Cancel",
+      "inviteSuccess": "Invitation sent successfully.",
+      "inviteFailed": "Failed to send invitation"
+    },
+    "unlinkFailed": "Failed to unlink branch",
+    "removeMemberFailed": "Failed to remove member"
+  },
+  "activity": {
+    "title": "Activity Log",
+    "subtitle": "All actions taken in your business account.",
+    "breadcrumb": {
+      "settings": "Settings",
+      "activityLog": "Activity Log"
+    },
+    "restricted": "Only owners can view the activity log.",
+    "from": "From",
+    "to": "To",
+    "search": "Search",
+    "searching": "Loading…",
+    "time": "Time",
+    "what": "What",
+    "action": "Action",
+    "user": "User",
+    "empty": "No activity found for this period.",
+    "loadMore": "Load more",
+    "loadError": "Failed to load activity"
+  },
+  "debts": {
+    "title": "Outstanding debts",
+    "noBusinessSelected": "Select a business to manage debts.",
+    "filter": {
+      "pending": "Pending"
+    },
+    "status": {
+      "pending": "Pending",
+      "overdue": "Overdue",
+      "paid": "Paid"
+    },
+    "column": {
+      "name": "Name",
+      "amount": "Amount",
+      "due": "Due",
+      "status": "Status"
+    },
+    "action": {
+      "sendReminder": "Send reminder",
+      "sending": "Sending…",
+      "markPaid": "Mark paid"
+    },
+    "error": {
+      "sendReminderFailed": "Failed to send reminder"
+    },
+    "new": {
+      "pageName": "Add Debt",
+      "title": "Add debt",
+      "subtitle": "Record when someone owes you money. Add their phone number to send reminders later.",
+      "noBusinessSelected": "Select a business to add debts.",
+      "name": "Name",
+      "namePlaceholder": "Person or business name",
+      "amount": "Amount",
+      "currency": "Currency",
+      "dueDate": "Due date",
+      "phone": "Phone (for reminders)",
+      "notes": "Notes",
+      "notesPh": "Optional",
+      "submit": "Add debt",
+      "submitting": "Adding…",
+      "cancel": "Cancel",
+      "error": "Failed to add debt"
+    }
+  },
+  "receipts": {
+    "title": "Receipts",
+    "noBusinessSelected": "Select a business to process receipts.",
+    "upload": {
+      "title": "Upload Receipt",
+      "hint": "Take a photo of your receipt or choose an image from your device. We'll read the details for you.",
+      "fileLabel": "Photo or image of your receipt",
+      "submit": "Read receipt",
+      "reading": "Reading receipt…"
+    },
+    "details": {
+      "title": "Receipt details",
+      "previewAlt": "Receipt preview",
+      "empty": "Your receipt details will appear here after you upload.",
+      "summary": "Summary",
+      "shop": "Shop",
+      "date": "Date",
+      "total": "Total",
+      "category": "Category",
+      "viewFullText": "View full text"
+    },
+    "confidence": {
+      "high": "Looks good",
+      "medium": "Please check the details — some may need editing",
+      "low": "Please double-check all fields"
+    },
+    "action": {
+      "saveAsExpense": "Save as expense",
+      "saving": "Saving…",
+      "savedToLedger": "✓ Saved to Ledger",
+      "viewInLedger": "View in Ledger →",
+      "processAnother": "Add another receipt"
+    },
+    "send": {
+      "phoneLabel": "Customer phone",
+      "submit": "Send receipt",
+      "sending": "Sending…",
+      "sent": "✓ Sent"
+    },
+    "lineItems": {
+      "empty": "No line items",
+      "description": "Description",
+      "qty": "Qty",
+      "unitPrice": "Unit Price",
+      "total": "Total"
+    },
+    "error": {
+      "readFailed": "Failed to read file",
+      "processingFailed": "Processing failed",
+      "uploadFailed": "Upload failed",
+      "saveFailed": "Failed to save",
+      "sendFailed": "Failed to send"
+    }
+  },
+  "products": {
+    "title": "Products",
+    "subtitle": "Add items you sell. Use them when recording sales in the Ledger.",
+    "noBusinessSelected": "Select a business to manage products.",
+    "addProduct": "+ Add Product",
+    "empty": "No products yet.",
+    "emptyCta": "Add your first product.",
+    "column": {
+      "name": "Name",
+      "brand": "Brand",
+      "price": "Price",
+      "stock": "Stock",
+      "lowStock": "Low Stock"
+    },
+    "action": {
+      "restock": "Restock",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this product?"
+    },
+    "error": {
+      "forecastFailed": "Failed to load forecast",
+      "loanFailed": "Failed to create loan offer"
+    },
+    "new": {
+      "pageName": "Add Product",
+      "title": "Add Product",
+      "noBusinessSelected": "Select a business to add products.",
+      "viewerNotice": "You have viewer access. Contact your admin to add products.",
+      "savedOffline": "Saved offline — will sync when connected.",
+      "name": "Name",
+      "namePlaceholder": "e.g. Bag of Rice",
+      "brand": "Brand",
+      "brandPh": "Optional",
+      "unitPrice": "Unit Price",
+      "currency": "Currency",
+      "quantityInStock": "Quantity in Stock",
+      "lowStockAlert": "Low Stock Alert (notify when below)",
+      "cancel": "← Cancel",
+      "submit": "Add Product",
+      "submitting": "Saving…",
+      "error": "Failed to add product"
+    },
+    "forecast": {
+      "title": "Restock Forecast — {productName}",
+      "analysing": "Analysing sales data…",
+      "currentStock": "Current Stock",
+      "avgDailySales": "Avg Daily Sales",
+      "daysUntilStockout": "Days Until Stockout",
+      "predictedDate": "Predicted Date",
+      "na": "N/A",
+      "insufficientData": "Insufficient data",
+      "confidence": "Confidence",
+      "loanOffered": "Sika Restock Credit Offered!",
+      "reorder": "Reorder",
+      "units": "units",
+      "loanAmount": "Loan amount",
+      "status": "Status",
+      "requestCredit": "Request Sika Restock Credit",
+      "noHistory": "Not enough sales history to offer a restock loan."
+    }
+  },
+  "pagination": {
+    "perPage": "Per page:",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {page} of {total}"
+  },
+  "invoiceNew": {
+    "pageName": "Create Invoice",
+    "title": "Create Invoice",
+    "noBusinessSelected": "Select a business to create invoices.",
+    "notAvailable": "Invoicing is not available on your plan.",
+    "backToInvoices": "← Back to Invoices",
+    "cancel": "← Cancel",
+    "subtitle": "Add a customer, line items with prices, then create. Each line needs a description, quantity, and unit price.",
+    "customerLabel": "Customer",
+    "customerPlaceholder": "Search or select customer",
+    "currencyLabel": "Currency",
+    "dueDateLabel": "Due Date",
+    "earlyDiscount": {
+      "title": "Early payment discount (optional)",
+      "subtitle": "Offer a discount if customer pays within N days of invoice.",
+      "percentOff": "% off",
+      "days": "Days"
+    },
+    "lineItems": {
+      "title": "Line items (required)",
+      "subtitle": "Add each product or service. Unit price must be greater than zero.",
+      "description": "Description",
+      "descriptionPh": "e.g. Consulting, Product name",
+      "qty": "Qty",
+      "unitPrice": "Unit price",
+      "addItem": "+ Add line item",
+      "remove": "Remove",
+      "subtotal": "Subtotal:",
+      "unitPriceError": "Unit price must be greater than zero",
+      "totalError": "Add at least one line item with a price greater than zero"
+    },
+    "submit": "Create Invoice",
+    "submitting": "Creating…"
+  },
+  "entryNew": {
+    "pageName": "Create Entry",
+    "title": "Create Entry",
+    "noBusinessSelected": "Select a business to create entries.",
+    "cancel": "← Cancel",
+    "viewerNotice": "You have viewer access. Contact your admin to create entries.",
+    "savedOffline": "Saved offline — will sync when connected.",
+    "typeLabel": "Type",
+    "typeSale": "Sale",
+    "typeExpense": "Expense",
+    "productLabel": "Product (optional)",
+    "productManual": "Manual entry",
+    "quantitySold": "Quantity sold",
+    "amountLabel": "Amount",
+    "currencyLabel": "Currency",
+    "dateLabel": "Date",
+    "descriptionLabel": "Description",
+    "categoryLabel": "Category",
+    "smsPhoneLabel": "SMS Phone",
+    "submit": "Create Entry",
+    "submitting": "Creating…",
+    "error": "Failed to create entry"
+  },
+  "customerNew": {
+    "pageName": "Add Customer",
+    "title": "Add customer",
+    "noBusinessSelected": "Select a business to add customers.",
+    "subtitle": "Add a customer to create invoices and track payments.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Customer name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Email address",
+    "emailError": "Please enter a valid email address.",
+    "phoneLabel": "Phone",
+    "submit": "Add customer",
+    "submitting": "Adding…",
+    "cancel": "Cancel",
+    "error": "Failed to add customer"
+  },
+  "mobileMoney": {
+    "pageName": "Mobile Money",
+    "noBusinessSelected": "Select a business to reconcile mobile money.",
+    "inputTitle": "Paste MTN MoMo or Moov SMS",
+    "inputSubtitle": "Paste your mobile money transaction SMS here. We'll read the amount, date, and type (credit/debit) and create a ledger entry for you. No more manual typing.",
+    "limitNotice": "{limit} reconciliations per month on your plan.",
+    "smsLabel": "SMS text",
+    "smsPlaceholder": "e.g. You have received 50,000 XAF from John. Ref: ABC123. 04/03/2025",
+    "submit": "Create ledger entry",
+    "processing": "Processing…",
+    "resultTitle": "Result",
+    "resultEmpty": "Paste an SMS and click \"Create ledger entry\" to see the result here.",
+    "entryCreated": "Entry created successfully",
+    "invoiceAutoPaid": "Invoice #{number} automatically marked as paid",
+    "multipleInvoices": "Multiple invoices match — please select",
+    "parsedTitle": "Parsed",
+    "parsedType": "Type:",
+    "parsedAmount": "Amount:",
+    "parsedDate": "Date:",
+    "parsedRef": "Ref:",
+    "parsedReceived": "Received",
+    "parsedSent": "Sent",
+    "ledgerEntryTitle": "Ledger entry",
+    "entryType": {
+      "sale": "Sale",
+      "expense": "Expense"
+    },
+    "viewInLedger": "View in Ledger →"
+  },
+  "tax": {
+    "pageName": "Tax / VAT",
+    "noBusinessSelected": "Select a business to view tax reports.",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "countryLabel": "Country",
+    "loading": "Loading VAT summary...",
+    "summaryTitle": "VAT Summary ({startDate} – {endDate})",
+    "totalVAT": "Total VAT",
+    "totalSales": "Total Sales",
+    "totalPurchases": "Total Purchases",
+    "rate": "Rate",
+    "base": "Base",
+    "vatAmount": "VAT Amount",
+    "noBreakdown": "No breakdown",
+    "noData": "No VAT data for this period."
+  },
+  "trust": {
+    "pageName": "Trust Score",
+    "noBusinessSelected": "Select a business to view your trust score.",
+    "loading": "Loading trust score...",
+    "unableToLoad": "Unable to load trust score.",
+    "scoreTitle": "Sika Trust Score",
+    "shareScore": "Share score",
+    "sharing": "Generating…",
+    "lastScored": "Last scored {date}",
+    "marketDayApplied": "Market day awareness applied",
+    "scoreBreakdown": "Score breakdown",
+    "shareLink": {
+      "title": "Share link",
+      "subtitle": "Anyone with this link can view your trust badge.",
+      "copy": "Copy"
+    },
+    "breakdown": {
+      "repaymentVelocity": "Repayment velocity",
+      "transactionRecency": "Transaction recency",
+      "momoReconciliation": "MoMo reconciliation",
+      "customerRetention": "Customer retention",
+      "networkDiversity": "Network diversity"
+    }
+  },
+  "preferences": {
+    "pageName": "Preferences",
+    "breadcrumb": {
+      "settings": "Settings",
+      "preferences": "Preferences"
+    },
+    "title": "Preferences",
+    "subtitle": "Manage your notification and display preferences. Synced across all your devices.",
+    "notifications": {
+      "title": "Notifications",
+      "emailLabel": "Email notifications",
+      "emailDesc": "Receive invoices, payments, and reminders by email",
+      "inAppLabel": "In-app notifications",
+      "inAppDesc": "Show notifications when you're in the app",
+      "smsLabel": "SMS reminders",
+      "smsDesc": "Receive payment reminders by SMS (may incur charges)"
+    },
+    "display": {
+      "title": "Display",
+      "languageLabel": "Language",
+      "timezoneLabel": "Timezone",
+      "timezones": {
+        "lagos": "West Africa (Lagos)",
+        "accra": "West Africa (Accra)",
+        "cotonou": "Benin (Cotonou)",
+        "abidjan": "Côte d'Ivoire (Abidjan)",
+        "utc": "UTC"
+      }
+    }
+  },
+  "apiKeys": {
+    "breadcrumb": {
+      "settings": "Settings",
+      "apiKeys": "API Keys"
+    },
+    "title": "API Keys",
+    "subtitle": "API keys allow server-to-server access to your business data. Keep them secret.",
+    "noPermission": "You do not have permission to manage API keys.",
+    "created": {
+      "banner": "API key created — copy it now, it will not be shown again.",
+      "dismiss": "Dismiss"
+    },
+    "createSection": {
+      "title": "Create new API key",
+      "keyNameLabel": "Key name",
+      "keyNamePh": "e.g. My integration",
+      "scopesLabel": "Scopes",
+      "submit": "Create key",
+      "submitting": "Creating…"
+    },
+    "listSection": {
+      "title": "Your API keys",
+      "loading": "Loading…",
+      "empty": "No API keys yet.",
+      "unnamed": "Unnamed key",
+      "created": "Created",
+      "revoke": "Revoke",
+      "revoking": "Revoking…"
+    },
+    "revokeModal": {
+      "title": "Revoke API key",
+      "body": "Are you sure you want to revoke \"{name}\"? This cannot be undone and any integrations using this key will stop working.",
+      "cancel": "Cancel",
+      "confirm": "Revoke key"
+    },
+    "copy": "Copy",
+    "copied": "Copied!",
+    "error": {
+      "load": "Failed to load API keys",
+      "create": "Failed to create API key",
+      "revoke": "Failed to revoke key",
+      "copy": "Could not copy to clipboard"
+    }
+  },
+  "webhooks": {
+    "breadcrumb": {
+      "settings": "Settings",
+      "webhooks": "Webhooks"
+    },
+    "title": "Webhooks",
+    "subtitle": "Your server will receive a POST request signed with your secret when the selected events occur.",
+    "noPermission": "You do not have permission to manage webhooks.",
+    "registerBtn": "+ Register webhook",
+    "listSection": {
+      "title": "Registered webhooks",
+      "loading": "Loading…",
+      "empty": "No webhooks registered yet.",
+      "registerOne": "Register one",
+      "registered": "Registered {date}",
+      "active": "Active",
+      "disabled": "Disabled",
+      "remove": "Remove",
+      "removing": "Removing…"
+    },
+    "error": {
+      "load": "Failed to load webhooks",
+      "remove": "Failed to unregister webhook"
+    }
+  },
+  "compliance": {
+    "title": "Compliance & Privacy",
+    "subtitle": "Manage your data rights under applicable privacy regulations (GDPR, NDPR).",
+    "export": {
+      "title": "Export your data",
+      "subtitle": "Download all your business data as a JSON file. This includes ledger entries, invoices, customers, and receipts.",
+      "noPermission": "Only owners and accountants can export data.",
+      "done": "Export downloaded successfully.",
+      "submit": "Download my data",
+      "exporting": "Exporting…"
+    },
+    "erasure": {
+      "title": "Request data erasure",
+      "subtitle": "Request permanent deletion of all your business data. This action cannot be undone. Your account and all associated data will be scheduled for erasure.",
+      "noPermission": "Only business owners can request data erasure.",
+      "done": "Erasure request submitted. You will be contacted to confirm.",
+      "request": "Request erasure",
+      "confirm": "Are you sure? This will permanently delete all your data and cannot be undone.",
+      "submit": "Yes, delete my data",
+      "submitting": "Submitting…",
+      "cancel": "Cancel"
+    },
+    "error": "Export failed"
   }
 }

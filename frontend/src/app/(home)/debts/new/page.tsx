@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createDebtsApi } from "@/services/debts.service";
@@ -24,6 +25,7 @@ export default function AddDebtPage() {
   const router = useRouter();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const defaultCurrency = features.currency ?? "NGN";
   const phonePlaceholder = getPhonePlaceholder(features.countryCode);
 
@@ -64,7 +66,7 @@ export default function AddDebtPage() {
       });
       router.push("/debts");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add debt");
+      setError(e instanceof Error ? e.message : t("debts.new.error"));
     } finally {
       setSubmitting(false);
     }
@@ -73,9 +75,9 @@ export default function AddDebtPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Add Debt" />
+        <Breadcrumb pageName={t("debts.new.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to add debts.</p>
+          <p className="text-dark-6">{t("debts.new.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -84,7 +86,7 @@ export default function AddDebtPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Add Debt" />
+        <Breadcrumb pageName={t("debts.new.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -95,7 +97,7 @@ export default function AddDebtPage() {
   if (!features.isEnabled("debt_tracker")) {
     return (
       <>
-        <Breadcrumb pageName="Add Debt" />
+        <Breadcrumb pageName={t("debts.new.pageName")} />
         <UpgradePrompt feature="Debt tracker" />
       </>
     );
@@ -103,14 +105,14 @@ export default function AddDebtPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Add Debt" />
+      <Breadcrumb pageName={t("debts.new.pageName")} />
 
       <div className="mx-auto max-w-xl rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
         <h2 className="mb-2 text-lg font-semibold text-dark dark:text-white">
-          Add debt
+          {t("debts.new.title")}
         </h2>
         <p className="mb-6 text-sm text-dark-6">
-          Record when someone owes you money. Add their phone number to send reminders later.
+          {t("debts.new.subtitle")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -118,16 +120,16 @@ export default function AddDebtPage() {
             <div className="rounded bg-red/10 p-3 text-sm text-red">{error}</div>
           )}
           <InputGroup
-            label="Name"
+            label={t("debts.new.name")}
             type="text"
             value={form.debtorName}
             handleChange={(e) => setForm((f) => ({ ...f, debtorName: e.target.value }))}
-            placeholder="Person or business name"
+            placeholder={t("debts.new.namePlaceholder")}
             required
           />
           <div className="grid grid-cols-2 gap-4">
             <InputGroup
-              label="Amount"
+              label={t("debts.new.amount")}
               type="number"
               value={form.amount}
               handleChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
@@ -135,7 +137,7 @@ export default function AddDebtPage() {
               required
             />
             <div>
-              <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">Currency</label>
+              <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">{t("debts.new.currency")}</label>
               <select
                 value={form.currency}
                 onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
@@ -148,7 +150,7 @@ export default function AddDebtPage() {
             </div>
           </div>
           <InputGroup
-            label="Due date"
+            label={t("debts.new.dueDate")}
             type="date"
             value={form.dueDate}
             handleChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
@@ -156,18 +158,18 @@ export default function AddDebtPage() {
             required
           />
           <InputGroup
-            label="Phone (for reminders)"
+            label={t("debts.new.phone")}
             type="text"
             value={form.phone}
             handleChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
             placeholder={phonePlaceholder}
           />
           <InputGroup
-            label="Notes"
+            label={t("debts.new.notes")}
             type="text"
             value={form.notes}
             handleChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-            placeholder="Optional"
+            placeholder={t("debts.new.notesPh")}
           />
           <div className="flex gap-3">
             <button
@@ -175,13 +177,13 @@ export default function AddDebtPage() {
               disabled={submitting}
               className="rounded-lg bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {submitting ? "Adding…" : "Add debt"}
+              {submitting ? t("debts.new.submitting") : t("debts.new.submit")}
             </button>
             <Link
               href="/debts"
               className="rounded-lg border border-stroke px-4 py-2 font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
             >
-              Cancel
+              {t("debts.new.cancel")}
             </Link>
           </div>
         </form>

@@ -20,9 +20,18 @@ export function PaymentsOverviewChart({ data }: PropsType) {
 
   const options: ApexOptions = {
     legend: {
-      show: false,
+      show: true,
+      position: "top",
+      horizontalAlign: "left",
+      fontFamily: "inherit",
+      fontWeight: 500,
+      fontSize: "14px",
+      markers: {
+        size: 9,
+        shape: "circle",
+      },
     },
-    colors: ["#5750F1", "#0ABEF9"],
+    colors: ["#22C55E", "#F97316"],
     chart: {
       height: 310,
       type: "area",

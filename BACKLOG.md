@@ -1,4 +1,4 @@
-# QuickBooks West Africa – Product Backlog
+# Kaba – Product Backlog
 
 ## Current Scope (v1)
 

@@ -12,7 +12,7 @@ import { PasswordResetRepository } from './PasswordResetRepository';
     {
       provide: EmailVerificationRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-LedgerService-dev-ledger';
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-LedgerService-dev-ledger';
         return new EmailVerificationRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -20,7 +20,7 @@ import { PasswordResetRepository } from './PasswordResetRepository';
     {
       provide: PasswordResetRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-LedgerService-dev-ledger';
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-LedgerService-dev-ledger';
         return new PasswordResetRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

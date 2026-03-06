@@ -1,6 +1,6 @@
 # Kaba – MSME Accounting for West Africa
 
-MSME accounting SaaS for West Africa. QuickBooks-like ledger, invoicing, payments, and reports.
+MSME accounting SaaS for West Africa. Kaba ledger, invoicing, payments, and reports.
 
 ## Tech Stack
 

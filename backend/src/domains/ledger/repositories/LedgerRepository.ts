@@ -87,6 +87,26 @@ export class LedgerRepository {
     }
   }
 
+  async countByBusiness(businessId: string): Promise<number> {
+    let count = 0;
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          Select: 'COUNT',
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: 'attribute_not_exists(deletedAt)',
+          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+          ...(lastKey && { ExclusiveStartKey: lastKey }),
+        })
+      );
+      count += result.Count ?? 0;
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+    return count;
+  }
+
   async listByBusiness(
     businessId: string,
     page: number = 1,

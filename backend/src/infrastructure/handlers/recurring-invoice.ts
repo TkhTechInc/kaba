@@ -10,7 +10,7 @@ import { InvoiceRepository } from '@/domains/invoicing/repositories/InvoiceRepos
 import { RecurringInvoiceService } from '@/domains/invoicing/services/RecurringInvoiceService';
 
 const tableName =
-  process.env['DYNAMODB_INVOICES_TABLE'] ?? 'QuickBooks-Invoices-dev';
+  process.env['DYNAMODB_INVOICES_TABLE'] ?? 'Kaba-Invoices-dev';
 
 const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const recurringRepo = new RecurringInvoiceRepository(docClient, tableName);

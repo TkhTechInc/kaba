@@ -30,7 +30,7 @@ export class PaystackGateway implements IPaymentGateway {
       // Format: qb-<businessId>-<invoiceId>-<timestamp> (same as KkiaPay)
       const reference = request.metadata?.['paymentIntentId'] ?? `qb-${request.businessId}-${request.invoiceId}-${Date.now()}`;
       const amountInMinor = this.formatAmount(request.amount, request.currency);
-      const email = request.metadata?.['email'] ?? request.metadata?.['customerEmail'] ?? 'customer@quickbooks.local';
+      const email = request.metadata?.['email'] ?? request.metadata?.['customerEmail'] ?? 'customer@kaba.local';
 
       const res = await fetch(`${PAYSTACK_BASE_URL}/transaction/initialize`, {
         method: 'POST',

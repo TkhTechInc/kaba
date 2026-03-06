@@ -31,7 +31,7 @@ export class AuditLogsStack extends cdk.Stack {
     super(scope, id, props);
 
     const { environment, config, retentionDays = AUDIT_RETENTION_DAYS } = props;
-    const resourcePrefix = `QuickBooks-AuditLogs-${environment}`;
+    const resourcePrefix = `Kaba-AuditLogs-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
     const enablePITR = config.database?.enablePITR ?? (environment === 'prod');
@@ -67,7 +67,7 @@ export class AuditLogsStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'AuditLogsTableName', {
       value: this.auditLogsTable.tableName,
       description: `Audit logs DynamoDB table name (TTL enabled, retention ${retentionDays} days)`,
-      exportName: `QuickBooks-${environment}-AuditLogsTableName`,
+      exportName: `Kaba-${environment}-AuditLogsTableName`,
     });
   }
 }

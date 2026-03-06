@@ -27,13 +27,13 @@ const businessId =
   '';
 
 const ledgerTable =
-  process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-LedgerService-dev-ledger';
+  process.env['DYNAMODB_LEDGER_TABLE'] || 'Kaba-LedgerService-dev-ledger';
 const invoicesTable =
-  process.env['DYNAMODB_INVOICES_TABLE'] || 'QuickBooks-Invoices-dev';
+  process.env['DYNAMODB_INVOICES_TABLE'] || 'Kaba-Invoices-dev';
 const inventoryTable =
-  process.env['DYNAMODB_INVENTORY_TABLE'] || 'QuickBooks-Inventory-dev';
+  process.env['DYNAMODB_INVENTORY_TABLE'] || 'Kaba-Inventory-dev';
 const usersTable =
-  process.env['DYNAMODB_USERS_TABLE'] || 'QuickBooks-UsersService-dev-users';
+  process.env['DYNAMODB_USERS_TABLE'] || 'Kaba-UsersService-dev-users';
 
 const region = process.env['AWS_REGION'] || 'af-south-1';
 const endpoint = process.env['DYNAMODB_ENDPOINT'];

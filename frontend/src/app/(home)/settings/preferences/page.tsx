@@ -2,27 +2,29 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import { usePreferences } from "@/hooks/use-preferences";
+import { useLocale } from "@/contexts/locale-context";
 import Link from "next/link";
 
 export default function PreferencesPage() {
   const { token } = useAuth();
   const { preferences, setPreferences, loading, error } = usePreferences(token);
+  const { t } = useLocale();
 
   return (
     <div>
       <div className="mb-4 flex items-center gap-2 text-sm text-dark-4 dark:text-dark-6">
         <Link href="/settings" className="hover:text-primary">
-          Settings
+          {t("preferences.breadcrumb.settings")}
         </Link>
         <span>/</span>
-        <span className="text-dark dark:text-white">Preferences</span>
+        <span className="text-dark dark:text-white">{t("preferences.breadcrumb.preferences")}</span>
       </div>
 
       <h1 className="mb-2 text-heading-4 font-bold text-dark dark:text-white">
-        Preferences
+        {t("preferences.title")}
       </h1>
       <p className="mb-6 text-sm text-dark-4 dark:text-dark-6">
-        Manage your notification and display preferences. Synced across all your devices.
+        {t("preferences.subtitle")}
       </p>
 
       {error && (
@@ -39,16 +41,16 @@ export default function PreferencesPage() {
       <>
       <section className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-dark">
         <h2 className="mb-4 text-lg font-semibold text-dark dark:text-white">
-          Notifications
+          {t("preferences.notifications.title")}
         </h2>
         <div className="space-y-4">
           <label className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
-                Email notifications
+                {t("preferences.notifications.emailLabel")}
               </span>
               <span className="text-sm text-dark-4 dark:text-dark-6">
-                Receive invoices, payments, and reminders by email
+                {t("preferences.notifications.emailDesc")}
               </span>
             </div>
             <input
@@ -64,10 +66,10 @@ export default function PreferencesPage() {
           <label className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
-                In-app notifications
+                {t("preferences.notifications.inAppLabel")}
               </span>
               <span className="text-sm text-dark-4 dark:text-dark-6">
-                Show notifications when you&apos;re in the app
+                {t("preferences.notifications.inAppDesc")}
               </span>
             </div>
             <input
@@ -83,10 +85,10 @@ export default function PreferencesPage() {
           <label className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
-                SMS reminders
+                {t("preferences.notifications.smsLabel")}
               </span>
               <span className="text-sm text-dark-4 dark:text-dark-6">
-                Receive payment reminders by SMS (may incur charges)
+                {t("preferences.notifications.smsDesc")}
               </span>
             </div>
             <input
@@ -103,12 +105,12 @@ export default function PreferencesPage() {
 
       <section className="mt-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-dark">
         <h2 className="mb-4 text-lg font-semibold text-dark dark:text-white">
-          Display
+          {t("preferences.display.title")}
         </h2>
         <div className="space-y-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
-              Language
+              {t("preferences.display.languageLabel")}
             </label>
             <select
               value={preferences.locale}
@@ -124,18 +126,18 @@ export default function PreferencesPage() {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
-              Timezone
+              {t("preferences.display.timezoneLabel")}
             </label>
             <select
               value={preferences.timezone}
               onChange={(e) => setPreferences({ timezone: e.target.value })}
               className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-dark outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             >
-              <option value="Africa/Lagos">West Africa (Lagos)</option>
-              <option value="Africa/Accra">West Africa (Accra)</option>
-              <option value="Africa/Cotonou">Benin (Cotonou)</option>
-              <option value="Africa/Abidjan">Côte d&apos;Ivoire (Abidjan)</option>
-              <option value="UTC">UTC</option>
+              <option value="Africa/Lagos">{t("preferences.display.timezones.lagos")}</option>
+              <option value="Africa/Accra">{t("preferences.display.timezones.accra")}</option>
+              <option value="Africa/Cotonou">{t("preferences.display.timezones.cotonou")}</option>
+              <option value="Africa/Abidjan">{t("preferences.display.timezones.abidjan")}</option>
+              <option value="UTC">{t("preferences.display.timezones.utc")}</option>
             </select>
           </div>
         </div>

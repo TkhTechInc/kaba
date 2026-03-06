@@ -126,7 +126,7 @@ export default function RegisterWebhookPage() {
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://your-server.com/webhooks/quickbooks"
+              placeholder="https://your-server.com/webhooks/kaba"
               required
               className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-dark outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"
             />

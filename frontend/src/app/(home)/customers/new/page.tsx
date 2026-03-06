@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createInvoicesApi } from "@/services/invoices.service";
@@ -15,6 +16,7 @@ export default function AddCustomerPage() {
   const router = useRouter();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +33,7 @@ export default function AddCustomerPage() {
     if (!businessId || !form.name.trim()) return;
     const email = form.email.trim();
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setError("Please enter a valid email address.");
+      setError(t("customerNew.emailError"));
       return;
     }
     setSubmitting(true);
@@ -49,7 +51,7 @@ export default function AddCustomerPage() {
         router.push("/customers");
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to add customer");
+      setError(e instanceof Error ? e.message : t("customerNew.error"));
     } finally {
       setSubmitting(false);
     }
@@ -58,9 +60,9 @@ export default function AddCustomerPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Add Customer" />
+        <Breadcrumb pageName={t("customerNew.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to add customers.</p>
+          <p className="text-dark-6">{t("customerNew.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -69,7 +71,7 @@ export default function AddCustomerPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Add Customer" />
+        <Breadcrumb pageName={t("customerNew.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -80,7 +82,7 @@ export default function AddCustomerPage() {
   if (!features.isEnabled("invoicing")) {
     return (
       <>
-        <Breadcrumb pageName="Add Customer" />
+        <Breadcrumb pageName={t("customerNew.pageName")} />
         <UpgradePrompt feature="Invoicing" />
       </>
     );
@@ -88,14 +90,14 @@ export default function AddCustomerPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Add Customer" />
+      <Breadcrumb pageName={t("customerNew.pageName")} />
 
       <div className="mx-auto max-w-xl rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
         <h2 className="mb-4 text-lg font-semibold text-dark dark:text-white">
-          Add customer
+          {t("customerNew.title")}
         </h2>
         <p className="mb-6 text-sm text-dark-6">
-          Add a customer to create invoices and track payments.
+          {t("customerNew.subtitle")}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,9 +105,9 @@ export default function AddCustomerPage() {
             <div className="rounded bg-red/10 p-3 text-sm text-red">{error}</div>
           )}
           <InputGroup
-            label="Name"
+            label={t("customerNew.nameLabel")}
             type="text"
-            placeholder="Customer name"
+            placeholder={t("customerNew.namePlaceholder")}
             required
             value={form.name}
             handleChange={(e) =>
@@ -113,9 +115,9 @@ export default function AddCustomerPage() {
             }
           />
           <InputGroup
-            label="Email"
+            label={t("customerNew.emailLabel")}
             type="email"
-            placeholder="Email address"
+            placeholder={t("customerNew.emailPlaceholder")}
             required
             value={form.email}
             handleChange={(e) =>
@@ -123,7 +125,7 @@ export default function AddCustomerPage() {
             }
           />
           <InputGroup
-            label="Phone"
+            label={t("customerNew.phoneLabel")}
             type="tel"
             placeholder={getPhonePlaceholder(features.countryCode)}
             value={form.phone}
@@ -137,13 +139,13 @@ export default function AddCustomerPage() {
               disabled={submitting}
               className="rounded-lg bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {submitting ? "Adding…" : "Add customer"}
+              {submitting ? t("customerNew.submitting") : t("customerNew.submit")}
             </button>
             <Link
               href="/customers"
               className="rounded-lg border border-stroke px-4 py-2 font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
             >
-              Cancel
+              {t("customerNew.cancel")}
             </Link>
           </div>
         </form>

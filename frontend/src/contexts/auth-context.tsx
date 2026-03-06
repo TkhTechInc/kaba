@@ -312,11 +312,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshBusinesses]);
 
-  const selectedBusiness = businesses.find((b) => b.businessId === businessId);
   const isAdmin =
     user?.role === "admin" ||
-    (token ? decodeJwtRole(token) === "admin" : false) ||
-    selectedBusiness?.role === "owner";
+    (token ? decodeJwtRole(token) === "admin" : false);
 
   return (
     <AuthContext.Provider

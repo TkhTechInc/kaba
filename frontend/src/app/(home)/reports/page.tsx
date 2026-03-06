@@ -3,6 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
@@ -24,6 +25,7 @@ function getDefaultDates() {
 
 export default function ReportsPage() {
   const { token, businessId } = useAuth();
+  const { t } = useLocale();
   const features = useFeatures(businessId);
   const canDownloadPdf = features.isEnabled("reports_pdf");
   const [dates, setDates] = useState(getDefaultDates);
@@ -72,9 +74,9 @@ export default function ReportsPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Reports" />
+        <Breadcrumb pageName={t("reports.title")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to view reports.</p>
+          <p className="text-dark-6">{t("reports.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -83,7 +85,7 @@ export default function ReportsPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Reports" />
+        <Breadcrumb pageName={t("reports.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -94,7 +96,7 @@ export default function ReportsPage() {
   if (!features.isEnabled("reports")) {
     return (
       <>
-        <Breadcrumb pageName="Reports" />
+        <Breadcrumb pageName={t("reports.title")} />
         <UpgradePrompt feature="Reports" />
       </>
     );
@@ -102,12 +104,12 @@ export default function ReportsPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Reports" />
+      <Breadcrumb pageName={t("reports.title")} />
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <label className="text-body-sm font-medium text-dark dark:text-white">
-            From
+            {t("reports.filter.from")}
           </label>
           <input
             type="date"
@@ -118,7 +120,7 @@ export default function ReportsPage() {
         </div>
         <div className="flex items-center gap-2">
           <label className="text-body-sm font-medium text-dark dark:text-white">
-            To
+            {t("reports.filter.to")}
           </label>
           <input
             type="date"
@@ -135,7 +137,7 @@ export default function ReportsPage() {
 
       {loading ? (
         <div className="rounded-lg border border-stroke bg-white p-12 text-center dark:border-dark-3 dark:bg-gray-dark">
-          Loading reports...
+          {t("reports.loading")}
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-2">
@@ -143,34 +145,34 @@ export default function ReportsPage() {
             <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
               <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
                 <h3 className="font-semibold text-dark dark:text-white">
-                  Profit & Loss ({pl.period?.start ?? pl.fromDate ?? ""} – {pl.period?.end ?? pl.toDate ?? ""})
+                  {t("reports.pl.title", { startDate: pl.period?.start ?? pl.fromDate ?? "", endDate: pl.period?.end ?? pl.toDate ?? "" })}
                 </h3>
                 <button
                   type="button"
                   onClick={handleDownloadPl}
                   disabled={!!downloading || !canDownloadPdf}
-                  title={!canDownloadPdf ? "Upgrade to download PDF" : undefined}
+                  title={!canDownloadPdf ? t("reports.pl.upgradeToDownload") : undefined}
                   className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {downloading === "pl" ? "Downloading..." : "Download PDF"}
+                  {downloading === "pl" ? t("reports.pl.downloading") : t("reports.pl.download")}
                 </button>
               </div>
               <div className="p-6">
                 <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                   <div>
-                    <p className="text-sm text-dark-6">Total Income</p>
+                    <p className="text-sm text-dark-6">{t("reports.pl.totalIncome")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
                       <Price amount={pl.totalIncome ?? pl.revenue ?? 0} currency={pl.currency} />
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-dark-6">Total Expenses</p>
+                    <p className="text-sm text-dark-6">{t("reports.pl.totalExpenses")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
                       <Price amount={pl.totalExpenses ?? pl.expenses ?? 0} currency={pl.currency} />
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-dark-6">Net Profit</p>
+                    <p className="text-sm text-dark-6">{t("reports.pl.netProfit")}</p>
                     <p
                       className={`text-lg font-semibold ${
                         (pl.netProfit ?? pl.profit ?? 0) >= 0 ? "text-green-600" : "text-red"
@@ -184,11 +186,11 @@ export default function ReportsPage() {
                   <ResponsiveDataList<{ category: string; type: string; amount: number }>
                     items={pl.byCategory ?? []}
                     keyExtractor={(row) => `${row.category}-${row.type}-${row.amount}`}
-                    emptyMessage="No data"
+                    emptyMessage={t("reports.pl.noData")}
                     columns={[
-                      { key: "category", label: "Category", render: (r) => r.category, prominent: true },
-                      { key: "type", label: "Type", render: (r) => <span className="capitalize">{r.type}</span> },
-                      { key: "amount", label: "Amount", render: (r) => <Price amount={r.amount} currency={pl.currency} />, align: "right" },
+                      { key: "category", label: t("reports.pl.category"), render: (r) => r.category, prominent: true },
+                      { key: "type", label: t("reports.pl.type"), render: (r) => <span className="capitalize">{r.type}</span> },
+                      { key: "amount", label: t("reports.pl.amount"), render: (r) => <Price amount={r.amount} currency={pl.currency} />, align: "right" },
                     ]}
                   />
                 )}
@@ -200,40 +202,40 @@ export default function ReportsPage() {
             <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
               <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
                 <h3 className="font-semibold text-dark dark:text-white">
-                  Cash Flow ({cashFlow.period?.start ?? cashFlow.fromDate ?? ""} – {cashFlow.period?.end ?? cashFlow.toDate ?? ""})
+                  {t("reports.cashFlow.title", { startDate: cashFlow.period?.start ?? cashFlow.fromDate ?? "", endDate: cashFlow.period?.end ?? cashFlow.toDate ?? "" })}
                 </h3>
                 <button
                   type="button"
                   onClick={handleDownloadCashFlow}
                   disabled={!!downloading || !canDownloadPdf}
-                  title={!canDownloadPdf ? "Upgrade to download PDF" : undefined}
+                  title={!canDownloadPdf ? t("reports.cashFlow.upgradeToDownload") : undefined}
                   className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {downloading === "cash" ? "Downloading..." : "Download PDF"}
+                  {downloading === "cash" ? t("reports.cashFlow.downloading") : t("reports.cashFlow.download")}
                 </button>
               </div>
               <div className="p-6">
                 <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                   <div>
-                    <p className="text-sm text-dark-6">Opening Balance</p>
+                    <p className="text-sm text-dark-6">{t("reports.cashFlow.openingBalance")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
                       <Price amount={cashFlow.openingBalance ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-dark-6">Inflows</p>
+                    <p className="text-sm text-dark-6">{t("reports.cashFlow.inflows")}</p>
                     <p className="text-lg font-semibold text-green-600">
                       <Price amount={cashFlow.totalInflows ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-dark-6">Outflows</p>
+                    <p className="text-sm text-dark-6">{t("reports.cashFlow.outflows")}</p>
                     <p className="text-lg font-semibold text-red">
                       <Price amount={cashFlow.totalOutflows ?? 0} currency={cashFlow.currency} />
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm text-dark-6">Closing Balance</p>
+                    <p className="text-sm text-dark-6">{t("reports.cashFlow.closingBalance")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
                       <Price amount={cashFlow.closingBalance ?? 0} currency={cashFlow.currency} />
                     </p>
@@ -243,12 +245,12 @@ export default function ReportsPage() {
                   <ResponsiveDataList<{ date: string; inflow?: number; inflows?: number; outflow?: number; outflows?: number; balance?: number }>
                     items={cashFlow.daily}
                     keyExtractor={(row) => row.date}
-                    emptyMessage="No data"
+                    emptyMessage={t("reports.cashFlow.noData")}
                     columns={[
-                      { key: "date", label: "Date", render: (r) => r.date, prominent: true },
-                      { key: "inflow", label: "Inflow", render: (r) => <span className="text-green-600"><Price amount={r.inflow ?? r.inflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
-                      { key: "outflow", label: "Outflow", render: (r) => <span className="text-red"><Price amount={r.outflow ?? r.outflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
-                      { key: "balance", label: "Balance", render: (r) => <Price amount={r.balance ?? 0} currency={cashFlow.currency} />, align: "right" },
+                      { key: "date", label: t("reports.cashFlow.date"), render: (r) => r.date, prominent: true },
+                      { key: "inflow", label: t("reports.cashFlow.inflow"), render: (r) => <span className="text-green-600"><Price amount={r.inflow ?? r.inflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
+                      { key: "outflow", label: t("reports.cashFlow.outflow"), render: (r) => <span className="text-red"><Price amount={r.outflow ?? r.outflows ?? 0} currency={cashFlow.currency} /></span>, align: "right" },
+                      { key: "balance", label: t("reports.cashFlow.balance"), render: (r) => <Price amount={r.balance ?? 0} currency={cashFlow.currency} />, align: "right" },
                     ]}
                   />
                 )}

@@ -1,5 +1,5 @@
 /**
- * Placeholder Lambda handler for QuickBooks API.
+ * Placeholder Lambda handler for Kaba API.
  * Replace with NestJS + serverless-express bundle (npm run bundle) for full deployment.
  *
  * Strips API Gateway stage prefix from path and returns 200 for health, 501 for other routes.
@@ -19,7 +19,7 @@ exports.handler = async (event) => {
     },
     body: JSON.stringify(
       isHealth
-        ? { status: 'ok', service: 'quickbooks-west-africa' }
+        ? { status: 'ok', service: 'kaba-api' }
         : { error: 'Not implemented', message: 'Run npm run bundle and deploy NestJS Lambda' }
     ),
   };

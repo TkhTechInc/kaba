@@ -9,6 +9,7 @@ import { getWeeksProfit } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
 import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/contexts/locale-context";
 
 type PropsType = {
   className?: string;
@@ -23,6 +24,7 @@ function parseTimeFrame(selected: string | null, sectionKey: string): "this week
 export function DashboardWeeksProfit({ className }: PropsType) {
   const { businessId, token } = useAuth();
   const { refreshTrigger } = useDashboardRefresh();
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
   const timeFrame = parseTimeFrame(selected, "weeks_profit");
@@ -64,7 +66,7 @@ export function DashboardWeeksProfit({ className }: PropsType) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Profit {timeFrame}
+          {t("dashboard.weeksProfit.title", { timeFrame: t(`dashboard.weeksProfit.${timeFrame === "this week" ? "thisWeek" : "lastWeek"}`) })}
         </h2>
         <PeriodPicker
           items={["this week", "last week"]}
@@ -78,12 +80,12 @@ export function DashboardWeeksProfit({ className }: PropsType) {
       ) : !data ? (
         <ChartEmptyState
           className="mt-3"
-          message="Unable to load profit data."
+          message={t("dashboard.weeksProfit.loadError")}
         />
       ) : !hasData ? (
         <ChartEmptyState
           className="mt-3"
-          message="No data yet. Add ledger entries."
+          message={t("dashboard.weeksProfit.noData")}
         />
       ) : (
         <WeeksProfitChart data={data} />

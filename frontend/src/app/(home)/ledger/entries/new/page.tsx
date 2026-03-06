@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
@@ -32,6 +33,7 @@ export default function CreateEntryPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const permissions = usePermissions(businessId);
+  const { t } = useLocale();
   const canWrite = permissions.ledger.canWrite;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +101,7 @@ export default function CreateEntryPage() {
         router.push("/ledger");
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to create entry");
+      setError(e instanceof Error ? e.message : t("entryNew.error"));
     } finally {
       setSubmitting(false);
     }
@@ -108,9 +110,9 @@ export default function CreateEntryPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Create Entry" />
+        <Breadcrumb pageName={t("entryNew.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to create entries.</p>
+          <p className="text-dark-6">{t("entryNew.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -119,7 +121,7 @@ export default function CreateEntryPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Create Entry" />
+        <Breadcrumb pageName={t("entryNew.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -130,7 +132,7 @@ export default function CreateEntryPage() {
   if (!features.isEnabled("ledger")) {
     return (
       <>
-        <Breadcrumb pageName="Create Entry" />
+        <Breadcrumb pageName={t("entryNew.pageName")} />
         <UpgradePrompt feature="Ledger" />
       </>
     );
@@ -138,7 +140,7 @@ export default function CreateEntryPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Create Entry" />
+      <Breadcrumb pageName={t("entryNew.pageName")} />
 
       <div className="mx-auto max-w-2xl">
         <form
@@ -148,19 +150,19 @@ export default function CreateEntryPage() {
         >
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-heading-4 font-bold text-dark dark:text-white">
-              Create Entry
+              {t("entryNew.title")}
             </h1>
             <Link
               href="/ledger"
               className="text-sm text-primary hover:underline"
             >
-              ← Cancel
+              {t("entryNew.cancel")}
             </Link>
           </div>
 
           {queued && (
             <div className="mb-6 rounded bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-              Saved offline — will sync when connected.
+              {t("entryNew.savedOffline")}
             </div>
           )}
           {error && (
@@ -170,14 +172,14 @@ export default function CreateEntryPage() {
           )}
           {!canWrite && (
             <div className="mb-6 rounded bg-gray-100 p-3 text-sm text-dark-6 dark:bg-dark-2">
-              You have viewer access. Contact your admin to create entries.
+              {t("entryNew.viewerNotice")}
             </div>
           )}
 
           <div className="space-y-5">
             <div>
               <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                Type
+                {t("entryNew.typeLabel")}
               </label>
               <select
                 value={form.type}
@@ -191,8 +193,8 @@ export default function CreateEntryPage() {
                 }
                 className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2"
               >
-                <option value="sale">Sale</option>
-                <option value="expense">Expense</option>
+                <option value="sale">{t("entryNew.typeSale")}</option>
+                <option value="expense">{t("entryNew.typeExpense")}</option>
               </select>
             </div>
 
@@ -202,7 +204,7 @@ export default function CreateEntryPage() {
                 <>
                   <div>
                     <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                      Product (optional)
+                      {t("entryNew.productLabel")}
                     </label>
                     <select
                       value={form.productId || ""}
@@ -220,7 +222,7 @@ export default function CreateEntryPage() {
                       }}
                       className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2"
                     >
-                      <option value="">Manual entry</option>
+                      <option value="">{t("entryNew.productManual")}</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name} ({" "}
@@ -231,7 +233,7 @@ export default function CreateEntryPage() {
                   </div>
                   {form.productId && (
                     <InputGroup
-                      label="Quantity sold"
+                      label={t("entryNew.quantitySold")}
                       type="number"
                       placeholder="1"
                       required
@@ -257,7 +259,7 @@ export default function CreateEntryPage() {
 
             {(!form.productId || form.type === "expense") && (
               <InputGroup
-                label="Amount"
+                label={t("entryNew.amountLabel")}
                 type="number"
                 placeholder="0"
                 required={!form.productId}
@@ -273,7 +275,7 @@ export default function CreateEntryPage() {
 
             <div>
               <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                Currency
+                {t("entryNew.currencyLabel")}
               </label>
               <select
                 value={form.currency}
@@ -291,7 +293,7 @@ export default function CreateEntryPage() {
             </div>
 
             <InputGroup
-              label="Date"
+              label={t("entryNew.dateLabel")}
               type="date"
               placeholder="YYYY-MM-DD"
               required
@@ -301,25 +303,25 @@ export default function CreateEntryPage() {
               }
             />
             <InputGroup
-              label="Description"
+              label={t("entryNew.descriptionLabel")}
               type="text"
-              placeholder="Optional"
+              placeholder={t("common.noData")}
               value={form.description || ""}
               handleChange={(e) =>
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
             />
             <InputGroup
-              label="Category"
+              label={t("entryNew.categoryLabel")}
               type="text"
-              placeholder="Optional"
+              placeholder={t("common.noData")}
               value={form.category || ""}
               handleChange={(e) =>
                 setForm((f) => ({ ...f, category: e.target.value }))
               }
             />
             <InputGroup
-              label="SMS Phone"
+              label={t("entryNew.smsPhoneLabel")}
               type="text"
               placeholder={getPhonePlaceholder(features.countryCode)}
               value={form.smsPhone || ""}
@@ -335,7 +337,7 @@ export default function CreateEntryPage() {
             className="mt-8 w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             aria-busy={submitting}
           >
-            {submitting ? "Creating..." : "Create Entry"}
+            {submitting ? t("entryNew.submitting") : t("entryNew.submit")}
           </button>
         </form>
       </div>

@@ -2,7 +2,7 @@
 
 **Date:** March 2026  
 **Status:** Draft  
-**Scope:** Map compliance and regulatory requirements for our QuickBooks-like MSME accounting SaaS operating in West Africa. Provide a clear action plan.
+**Scope:** Map compliance and regulatory requirements for our Kaba MSME accounting SaaS operating in West Africa. Provide a clear action plan.
 
 ---
 

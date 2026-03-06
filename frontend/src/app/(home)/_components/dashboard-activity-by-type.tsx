@@ -9,6 +9,7 @@ import { getActivityByType } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
 import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/contexts/locale-context";
 
 type PropsType = {
   className?: string;
@@ -22,6 +23,7 @@ function parseTimeFrame(selected: string | null, sectionKey: string): "monthly" 
 
 export function DashboardActivityByType({ className }: PropsType) {
   const { businessId, token } = useAuth();
+  const { t } = useLocale();
   const { refreshTrigger } = useDashboardRefresh();
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
@@ -62,7 +64,7 @@ export function DashboardActivityByType({ className }: PropsType) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Activity by Type
+          {t("dashboard.activityByType.title")}
         </h2>
         <PeriodPicker defaultValue={timeFrame} sectionKey="activity_by_type" />
       </div>
@@ -71,11 +73,11 @@ export function DashboardActivityByType({ className }: PropsType) {
         {loading ? (
           <div className="size-full min-h-[280px] animate-pulse rounded-lg bg-gray-1 dark:bg-dark-2/50" />
         ) : !data || data.length === 0 ? (
-          <ChartEmptyState message="Unable to load activity data." />
+          <ChartEmptyState message={t("dashboard.activityByType.loadError")} />
         ) : !hasData ? (
-          <ChartEmptyState message="No data yet. Add ledger entries." />
+          <ChartEmptyState message={t("dashboard.activityByType.noData")} />
         ) : (
-          <DonutChart data={data} centerLabel="Total" />
+          <DonutChart data={data} centerLabel={t("dashboard.activityByType.centerLabel")} />
         )}
       </div>
     </div>

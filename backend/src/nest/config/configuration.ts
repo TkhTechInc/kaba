@@ -25,15 +25,15 @@ export function configuration() {
     ],
   },
   dynamodb: {
-    ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'QuickBooks-LedgerService-dev-ledger',
-    invoicesTable: process.env['DYNAMODB_INVOICES_TABLE'] || 'QuickBooks-Invoices-dev',
-    inventoryTable: process.env['DYNAMODB_INVENTORY_TABLE'] || 'QuickBooks-Inventory-dev',
+    ledgerTable: process.env['DYNAMODB_LEDGER_TABLE'] || 'Kaba-LedgerService-dev-ledger',
+    invoicesTable: process.env['DYNAMODB_INVOICES_TABLE'] || 'Kaba-Invoices-dev',
+    inventoryTable: process.env['DYNAMODB_INVENTORY_TABLE'] || 'Kaba-Inventory-dev',
     auditLogsTable:
-      process.env['DYNAMODB_AUDIT_LOGS_TABLE'] || 'QuickBooks-AuditLogs-dev-audit',
+      process.env['DYNAMODB_AUDIT_LOGS_TABLE'] || 'Kaba-AuditLogs-dev-audit',
     usersTable:
-      process.env['DYNAMODB_USERS_TABLE'] || 'QuickBooks-UsersService-dev-users',
+      process.env['DYNAMODB_USERS_TABLE'] || 'Kaba-UsersService-dev-users',
     idempotencyTable:
-      process.env['DYNAMODB_IDEMPOTENCY_TABLE'] || 'QuickBooks-Idempotency-dev',
+      process.env['DYNAMODB_IDEMPOTENCY_TABLE'] || 'Kaba-Idempotency-dev',
   },
   compliance: {
     /** Retention days for audit logs before TTL deletion. Default 365. */
@@ -71,7 +71,7 @@ export function configuration() {
   sms: {
     provider: (process.env['SMS_PROVIDER'] || 'aws_sns') as 'aws_sns' | 'twilio' | 'africastalking',
     enabled: process.env['SMS_ENABLED'] === 'true',
-    senderId: process.env['SMS_SENDER_ID'] || 'QuickBooks',
+    senderId: process.env['SMS_SENDER_ID'] || 'Kaba',
     aws: {
       region: process.env['AWS_REGION'] || 'af-south-1',
     },
@@ -83,7 +83,7 @@ export function configuration() {
     africastalking: {
       username: process.env['AFRICASTALKING_USERNAME'] || '',
       apiKey: process.env['AFRICASTALKING_API_KEY'] || '',
-      senderId: process.env['AFRICASTALKING_SENDER_ID'] || process.env['SMS_SENDER_ID'] || 'QuickBooks',
+      senderId: process.env['AFRICASTALKING_SENDER_ID'] || process.env['SMS_SENDER_ID'] || 'Kaba',
       voicePhone: process.env['AFRICASTALKING_VOICE_PHONE'] || '',
     },
   },

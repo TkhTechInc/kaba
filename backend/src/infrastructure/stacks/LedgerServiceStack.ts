@@ -1,10 +1,16 @@
 /**
- * LedgerServiceStack - DynamoDB table for ledger entries
+ * LedgerServiceStack - Single-table DynamoDB for ledger, business metadata, and team access.
  *
- * Table design:
- * - pk (partition key): businessId
- * - sk (sort key): LEDGER#<id>#<timestamp>
- * - GSI: businessId-createdAt for querying entries by business sorted by createdAt
+ * Table design (item types share the same table):
+ * - Business metadata:   pk=<businessId>         sk=META
+ * - Ledger entries:      pk=<businessId>         sk=LEDGER#<id>#<timestamp>
+ * - Team members:        pk=BUSINESS#<businessId> sk=MEMBER#<userId>
+ * - Org members:         pk=ORG#<orgId>           sk=MEMBER#<userId>
+ * - User→Business index: pk=USER#<userId>         sk=BUSINESS#<businessId>
+ *
+ * GSIs:
+ * - businessId-createdAt-index: query ledger entries by business sorted by createdAt
+ * - organizationId-pk-index:    query all businesses in an organization (O(1) vs Scan)
  */
 import * as cdk from 'aws-cdk-lib';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
@@ -23,7 +29,7 @@ export class LedgerServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     const { environment, config } = props;
-    const resourcePrefix = `QuickBooks-LedgerService-${environment}`;
+    const resourcePrefix = `Kaba-LedgerService-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
     const enablePITR = config.database?.enablePITR ?? (environment === 'prod');
@@ -48,10 +54,18 @@ export class LedgerServiceStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL,
     });
 
+    // GSI for querying businesses by organizationId (O(1) vs full Scan)
+    this.ledgerTable.addGlobalSecondaryIndex({
+      indexName: 'organizationId-pk-index',
+      partitionKey: { name: 'organizationId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'pk', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
     new cdk.CfnOutput(this, 'LedgerTableName', {
       value: this.ledgerTable.tableName,
       description: 'Ledger DynamoDB table name',
-      exportName: `QuickBooks-${environment}-LedgerTableName`,
+      exportName: `Kaba-${environment}-LedgerTableName`,
     });
   }
 }

@@ -11,7 +11,7 @@ import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
     {
       provide: IdempotencyRepository,
       useFactory: (docClient: import('@aws-sdk/lib-dynamodb').DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.idempotencyTable') || 'QuickBooks-Idempotency-dev';
+        const tableName = config.get<string>('dynamodb.idempotencyTable') || 'Kaba-Idempotency-dev';
         return new IdempotencyRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

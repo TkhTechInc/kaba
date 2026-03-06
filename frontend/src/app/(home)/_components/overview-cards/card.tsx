@@ -17,37 +17,37 @@ export function OverviewCard({ label, data, Icon }: PropsType) {
   const isDecreasing = showGrowth && growthRate < 0;
 
   return (
-    <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark">
-      <Icon />
+    <div className="rounded-[10px] bg-white p-5 shadow-1 dark:bg-gray-dark">
+      <div className="flex items-center gap-4">
+        {/* Icon scaled down to sit inline with the label */}
+        <div className="shrink-0 [&>svg]:h-11 [&>svg]:w-11">
+          <Icon />
+        </div>
 
-      <div className="mt-6 flex items-end justify-between">
-        <dl>
-          <dt className="mb-1.5 text-heading-6 font-bold text-dark dark:text-white">
+        <dl className="min-w-0 flex-1">
+          <dd className="mb-0.5 truncate text-sm font-medium text-dark-6">{label}</dd>
+          <dt className="text-xl font-bold text-dark dark:text-white">
             {data.value}
           </dt>
-
-          <dd className="text-sm font-medium text-dark-6">{label}</dd>
         </dl>
 
         {showGrowth && (
           <dl
             className={cn(
-              "text-sm font-medium",
+              "shrink-0 text-sm font-medium",
               isDecreasing ? "text-red" : "text-green",
             )}
           >
-            <dt className="flex items-center gap-1.5">
-              {growthRate}%
+            <dt className="flex items-center gap-1">
               {isDecreasing ? (
                 <ArrowDownIcon aria-hidden />
               ) : (
                 <ArrowUpIcon aria-hidden />
               )}
-            </dt>
-
-            <dd className="sr-only">
-              {label} {isDecreasing ? "Decreased" : "Increased"} by{" "}
               {growthRate}%
+            </dt>
+            <dd className="sr-only">
+              {label} {isDecreasing ? "Decreased" : "Increased"} by {growthRate}%
             </dd>
           </dl>
         )}

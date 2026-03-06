@@ -94,7 +94,7 @@ export class VoiceCommandService {
 
     const intent = this.parseIntent(text);
     const result = await this.executeCommand(businessId, intent);
-    await this.smsService.send(phone, `QuickBooks: ${result}`);
+    await this.smsService.send(phone, `Kaba: ${result}`);
     return { success: true, message: result };
   }
 }

@@ -43,7 +43,7 @@ import { PaymentModule } from '@/domains/payments/PaymentModule';
     {
       provide: InvoiceRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'QuickBooks-Invoices-dev';
+        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'Kaba-Invoices-dev';
         return new InvoiceRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -51,7 +51,7 @@ import { PaymentModule } from '@/domains/payments/PaymentModule';
     {
       provide: CustomerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'QuickBooks-Invoices-dev';
+        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'Kaba-Invoices-dev';
         return new CustomerRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -59,7 +59,7 @@ import { PaymentModule } from '@/domains/payments/PaymentModule';
     {
       provide: RecurringInvoiceRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'QuickBooks-Invoices-dev';
+        const tableName = config.get<string>('dynamodb.invoicesTable') ?? 'Kaba-Invoices-dev';
         return new RecurringInvoiceRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -67,7 +67,7 @@ import { PaymentModule } from '@/domains/payments/PaymentModule';
     {
       provide: InvoiceShareRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
         return new InvoiceShareRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

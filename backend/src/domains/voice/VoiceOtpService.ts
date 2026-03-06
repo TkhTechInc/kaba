@@ -6,8 +6,8 @@ import { UserRepository } from '@/nest/modules/auth/repositories/UserRepository'
 export type VoiceLocale = 'en' | 'fr';
 
 const OTP_MESSAGES: Record<VoiceLocale, (code: string) => string> = {
-  en: (code) => `Your QuickBooks code is ${code.split('').join('-')}. Valid for 10 minutes.`,
-  fr: (code) => `Votre code QuickBooks est ${code.split('').join('-')}. Valable 10 minutes.`,
+  en: (code) => `Your Kaba code is ${code.split('').join('-')}. Valid for 10 minutes.`,
+  fr: (code) => `Votre code Kaba est ${code.split('').join('-')}. Valable 10 minutes.`,
 };
 
 @Injectable()

@@ -20,7 +20,7 @@ import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository
       provide: ProductRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.inventoryTable') ?? 'QuickBooks-Inventory-dev';
+          config.get<string>('dynamodb.inventoryTable') ?? 'Kaba-Inventory-dev';
         return new ProductRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -34,7 +34,7 @@ import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository
         config: ConfigService
       ) => {
         const tableName =
-          config.get<string>('dynamodb.inventoryTable') ?? 'QuickBooks-Inventory-dev';
+          config.get<string>('dynamodb.inventoryTable') ?? 'Kaba-Inventory-dev';
         return new RestockLoanService(productRepository, ledgerRepository, docClient, tableName);
       },
       inject: [ProductRepository, LedgerRepository, DYNAMODB_DOC_CLIENT, ConfigService],

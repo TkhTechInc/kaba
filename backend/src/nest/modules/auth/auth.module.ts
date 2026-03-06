@@ -44,7 +44,7 @@ import { AuditModule } from '@/domains/audit/AuditModule';
     {
       provide: UserRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.usersTable') ?? 'QuickBooks-UsersService-dev-users';
+        const tableName = config.get<string>('dynamodb.usersTable') ?? 'Kaba-UsersService-dev-users';
         return new UserRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

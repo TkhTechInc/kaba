@@ -10,9 +10,11 @@ import { Price } from "@/components/ui/Price";
 import { createLedgerApi, type LedgerEntry } from "@/services/ledger.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import Link from "next/link";
+import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
 
 export default function LedgerPage() {
+  const { t } = useLocale();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const permissions = usePermissions(businessId);
@@ -61,9 +63,9 @@ export default function LedgerPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Ledger" />
+        <Breadcrumb pageName={t("ledger.title")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to view the ledger.</p>
+          <p className="text-dark-6">{t("ledger.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -72,7 +74,7 @@ export default function LedgerPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Ledger" />
+        <Breadcrumb pageName={t("ledger.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -83,7 +85,7 @@ export default function LedgerPage() {
   if (!features.isEnabled("ledger")) {
     return (
       <>
-        <Breadcrumb pageName="Ledger" />
+        <Breadcrumb pageName={t("ledger.title")} />
         <UpgradePrompt feature="Ledger" />
       </>
     );
@@ -91,7 +93,7 @@ export default function LedgerPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Ledger" />
+      <Breadcrumb pageName={t("ledger.title")} />
 
       {error && (
         <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">
@@ -109,12 +111,12 @@ export default function LedgerPage() {
         >
           <div>
             <p className="text-sm font-medium text-dark-6 dark:text-dark-5">
-              Current balance
+              {t("ledger.balance.label")}
             </p>
             {balanceLoading ? (
               <div className="mt-1 flex items-center gap-2 text-dark-6">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <span>Loading…</span>
+                <span>{t("ledger.balance.loading")}</span>
               </div>
             ) : balance != null ? (
               <p className="text-2xl font-bold text-dark dark:text-white">
@@ -130,14 +132,14 @@ export default function LedgerPage() {
       <div className="min-w-0 rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stroke px-4 py-3 dark:border-dark-3 sm:px-6 sm:py-4">
           <h3 className="font-semibold text-dark dark:text-white">
-            Entries
+            {t("ledger.entries.title")}
           </h3>
           {canWrite && (
             <Link
               href="/ledger/entries/new"
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
             >
-              + New Entry
+              {t("ledger.entries.newEntry")}
             </Link>
           )}
         </div>
@@ -147,19 +149,19 @@ export default function LedgerPage() {
           role="tablist"
           aria-label="Filter by transaction type"
         >
-          {(["all", "sale", "expense"] as const).map((t) => (
+          {(["all", "sale", "expense"] as const).map((filterVal) => (
             <button
-              key={t}
+              key={filterVal}
               role="tab"
-              aria-selected={typeFilter === t}
-              onClick={() => { setTypeFilter(t); setPage(1); }}
+              aria-selected={typeFilter === filterVal}
+              onClick={() => { setTypeFilter(filterVal); setPage(1); }}
               className={`rounded-full px-3 py-1 text-xs font-medium capitalize transition ${
-                typeFilter === t
+                typeFilter === filterVal
                   ? "bg-primary text-white"
                   : "bg-gray-100 text-dark-4 hover:bg-gray-200 dark:bg-dark-2 dark:text-dark-6 dark:hover:bg-dark-3"
               }`}
             >
-              {t === "all" ? "All" : t.charAt(0).toUpperCase() + t.slice(1)}
+              {filterVal === "all" ? t("ledger.filter.all") : filterVal === "sale" ? t("ledger.filter.sale") : t("ledger.filter.expense")}
             </button>
           ))}
         </div>
@@ -167,7 +169,7 @@ export default function LedgerPage() {
         <div className="-mx-4 sm:mx-0">
           {loading ? (
             <div className="p-6 text-center text-dark-6" role="status" aria-live="polite">
-              Loading...
+              {t("ledger.entries.loading")}
             </div>
           ) : (
             <ResponsiveDataList<LedgerEntry>
@@ -176,20 +178,20 @@ export default function LedgerPage() {
               emptyMessage={
                 canWrite ? (
                   <>
-                    No entries yet.{" "}
+                    {t("ledger.entries.empty")}{" "}
                     <Link href="/ledger/entries/new" className="text-primary hover:underline">
-                      Create your first entry.
+                      {t("ledger.entries.emptyCta")}
                     </Link>
                   </>
                 ) : (
-                  "No entries yet."
+                  t("ledger.entries.empty")
                 )
               }
               columns={[
-                { key: "date", label: "Date", render: (e) => e.date, prominent: true },
+                { key: "date", label: t("ledger.column.date"), render: (e) => e.date, prominent: true },
                 {
                   key: "type",
-                  label: "Type",
+                  label: t("ledger.column.type"),
                   render: (e) => (
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
@@ -198,15 +200,15 @@ export default function LedgerPage() {
                           : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                       }`}
                     >
-                      {e.type === "sale" ? "↑ Sale" : "↓ Expense"}
+                      {e.type === "sale" ? t("ledger.type.sale") : t("ledger.type.expense")}
                     </span>
                   ),
                 },
-                { key: "description", label: "Description", render: (e) => e.description || "—" },
-                { key: "category", label: "Category", render: (e) => e.category || "—" },
+                { key: "description", label: t("ledger.column.description"), render: (e) => e.description || "—" },
+                { key: "category", label: t("ledger.column.category"), render: (e) => e.category || "—" },
                 {
                   key: "amount",
-                  label: "Amount",
+                  label: t("ledger.column.amount"),
                   render: (e) => (
                     <>
                       {e.type === "expense" ? "-" : ""}

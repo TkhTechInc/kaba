@@ -83,7 +83,7 @@ export class AuthService {
     const code = await this.otpService.createAndStore(phone);
     const smsEnabled = this.config?.get<boolean>('sms.enabled') ?? process.env['SMS_ENABLED'] === 'true';
     if (smsEnabled) {
-      const msg = `Your QuickBooks code is ${code}. Valid for 10 minutes.`;
+      const msg = `Your Kaba code is ${code}. Valid for 10 minutes.`;
       const result = await this.smsService.send(phone, msg);
       if (!result.success) {
         return { success: false, message: 'Failed to send OTP. Please try again.' };

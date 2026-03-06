@@ -23,7 +23,7 @@ export class InvoicesServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     const { environment, config } = props;
-    const tableName = `QuickBooks-Invoices-${environment}`;
+    const tableName = `Kaba-Invoices-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
     const enablePITR = config.database?.enablePITR ?? (environment === 'prod');
@@ -50,7 +50,7 @@ export class InvoicesServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'InvoicesTableName', {
       value: this.invoicesTable.tableName,
       description: 'Invoices DynamoDB table name',
-      exportName: `QuickBooks-${environment}-InvoicesTableName`,
+      exportName: `Kaba-${environment}-InvoicesTableName`,
     });
   }
 }

@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
   createProductsApi,
@@ -28,6 +29,7 @@ export default function AddProductPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const permissions = usePermissions(businessId);
+  const { t } = useLocale();
   const canWrite = permissions.inventory?.canWrite ?? false;
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export default function AddProductPage() {
         router.push("/products");
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to add product");
+      setError(e instanceof Error ? e.message : t("products.new.error"));
     } finally {
       setSubmitting(false);
     }
@@ -91,9 +93,9 @@ export default function AddProductPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Add Product" />
+        <Breadcrumb pageName={t("products.new.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to add products.</p>
+          <p className="text-dark-6">{t("products.new.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -102,7 +104,7 @@ export default function AddProductPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Add Product" />
+        <Breadcrumb pageName={t("products.new.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -113,7 +115,7 @@ export default function AddProductPage() {
   if (!features.isEnabled("inventory_lite")) {
     return (
       <>
-        <Breadcrumb pageName="Add Product" />
+        <Breadcrumb pageName={t("products.new.pageName")} />
         <UpgradePrompt feature="Inventory" />
       </>
     );
@@ -121,7 +123,7 @@ export default function AddProductPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Add Product" />
+      <Breadcrumb pageName={t("products.new.pageName")} />
 
       <div className="mx-auto max-w-2xl">
         <form
@@ -130,19 +132,19 @@ export default function AddProductPage() {
         >
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-heading-4 font-bold text-dark dark:text-white">
-              Add Product
+              {t("products.new.title")}
             </h1>
             <Link
               href="/products"
               className="text-sm text-primary hover:underline"
             >
-              ← Cancel
+              {t("products.new.cancel")}
             </Link>
           </div>
 
           {queued && (
             <div className="mb-6 rounded bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
-              Saved offline — will sync when connected.
+              {t("products.new.savedOffline")}
             </div>
           )}
           {error && (
@@ -152,15 +154,15 @@ export default function AddProductPage() {
           )}
           {!canWrite && (
             <div className="mb-6 rounded bg-gray-100 p-3 text-sm text-dark-6 dark:bg-dark-2">
-              You have viewer access. Contact your admin to add products.
+              {t("products.new.viewerNotice")}
             </div>
           )}
 
           <div className="space-y-5">
             <InputGroup
-              label="Name"
+              label={t("products.new.name")}
               type="text"
-              placeholder="e.g. Bag of Rice"
+              placeholder={t("products.new.namePlaceholder")}
               required
               value={form.name}
               handleChange={(e) =>
@@ -168,16 +170,16 @@ export default function AddProductPage() {
               }
             />
             <InputGroup
-              label="Brand"
+              label={t("products.new.brand")}
               type="text"
-              placeholder="Optional"
+              placeholder={t("products.new.brandPh")}
               value={form.brand || ""}
               handleChange={(e) =>
                 setForm((f) => ({ ...f, brand: e.target.value }))
               }
             />
             <InputGroup
-              label="Unit Price"
+              label={t("products.new.unitPrice")}
               type="number"
               placeholder="0"
               required
@@ -191,7 +193,7 @@ export default function AddProductPage() {
             />
             <div>
               <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                Currency
+                {t("products.new.currency")}
               </label>
               <select
                 value={form.currency}
@@ -208,7 +210,7 @@ export default function AddProductPage() {
               </select>
             </div>
             <InputGroup
-              label="Quantity in Stock"
+              label={t("products.new.quantityInStock")}
               type="number"
               placeholder="0"
               required
@@ -220,9 +222,9 @@ export default function AddProductPage() {
               }}
             />
             <InputGroup
-              label="Low Stock Alert (notify when below)"
+              label={t("products.new.lowStockAlert")}
               type="number"
-              placeholder="Optional"
+              placeholder={t("products.new.brandPh")}
               value={
                 form.lowStockThreshold ? String(form.lowStockThreshold) : ""
               }
@@ -241,7 +243,7 @@ export default function AddProductPage() {
             className="mt-8 w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             aria-busy={submitting}
           >
-            {submitting ? "Saving..." : "Add Product"}
+            {submitting ? t("products.new.submitting") : t("products.new.submit")}
           </button>
         </form>
       </div>

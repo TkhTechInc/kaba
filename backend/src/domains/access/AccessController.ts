@@ -25,6 +25,16 @@ export class AccessController {
   }
 
   /**
+   * List organizations the user can access for consolidated P&L reports.
+   * Requires owner or accountant role on at least one business in each org.
+   */
+  @Get('organizations')
+  async listOrganizations(@CurrentUser('sub') userId: string) {
+    const orgs = await this.accessService.listOrganizationsForConsolidatedReports(userId);
+    return { success: true, data: orgs };
+  }
+
+  /**
    * List team members for a business. Requires members:manage permission.
    * GET /api/v1/access/businesses/:businessId/members
    */
@@ -46,10 +56,10 @@ export class AccessController {
   async updateMemberRole(
     @Param('businessId') businessId: string,
     @Param('userId') targetUserId: string,
-    @Body() body: { role: 'owner' | 'accountant' | 'viewer' | 'sales' },
+    @Body() body: { role: 'owner' | 'manager' | 'accountant' | 'viewer' | 'sales' },
   ) {
     const role = body?.role;
-    const valid: Array<'owner' | 'accountant' | 'viewer' | 'sales'> = ['owner', 'accountant', 'viewer', 'sales'];
+    const valid: Array<'owner' | 'manager' | 'accountant' | 'viewer' | 'sales'> = ['owner', 'manager', 'accountant', 'viewer', 'sales'];
     if (!role || !valid.includes(role)) {
       throw new BadRequestException(`role must be one of: ${valid.join(', ')}`);
     }

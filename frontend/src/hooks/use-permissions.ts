@@ -34,9 +34,9 @@ export interface PermissionsResult {
 
 function parseRole(role: string | undefined): Role | null {
   if (!role) return null;
-  const r = role.toLowerCase();
-  if (r === "owner" || r === "accountant" || r === "viewer") return r;
-  return null;
+  const r = role.toLowerCase() as Role;
+  const valid: Role[] = ["owner", "manager", "accountant", "viewer", "sales"];
+  return valid.includes(r) ? r : null;
 }
 
 export function usePermissions(businessId: string | null): PermissionsResult {

@@ -8,15 +8,15 @@ The API Lambda loads the JWT secret from AWS Secrets Manager. Create the secret 
 # Replace YOUR_SECRET with a strong random value (e.g. openssl rand -base64 32)
 # Use the same region as your deployment (dev: ca-central-1, staging/prod: af-south-1)
 aws secretsmanager create-secret \
-  --name quickbooks/dev/jwt-secret \
+  --name kaba/dev/jwt-secret \
   --secret-string '{"jwt_secret":"YOUR_SECRET"}' \
   --region ca-central-1
 ```
 
 For staging/prod, use the matching path:
 
-- `quickbooks/staging/jwt-secret`
-- `quickbooks/prod/jwt-secret`
+- `kaba/staging/jwt-secret`
+- `kaba/prod/jwt-secret`
 
 ## Deploy with Frontend URL (CORS)
 
@@ -74,7 +74,7 @@ For mobile money SMS parsing and AI features, configure OpenRouter at deploy tim
 
 ```bash
 aws secretsmanager create-secret \
-  --name quickbooks/dev/openrouter-api-key \
+  --name kaba/dev/openrouter-api-key \
   --secret-string '{"openrouter_api_key":"sk-or-v1-YOUR_KEY"}' \
   --region ca-central-1
 ```
@@ -89,13 +89,13 @@ cdk deploy -c environment=dev \
   --all --require-approval never
 ```
 
-For staging/prod, use `quickbooks/staging/openrouter-api-key` or `quickbooks/prod/openrouter-api-key`.
+For staging/prod, use `kaba/staging/openrouter-api-key` or `kaba/prod/openrouter-api-key`.
 
 ## Local Dev
 
 1. Copy `.env.example` to `.env`
 2. Set `JWT_SECRET` (or use default dev-secret)
-3. Set `DYNAMODB_LEDGER_TABLE` to your deployed table name (e.g. `QuickBooks-LedgerService-dev-ledger`) if connecting to AWS
+3. Set `DYNAMODB_LEDGER_TABLE` to your deployed table name (e.g. `Kaba-LedgerService-dev-ledger`) if connecting to AWS
 4. **Google OAuth**: Add `http://localhost:3001/api/v1/auth/google/callback` to your OAuth client's Authorized redirect URIs (see above)
 5. Run `npm run dev`
 6. Frontend: set `NEXT_PUBLIC_API_URL=http://localhost:3001` for local backend, or the AWS URL for deployed backend

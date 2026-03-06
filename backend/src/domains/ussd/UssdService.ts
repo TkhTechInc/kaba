@@ -32,7 +32,7 @@ export class UssdService {
     // Level 0: no input — show main menu
     if (parts.length === 0) {
       return [
-        'CON Welcome to QuickBooks',
+        'CON Welcome to Kaba',
         '1. Check Balance',
         '2. Today\'s Revenue',
         '3. Top Debtors',

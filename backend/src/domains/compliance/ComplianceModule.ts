@@ -19,7 +19,7 @@ import { ComplianceController } from './ComplianceController';
       provide: LedgerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.ledgerTable') ?? 'QuickBooks-Ledger-dev';
+          config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
         return new LedgerRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -28,7 +28,7 @@ import { ComplianceController } from './ComplianceController';
       provide: InvoiceRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.invoicesTable') ?? 'QuickBooks-Invoices-dev';
+          config.get<string>('dynamodb.invoicesTable') ?? 'Kaba-Invoices-dev';
         return new InvoiceRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -37,7 +37,7 @@ import { ComplianceController } from './ComplianceController';
       provide: CustomerRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.invoicesTable') ?? 'QuickBooks-Invoices-dev';
+          config.get<string>('dynamodb.invoicesTable') ?? 'Kaba-Invoices-dev';
         return new CustomerRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
@@ -46,7 +46,7 @@ import { ComplianceController } from './ComplianceController';
       provide: AuditRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.auditLogsTable') ?? 'QuickBooks-AuditLogs-dev-audit';
+          config.get<string>('dynamodb.auditLogsTable') ?? 'Kaba-AuditLogs-dev-audit';
         const retentionDays =
           config.get<number>('compliance.auditRetentionDays') ?? 365;
         return new AuditRepository(docClient, tableName, retentionDays);

@@ -12,6 +12,7 @@ import { useSidebarContext } from "./sidebar-context";
 import { useFeatures } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useAuthOptional } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -21,6 +22,7 @@ export function Sidebar() {
   const businessId = auth?.businessId ?? null;
   const features = useFeatures(businessId);
   const permissions = usePermissions(businessId);
+  const { t } = useLocale();
 
   const filteredNavData = useMemo(() => {
     return NAV_DATA.map((section) => ({
@@ -106,15 +108,22 @@ export function Sidebar() {
 
           {/* Navigation */}
           <div className="custom-scrollbar mt-5 flex-1 overflow-y-auto pr-3 min-[850px]:mt-6">
-            {filteredNavData.map((section) => (
+            {filteredNavData.map((section) => {
+              const sectionKey = `nav.section.${section.label.toLowerCase()}`;
+              const sectionLabel = t(sectionKey) || section.label;
+              return (
               <div key={section.label} className="mb-4">
                 <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-dark-4 dark:text-dark-6">
-                  {section.label}
+                  {sectionLabel}
                 </h2>
 
-                <nav role="navigation" aria-label={section.label}>
+                <nav role="navigation" aria-label={sectionLabel}>
                   <ul className="space-y-0.5">
-                    {section.items.map((item) => (
+                    {section.items.map((item) => {
+                      // Map item title to i18n key: "Pending Approvals" → "nav.pendingApprovals"
+                      const itemKey = `nav.${item.title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase()).replace(/^./, (c: string) => c.toLowerCase())}`;
+                      const itemLabel = t(itemKey) || item.title;
+                      return (
                       <li key={item.title}>
                         {item.items.length ? (
                           <div>
@@ -129,7 +138,7 @@ export function Sidebar() {
                                 aria-hidden="true"
                               />
 
-                              <span>{item.title}</span>
+                              <span>{itemLabel}</span>
 
                               <ChevronUp
                                 className={cn(
@@ -146,17 +155,22 @@ export function Sidebar() {
                                 className="ml-8 mr-0 space-y-0.5 pb-2 pr-0 pt-1.5"
                                 role="menu"
                               >
-                                {item.items.map((subItem) => (
+                                {item.items.map((subItem) => {
+                                  // Map sub-item title: "P&L" → use settingsSub or reportsSub
+                                  const subKey = `nav.settingsSub.${subItem.title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase()).replace(/^./, (c: string) => c.toLowerCase())}`;
+                                  const repKey = `nav.reportsSub.${subItem.title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase()).replace(/^./, (c: string) => c.toLowerCase())}`;
+                                  const subLabel = t(subKey) !== subKey ? t(subKey) : t(repKey) !== repKey ? t(repKey) : subItem.title;
+                                  return (
                                   <li key={subItem.title} role="none">
                                     <MenuItem
                                       as="link"
                                       href={subItem.url}
                                       isActive={pathname === subItem.url}
                                     >
-                                      <span>{subItem.title}</span>
+                                      <span>{subLabel}</span>
                                     </MenuItem>
                                   </li>
-                                ))}
+                                )})}
                               </ul>
                             )}
                           </div>
@@ -180,17 +194,17 @@ export function Sidebar() {
                                   aria-hidden="true"
                                 />
 
-                                <span>{item.title}</span>
+                                <span>{itemLabel}</span>
                               </MenuItem>
                             );
                           })()
                         )}
                       </li>
-                    ))}
+                    )})}
                   </ul>
                 </nav>
               </div>
-            ))}
+            )})}
           </div>
         </div>
       </aside>

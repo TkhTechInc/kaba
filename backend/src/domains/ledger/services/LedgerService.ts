@@ -158,7 +158,7 @@ export class LedgerService {
         new PutEventsCommand({
           Entries: [
             {
-              Source: 'quickbooks.ledger',
+              Source: 'kaba.ledger',
               DetailType: 'LedgerEntryCreated',
               Detail: JSON.stringify(eventPayload),
             },
@@ -205,7 +205,7 @@ export class LedgerService {
       updatedProduct.lowStockThreshold != null &&
       updatedProduct.quantityInStock <= updatedProduct.lowStockThreshold
     ) {
-      const lowStockMsg = `QuickBooks: Low stock alert - ${updatedProduct.name} has ${updatedProduct.quantityInStock} left (threshold: ${updatedProduct.lowStockThreshold}). Restock soon.`;
+      const lowStockMsg = `Kaba: Low stock alert - ${updatedProduct.name} has ${updatedProduct.quantityInStock} left (threshold: ${updatedProduct.lowStockThreshold}). Restock soon.`;
       await this.smsService.send(business.phone.trim(), lowStockMsg);
     }
 
@@ -224,6 +224,11 @@ export class LedgerService {
     }
 
     return this.ledgerRepository.listByBusiness(businessId, page, limit, exclusiveStartKey, type);
+  }
+
+  async countEntries(businessId: string): Promise<number> {
+    if (!businessId?.trim()) return 0;
+    return this.ledgerRepository.countByBusiness(businessId);
   }
 
   async getBalance(businessId: string): Promise<BalanceResult> {

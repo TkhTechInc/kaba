@@ -9,11 +9,13 @@ import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-
 import { useFeatures } from "@/hooks/use-features";
 import { OverviewCard } from "./card";
 import * as icons from "./icons";
+import { useLocale } from "@/contexts/locale-context";
 
 export function OverviewCardsGroupClient() {
   const { token, businessId } = useAuth();
   const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardSummary>>>(null);
 
@@ -39,7 +41,7 @@ export function OverviewCardsGroupClient() {
   if (!businessId) {
     return (
       <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-        <p className="text-dark-6">Select a business to view the dashboard.</p>
+        <p className="text-dark-6">{t("dashboard.cards.noBusinessSelected")}</p>
       </div>
     );
   }
@@ -61,14 +63,14 @@ export function OverviewCardsGroupClient() {
   if (!data) {
     return (
       <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-        <p className="text-dark-6">Unable to load dashboard.</p>
+        <p className="text-dark-6">{t("dashboard.cards.loadError")}</p>
       </div>
     );
   }
 
   const cards = [
     {
-      label: "Cash Balance",
+      label: t("dashboard.cards.cashBalance"),
       show: features.isEnabled("ledger"),
       data: {
         value: data.balance != null ? formatPriceWithCurrency(data.balance, data.currency) : "—",
@@ -79,7 +81,7 @@ export function OverviewCardsGroupClient() {
       Icon: icons.Profit,
     },
     {
-      label: "Invoices",
+      label: t("dashboard.cards.invoices"),
       show: features.isEnabled("invoicing"),
       data: {
         value: compactFormat(data.invoicesCount),
@@ -90,7 +92,7 @@ export function OverviewCardsGroupClient() {
       Icon: icons.Product,
     },
     {
-      label: "Customers",
+      label: t("dashboard.cards.customers"),
       show: features.isEnabled("invoicing"),
       data: {
         value: compactFormat(data.customersCount),
@@ -101,7 +103,7 @@ export function OverviewCardsGroupClient() {
       Icon: icons.Users,
     },
     {
-      label: "Transactions",
+      label: t("dashboard.cards.ledgerEntries"),
       show: features.isEnabled("ledger"),
       data: {
         value: compactFormat(data.ledgerEntriesCount),
@@ -116,7 +118,7 @@ export function OverviewCardsGroupClient() {
   if (cards.length === 0) {
     return (
       <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-        <p className="text-dark-6">No features enabled for this business.</p>
+        <p className="text-dark-6">{t("dashboard.cards.noFeaturesEnabled")}</p>
       </div>
     );
   }
@@ -125,7 +127,7 @@ export function OverviewCardsGroupClient() {
     <>
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 2xl:gap-7.5">
         {cards.map(({ label, data: cardData, Icon, href }) => (
-          <Link key={label} href={href} className="block">
+          <Link key={label} href={href} className="block transition-transform hover:-translate-y-0.5">
             <OverviewCard label={label} data={cardData} Icon={Icon} />
           </Link>
         ))}
@@ -136,8 +138,8 @@ export function OverviewCardsGroupClient() {
           className="mt-4 flex items-center gap-3 rounded-lg border border-red/30 bg-red/5 px-5 py-3 text-sm text-red dark:border-red/20 dark:bg-red/10"
         >
           <span aria-hidden="true" className="text-base">⚠</span>
-          <span>Your cash balance is negative. Review your ledger entries or add a sale.</span>
-          <a href="/ledger" className="ml-auto font-medium underline hover:no-underline">View Ledger →</a>
+          <span>{t("dashboard.cards.negativeBalanceAlert")}</span>
+          <a href="/ledger" className="ml-auto font-medium underline hover:no-underline">{t("dashboard.cards.viewLedger")}</a>
         </div>
       )}
     </>

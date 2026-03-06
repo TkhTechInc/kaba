@@ -328,6 +328,10 @@ export class InvoiceService {
     );
   }
 
+  async count(businessId: string): Promise<number> {
+    return this.invoiceRepository.countByBusiness(businessId);
+  }
+
   async list(
     businessId: string,
     page: number = 1,

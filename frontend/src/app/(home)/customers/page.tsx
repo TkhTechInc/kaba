@@ -3,6 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
@@ -26,6 +27,7 @@ type CreditScoreData = {
 
 export default function CustomersPage() {
   const { token, businessId } = useAuth();
+  const { t } = useLocale();
   const features = useFeatures(businessId);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
@@ -53,7 +55,7 @@ export default function CustomersPage() {
       const r = await reportsApi.getCreditScore(businessId, customer.id, sixMonthsAgo, today);
       setCreditScore(r.data);
     } catch (e: unknown) {
-      setCreditError(e instanceof Error ? e.message : "Failed to load credit score");
+      setCreditError(e instanceof Error ? e.message : t("customers.creditModal.loadError"));
     } finally {
       setCreditLoading(false);
     }
@@ -80,9 +82,9 @@ export default function CustomersPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Customers" />
+        <Breadcrumb pageName={t("customers.title")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to manage customers.</p>
+          <p className="text-dark-6">{t("customers.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -91,7 +93,7 @@ export default function CustomersPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Customers" />
+        <Breadcrumb pageName={t("customers.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -102,7 +104,7 @@ export default function CustomersPage() {
   if (!features.isEnabled("invoicing")) {
     return (
       <>
-        <Breadcrumb pageName="Customers" />
+        <Breadcrumb pageName={t("customers.title")} />
         <UpgradePrompt feature="Invoicing" />
       </>
     );
@@ -110,50 +112,50 @@ export default function CustomersPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Customers" />
+      <Breadcrumb pageName={t("customers.title")} />
 
       <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
           <h3 className="font-semibold text-dark dark:text-white">
-            Customers
+            {t("customers.title")}
           </h3>
           <Link
             href="/customers/new"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            + Add Customer
+            {t("customers.addCustomer")}
           </Link>
         </div>
             <div className="-mx-4 sm:mx-0">
               {loading ? (
-                <div className="p-6 text-center text-dark-6">Loading...</div>
+                <div className="p-6 text-center text-dark-6">{t("customers.loading")}</div>
               ) : (
                 <ResponsiveDataList<Customer>
                   items={customers}
                   keyExtractor={(c) => c.id}
                   emptyMessage={
                     <span>
-                      No customers yet.{" "}
+                      {t("customers.empty")}{" "}
                       <Link href="/customers/new" className="text-primary hover:underline">
-                        Add one to get started
+                        {t("customers.emptyCta")}
                       </Link>
                       .
                     </span>
                   }
                   columns={[
-                    { key: "name", label: "Name", render: (c) => c.name, prominent: true },
-                    { key: "email", label: "Email", render: (c) => c.email ?? "—" },
-                    { key: "phone", label: "Phone", render: (c) => c.phone ?? "—" },
+                    { key: "name", label: t("customers.column.name"), render: (c) => c.name, prominent: true },
+                    { key: "email", label: t("customers.column.email"), render: (c) => c.email ?? "—" },
+                    { key: "phone", label: t("customers.column.phone"), render: (c) => c.phone ?? "—" },
                     {
                       key: "trust",
-                      label: "Trust Score",
+                      label: t("customers.column.trustScore"),
                       render: (c) => (
                         <button
                           type="button"
                           onClick={() => openCreditScore(c)}
                           className="rounded bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300"
                         >
-                          View Score
+                          {t("customers.action.viewScore")}
                         </button>
                       ),
                     },
@@ -177,7 +179,7 @@ export default function CustomersPage() {
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-gray-dark">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-dark dark:text-white">
-                Trust Score — {creditModal.name}
+                {t("customers.creditModal.title", { customerName: creditModal.name })}
               </h3>
               <button
                 onClick={() => { setCreditModal(null); setCreditScore(null); }}
@@ -188,7 +190,7 @@ export default function CustomersPage() {
             </div>
 
             {creditLoading && (
-              <p className="py-8 text-center text-gray-500">Calculating score…</p>
+              <p className="py-8 text-center text-gray-500">{t("customers.creditModal.calculating")}</p>
             )}
             {creditError && (
               <p className="text-sm text-red-600">{creditError}</p>
@@ -208,7 +210,7 @@ export default function CustomersPage() {
                   >
                     {creditScore.trustScore}
                   </div>
-                  <p className="mt-2 text-sm font-medium text-gray-600">Trust Score / 100</p>
+                  <p className="mt-2 text-sm font-medium text-gray-600">{t("customers.creditModal.scoreLabel")}</p>
                   <span
                     className={`mt-1 rounded-full px-3 py-0.5 text-sm font-semibold capitalize ${
                       creditScore.recommendation === "approve"
@@ -219,24 +221,24 @@ export default function CustomersPage() {
                     }`}
                   >
                     {creditScore.recommendation === "approve"
-                      ? "✓ Approve Credit"
+                      ? t("customers.creditModal.approve")
                       : creditScore.recommendation === "review"
-                      ? "⚠ Review Manually"
-                      : "✗ Deny Credit"}
+                      ? t("customers.creditModal.review")
+                      : t("customers.creditModal.deny")}
                   </span>
                 </div>
 
                 {/* Breakdown */}
                 <div className="space-y-2 border-t pt-4">
                   {[
-                    { label: "Transaction Frequency", value: creditScore.breakdown.transactionFrequency },
-                    { label: "Debt Repayment Ratio", value: creditScore.breakdown.debtRepaymentRatio },
-                    { label: "Volume Consistency", value: creditScore.breakdown.volumeConsistency },
+                    { label: t("customers.creditModal.transactionFrequency"), value: creditScore.breakdown.transactionFrequency },
+                    { label: t("customers.creditModal.debtRepaymentRatio"), value: creditScore.breakdown.debtRepaymentRatio },
+                    { label: t("customers.creditModal.volumeConsistency"), value: creditScore.breakdown.volumeConsistency },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <div className="mb-1 flex justify-between text-xs text-gray-600">
                         <span>{label}</span>
-                        <span>{value}/100</span>
+                        <span>{t("customers.creditModal.outOf", { value })}</span>
                       </div>
                       <div className="h-2 w-full rounded-full bg-gray-200">
                         <div

@@ -3,6 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
@@ -13,6 +14,7 @@ import Link from "next/link";
 
 export default function InvoicesPage() {
   const { token, businessId } = useAuth();
+  const { t } = useLocale();
   const features = useFeatures(businessId);
   const [invoices, setInvoices] = useState<
     Awaited<ReturnType<ReturnType<typeof createInvoicesApi>["list"]>>["data"]["items"]
@@ -67,9 +69,9 @@ export default function InvoicesPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Invoices" />
+        <Breadcrumb pageName={t("invoices.title")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to view invoices.</p>
+          <p className="text-dark-6">{t("invoices.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -78,7 +80,7 @@ export default function InvoicesPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Invoices" />
+        <Breadcrumb pageName={t("invoices.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -89,27 +91,35 @@ export default function InvoicesPage() {
   if (!features.isEnabled("invoicing")) {
     return (
       <>
-        <Breadcrumb pageName="Invoices" />
+        <Breadcrumb pageName={t("invoices.title")} />
         <UpgradePrompt feature="Invoicing" />
       </>
     );
   }
 
+  const filterLabels: Record<"all" | "draft" | "sent" | "paid" | "overdue", string> = {
+    all: t("invoices.filter.all"),
+    draft: t("invoices.filter.draft"),
+    sent: t("invoices.filter.sent"),
+    paid: t("invoices.filter.paid"),
+    overdue: t("invoices.filter.overdue"),
+  };
+
   return (
     <>
-      <Breadcrumb pageName="Invoices" />
+      <Breadcrumb pageName={t("invoices.title")} />
 
       <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-6 py-4 dark:border-dark-3">
-          <h3 className="font-semibold text-dark dark:text-white">Invoices</h3>
+          <h3 className="font-semibold text-dark dark:text-white">{t("invoices.title")}</h3>
           <Link
             href="/invoices/new"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            + New Invoice
+            {t("invoices.newInvoice")}
           </Link>
         </div>
-        <div className="flex gap-1 overflow-x-auto border-b border-stroke px-6 py-2 dark:border-dark-3" role="tablist" aria-label="Filter invoices by status">
+        <div className="flex gap-1 overflow-x-auto border-b border-stroke px-6 py-2 dark:border-dark-3" role="tablist" aria-label={t("invoices.title")}>
               {(["all", "draft", "sent", "paid", "overdue"] as const).map((s) => (
                 <button
                   key={s}
@@ -122,29 +132,29 @@ export default function InvoicesPage() {
                       : "bg-gray-100 text-dark-4 hover:bg-gray-200 dark:bg-dark-2 dark:text-dark-6 dark:hover:bg-dark-3"
                   }`}
                 >
-                  {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                  {filterLabels[s]}
                 </button>
               ))}
         </div>
         <div className="-mx-4 sm:mx-0">
               {loading ? (
-                <div className="p-6 text-center text-dark-6">Loading...</div>
+                <div className="p-6 text-center text-dark-6">{t("invoices.loading")}</div>
               ) : (
                 <ResponsiveDataList<Invoice>
                   items={invoices}
                   keyExtractor={(inv) => inv.id}
-                  emptyMessage="No invoices yet"
+                  emptyMessage={t("invoices.empty")}
                   columns={[
                     {
                       key: "customer",
-                      label: "Customer",
+                      label: t("invoices.column.customer"),
                       render: (inv) => customers.find((c) => c.id === inv.customerId)?.name ?? inv.customerId,
                       prominent: true,
                     },
-                    { key: "dueDate", label: "Due Date", render: (inv) => inv.dueDate },
+                    { key: "dueDate", label: t("invoices.column.dueDate"), render: (inv) => inv.dueDate },
                     {
                       key: "status",
-                      label: "Status",
+                      label: t("invoices.column.status"),
                       render: (inv) => (
                         <div className="flex flex-col gap-1">
                           <span
@@ -160,7 +170,7 @@ export default function InvoicesPage() {
                                       : "bg-gray-100 text-gray-700 dark:bg-dark-2 dark:text-dark-6"
                             }`}
                           >
-                            {inv.status === "pending_approval" ? "Pending Approval" : inv.status}
+                            {inv.status === "pending_approval" ? t("invoices.status.pendingApproval") : inv.status}
                           </span>
                           {inv.mecefStatus === "confirmed" && (
                             <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800" title={`MECeF Serial: ${inv.mecefSerialNumber ?? ""}`}>
@@ -168,17 +178,17 @@ export default function InvoicesPage() {
                             </span>
                           )}
                           {inv.mecefStatus === "pending" && (
-                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">⏳ DGI Pending</span>
+                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">{t("invoices.status.dgiPending")}</span>
                           )}
                           {inv.mecefStatus === "rejected" && (
-                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">✗ DGI Rejected</span>
+                            <span className="inline-flex w-fit items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">{t("invoices.status.dgiRejected")}</span>
                           )}
                         </div>
                       ),
                     },
                     {
                       key: "amount",
-                      label: "Amount",
+                      label: t("invoices.column.amount"),
                       render: (inv) => <Price amount={inv.amount} currency={inv.currency} />,
                       align: "right",
                     },
@@ -186,15 +196,15 @@ export default function InvoicesPage() {
                   renderActions={(inv) => (
                     <div className="flex flex-wrap items-center gap-2">
                       <Link href={`/invoices/${inv.id}/edit`} className="text-sm font-medium text-primary hover:underline">
-                        Edit
+                        {t("invoices.action.edit")}
                       </Link>
                       <button
                         type="button"
                         onClick={() => generatePaymentLink(inv.id)}
                         className="text-sm font-medium text-primary hover:underline"
-                        aria-label={`Generate payment link for invoice ${inv.id}`}
+                        aria-label={t("invoices.action.paymentLinkAriaLabel", { id: inv.id })}
                       >
-                        Payment link
+                        {t("invoices.action.paymentLink")}
                       </button>
                     </div>
                   )}
@@ -203,7 +213,7 @@ export default function InvoicesPage() {
         </div>
         {paymentLinkUrl && paymentLinkId && (
               <div className="border-t border-stroke p-4 dark:border-dark-3">
-                <p className="mb-2 text-sm font-medium">Payment link:</p>
+                <p className="mb-2 text-sm font-medium">{t("invoices.paymentLinkLabel")}</p>
                 <a
                   href={paymentLinkUrl}
                   target="_blank"

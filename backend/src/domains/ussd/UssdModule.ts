@@ -19,7 +19,7 @@ import { UssdService } from './UssdService';
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
           config.get<string>('dynamodb.usersTable') ??
-          'QuickBooks-UsersService-dev-users';
+          'Kaba-UsersService-dev-users';
         return new UserRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
 import { useFeatures } from "@/hooks/use-features";
 import { useSearchParams } from "next/navigation";
+import { useLocale } from "@/contexts/locale-context";
 
 type PropsType = {
   className?: string;
@@ -26,6 +27,7 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
   const { businessId, token } = useAuth();
   const { refreshTrigger } = useDashboardRefresh();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
   const timeFrame = parseTimeFrame(selected, "payments_overview");
@@ -68,7 +70,7 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
     >
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Payments Overview
+          {t("dashboard.paymentsOverview.title")}
         </h2>
         <PeriodPicker defaultValue={timeFrame} sectionKey="payments_overview" />
       </div>
@@ -76,9 +78,9 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
       {loading ? (
         <div className="min-h-[310px] animate-pulse rounded-lg bg-gray-1 dark:bg-dark-2/50" />
       ) : !data ? (
-        <ChartEmptyState message="Unable to load payments overview." />
+        <ChartEmptyState message={t("dashboard.paymentsOverview.loadError")} />
       ) : !hasData ? (
-        <ChartEmptyState message="No data yet. Add ledger entries or invoices." />
+        <ChartEmptyState message={t("dashboard.paymentsOverview.noData")} />
       ) : (
         <PaymentsOverviewChart data={data} />
       )}
@@ -88,13 +90,19 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
           <dt className="text-xl font-bold text-dark dark:text-white">
             <Price amount={receivedTotal} currency={currency} />
           </dt>
-          <dd className="font-medium dark:text-dark-6">Received Amount</dd>
+          <dd className="flex items-center justify-center gap-1.5 font-medium dark:text-dark-6">
+            <span className="inline-block size-2.5 rounded-full bg-[#22C55E]" />
+            {t("dashboard.paymentsOverview.receivedAmount")}
+          </dd>
         </div>
         <div>
           <dt className="text-xl font-bold text-dark dark:text-white">
             <Price amount={dueTotal} currency={currency} />
           </dt>
-          <dd className="font-medium dark:text-dark-6">Due Amount</dd>
+          <dd className="flex items-center justify-center gap-1.5 font-medium dark:text-dark-6">
+            <span className="inline-block size-2.5 rounded-full bg-[#F97316]" />
+            {t("dashboard.paymentsOverview.dueAmount")}
+          </dd>
         </div>
       </dl>
     </div>

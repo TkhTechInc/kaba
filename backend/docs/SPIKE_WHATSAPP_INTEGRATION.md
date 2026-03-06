@@ -2,7 +2,7 @@
 
 **Date:** March 2026  
 **Status:** Draft  
-**Scope:** Integrate Meta WhatsApp Cloud API for invoice delivery, payment reminders, receipts, and debt reminders in QuickBooks West Africa.
+**Scope:** Integrate Meta WhatsApp Cloud API for invoice delivery, payment reminders, receipts, and debt reminders in Kaba.
 
 ---
 
@@ -144,7 +144,7 @@ Pricing varies by **recipient country code**. Nigeria, Ghana, Benin have specifi
 | **Authentication** | OTP only | Strict |
 | **Marketing** | Promotions, offers | Most stringent |
 
-### 4.4 Example Templates for QuickBooks
+### 4.4 Example Templates for Kaba
 
 **invoice_sent (Utility)**
 ```
@@ -202,7 +202,7 @@ WhatsApp enforces **strict opt-in**. Businesses may only contact users if:
 - They have the recipient’s phone number
 - They have **explicit opt-in** confirming the recipient wishes to receive messages
 
-**Implications for QuickBooks:**
+**Implications for Kaba:**
 - Store opt-in status per customer (e.g. `customer.whatsappOptIn: boolean`)
 - Collect opt-in during onboarding or when adding customer phone
 - Provide opt-out mechanism (e.g. "Reply STOP to unsubscribe")
@@ -261,7 +261,7 @@ Our `InvoiceService.normalizePhone()` already handles common Nigerian formats (e
 
 ### 6.3 Recommendation
 
-**Direct Cloud API** for QuickBooks West Africa because:
+**Direct Cloud API** for Kaba because:
 1. **Cost** — MSMEs are price-sensitive; no BSP markup matters
 2. **Control** — We already have `IWhatsAppProvider`; add `MetaCloudWhatsAppProvider`
 3. **Simplicity** — One integration; no BSP account/sync

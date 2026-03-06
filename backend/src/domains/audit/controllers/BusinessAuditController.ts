@@ -46,7 +46,6 @@ function defaultDateRange(from?: string, to?: string): { from: string; to: strin
 
 @Controller('api/v1/audit')
 @Auth()
-@UseGuards(PermissionGuard)
 export class BusinessAuditController {
   constructor(
     private readonly auditService: AuditService,
@@ -59,6 +58,7 @@ export class BusinessAuditController {
    * to prevent cross-tenant data access.
    */
   @Get('activity')
+  @UseGuards(PermissionGuard)
   @RequirePermission('audit:read')
   async getActivity(
     @Request() req: { user: JwtPayload },
@@ -85,6 +85,7 @@ export class BusinessAuditController {
    * Results are DB-filtered by businessId — no post-hoc application filtering.
    */
   @Get('by-user')
+  @UseGuards(PermissionGuard)
   @RequirePermission('audit:read')
   async getByUser(
     @Request() req: { user: JwtPayload },
@@ -116,6 +117,7 @@ export class BusinessAuditController {
    * Results are DB-filtered by businessId.
    */
   @Get('by-entity')
+  @UseGuards(PermissionGuard)
   @RequirePermission('audit:read')
   async getByEntity(
     @Request() req: { user: JwtPayload },
@@ -147,6 +149,7 @@ export class BusinessAuditController {
    * Defaults to the last 30 days if no date range is provided.
    */
   @Get('anomaly-summary')
+  @UseGuards(PermissionGuard)
   @RequirePermission('audit:read')
   async getAnomalySummary(
     @Request() req: { user: JwtPayload },

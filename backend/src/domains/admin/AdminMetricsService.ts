@@ -97,8 +97,8 @@ export class AdminMetricsService {
   }
 
   async getMetrics(): Promise<AdminMetricsResult> {
-    const ledgerTable = this.config?.get<string>('dynamodb.ledgerTable') ?? process.env['DYNAMODB_LEDGER_TABLE'] ?? 'QuickBooks-Ledger-dev';
-    const invoicesTable = this.config?.get<string>('dynamodb.invoicesTable') ?? process.env['DYNAMODB_INVOICES_TABLE'] ?? 'QuickBooks-Invoices-dev';
+    const ledgerTable = this.config?.get<string>('dynamodb.ledgerTable') ?? process.env['DYNAMODB_LEDGER_TABLE'] ?? 'Kaba-Ledger-dev';
+    const invoicesTable = this.config?.get<string>('dynamodb.invoicesTable') ?? process.env['DYNAMODB_INVOICES_TABLE'] ?? 'Kaba-Invoices-dev';
     const scanLimit = 1000;
 
     let businessesCount = 0;
@@ -184,7 +184,7 @@ export class AdminMetricsService {
     limit: number = 50,
     lastEvaluatedKey?: Record<string, unknown>,
   ): Promise<{ items: Business[]; lastEvaluatedKey?: Record<string, unknown> }> {
-    const ledgerTable = this.config?.get<string>('dynamodb.ledgerTable') ?? process.env['DYNAMODB_LEDGER_TABLE'] ?? 'QuickBooks-Ledger-dev';
+    const ledgerTable = this.config?.get<string>('dynamodb.ledgerTable') ?? process.env['DYNAMODB_LEDGER_TABLE'] ?? 'Kaba-Ledger-dev';
     const result = await this.docClient.send(
       new ScanCommand({
         TableName: ledgerTable,

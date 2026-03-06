@@ -3,23 +3,35 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createReportsApi } from "@/services/reports.service";
+import { listOrganizations, type OrganizationAccess } from "@/services/access.service";
 import { Price } from "@/components/ui/Price";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function ConsolidatedReportPage() {
-  const { token, businessId } = useAuth();
+  const { token } = useAuth();
+  const { t } = useLocale();
   const today = new Date().toISOString().slice(0, 10);
   const firstOfMonth = today.slice(0, 7) + "-01";
 
+  const [organizations, setOrganizations] = useState<OrganizationAccess[]>([]);
   const [orgId, setOrgId] = useState("");
   const [fromDate, setFromDate] = useState(firstOfMonth);
   const [toDate, setToDate] = useState(today);
   const [loading, setLoading] = useState(false);
+  const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<Awaited<ReturnType<ReturnType<typeof createReportsApi>["getConsolidatedPL"]>>["data"] | null>(null);
 
   const api = createReportsApi(token);
+
+  useEffect(() => {
+    listOrganizations(token ?? undefined)
+      .then(setOrganizations)
+      .catch(() => setOrganizations([]))
+      .finally(() => setLoadingOrgs(false));
+  }, [token]);
 
   const handleLoad = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,21 +50,39 @@ export default function ConsolidatedReportPage() {
 
   return (
     <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
-      <Breadcrumb pageName="Consolidated P&L" />
+      <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
 
       <div className="rounded-[10px] border border-stroke bg-white p-6 shadow-1 dark:border-dark-3 dark:bg-gray-dark dark:shadow-card">
         <h2 className="mb-4 text-xl font-semibold text-dark dark:text-white">
-          Multi-Branch Consolidated Report
+          {t("reports.consolidated.heading")}
         </h2>
 
         <form onSubmit={handleLoad} className="mb-6 flex flex-wrap gap-3">
-          <input
-            type="text"
-            placeholder="Organization ID"
-            value={orgId}
-            onChange={(e) => setOrgId(e.target.value)}
-            className="flex-1 min-w-[200px] rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white"
-          />
+          <div className="flex-1 min-w-[200px]">
+            <label htmlFor="org-select" className="sr-only">
+              {t("reports.consolidated.selectOrg")}
+            </label>
+            <select
+              id="org-select"
+              value={orgId}
+              onChange={(e) => setOrgId(e.target.value)}
+              disabled={loadingOrgs}
+              className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white disabled:opacity-60"
+            >
+              <option value="">
+                {loadingOrgs
+                  ? t("reports.consolidated.loadingOrgs")
+                  : organizations.length === 0
+                    ? t("reports.consolidated.noOrgs")
+                    : t("reports.consolidated.selectOrg")}
+              </option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <input
             type="date"
             value={fromDate}
@@ -70,7 +100,7 @@ export default function ConsolidatedReportPage() {
             disabled={loading || !orgId.trim()}
             className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
           >
-            {loading ? "Loading…" : "Load Report"}
+            {loading ? t("common.loading") : t("reports.consolidated.loadReport")}
           </button>
         </form>
 
@@ -85,19 +115,19 @@ export default function ConsolidatedReportPage() {
             {/* Summary cards */}
             <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
-                <p className="text-sm text-gray-500">Total Income</p>
+                <p className="text-sm text-gray-500">{t("reports.pl.totalIncome")}</p>
                 <p className="text-xl font-bold text-green-600">
                   <Price amount={report.totalIncome} currency={report.currency} />
                 </p>
               </div>
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
-                <p className="text-sm text-gray-500">Total Expenses</p>
+                <p className="text-sm text-gray-500">{t("reports.pl.totalExpenses")}</p>
                 <p className="text-xl font-bold text-red-600">
                   <Price amount={report.totalExpenses} currency={report.currency} />
                 </p>
               </div>
               <div className="rounded-lg border border-stroke p-4 dark:border-dark-3">
-                <p className="text-sm text-gray-500">Net Profit</p>
+                <p className="text-sm text-gray-500">{t("reports.pl.netProfit")}</p>
                 <p className={`text-xl font-bold ${colorClass(report.netProfit)}`}>
                   <Price amount={report.netProfit} currency={report.currency} />
                 </p>
@@ -105,15 +135,15 @@ export default function ConsolidatedReportPage() {
             </div>
 
             {/* Per-branch breakdown */}
-            <h3 className="mb-3 font-semibold text-dark dark:text-white">Branch Breakdown</h3>
+            <h3 className="mb-3 font-semibold text-dark dark:text-white">{t("reports.consolidated.branchBreakdown")}</h3>
             <ResponsiveDataList<typeof report.branches[0]>
               items={report.branches}
               keyExtractor={(b) => b.businessId}
-              emptyMessage="No branches"
+              emptyMessage={t("reports.consolidated.noBranches")}
               columns={[
                 {
                   key: "branch",
-                  label: "Branch",
+                  label: t("reports.consolidated.branch"),
                   render: (b) => (
                     <>
                       <div className="font-medium">{b.businessName ?? "—"}</div>
@@ -124,7 +154,7 @@ export default function ConsolidatedReportPage() {
                 },
                 {
                   key: "income",
-                  label: "Income",
+                  label: t("reports.consolidated.income"),
                   render: (b) => (
                     <span className="text-green-600">
                       <Price amount={b.report.totalIncome ?? 0} currency={b.report.currency} />
@@ -134,7 +164,7 @@ export default function ConsolidatedReportPage() {
                 },
                 {
                   key: "expenses",
-                  label: "Expenses",
+                  label: t("reports.consolidated.expenses"),
                   render: (b) => (
                     <span className="text-red-600">
                       <Price amount={b.report.totalExpenses ?? 0} currency={b.report.currency} />
@@ -144,7 +174,7 @@ export default function ConsolidatedReportPage() {
                 },
                 {
                   key: "netProfit",
-                  label: "Net Profit",
+                  label: t("reports.pl.netProfit"),
                   render: (b) => {
                     const income = b.report.totalIncome ?? 0;
                     const expenses = b.report.totalExpenses ?? 0;

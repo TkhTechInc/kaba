@@ -35,19 +35,19 @@ export class DashboardService {
   ) {}
 
   async getSummary(businessId: string): Promise<DashboardSummary> {
-    const [balanceRes, ledgerRes, invoiceRes, customerRes] = await Promise.all([
+    const [balanceRes, ledgerCount, invoiceCount, customerCount] = await Promise.all([
       this.ledgerService.getBalance(businessId),
-      this.ledgerService.listEntries(businessId, 1, 1),
-      this.invoiceService.list(businessId, 1, 1),
-      this.customerService.list(businessId, 1, 1),
+      this.ledgerService.countEntries(businessId),
+      this.invoiceService.count(businessId),
+      this.customerService.count(businessId),
     ]);
 
     return {
       balance: balanceRes.balance,
       currency: balanceRes.currency,
-      ledgerEntriesCount: ledgerRes.total,
-      invoicesCount: invoiceRes.total,
-      customersCount: customerRes.total,
+      ledgerEntriesCount: ledgerCount,
+      invoicesCount: invoiceCount,
+      customersCount: customerCount,
     };
   }
 

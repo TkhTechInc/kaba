@@ -29,7 +29,7 @@ export class ReceiptsStorageStack extends cdk.Stack {
     });
 
     this.receiptsDistribution = new cloudfront.Distribution(this, 'ReceiptsDistribution', {
-      comment: `Receipts CDN for QuickBooks ${environment}`,
+      comment: `Receipts CDN for Kaba ${environment}`,
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessIdentity(this.receiptsBucket),
         allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
@@ -40,19 +40,19 @@ export class ReceiptsStorageStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'ReceiptsBucketName', {
       value: this.receiptsBucket.bucketName,
       description: 'S3 bucket for receipt image storage',
-      exportName: `QuickBooks-${environment}-ReceiptsBucketName`,
+      exportName: `Kaba-${environment}-ReceiptsBucketName`,
     });
 
     new cdk.CfnOutput(this, 'ReceiptsDistributionDomainName', {
       value: this.receiptsDistribution.distributionDomainName,
       description: 'CloudFront distribution domain name for receipts CDN',
-      exportName: `QuickBooks-${environment}-ReceiptsDistributionDomainName`,
+      exportName: `Kaba-${environment}-ReceiptsDistributionDomainName`,
     });
 
     new cdk.CfnOutput(this, 'ReceiptsDistributionUrl', {
       value: `https://${this.receiptsDistribution.distributionDomainName}`,
       description: 'CloudFront distribution URL for receipts CDN (use with signed URLs for private content)',
-      exportName: `QuickBooks-${environment}-ReceiptsDistributionUrl`,
+      exportName: `Kaba-${environment}-ReceiptsDistributionUrl`,
     });
   }
 }

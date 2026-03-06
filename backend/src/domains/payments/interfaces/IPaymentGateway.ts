@@ -1,5 +1,5 @@
 /**
- * Payment gateway interface for QuickBooks West Africa.
+ * Payment gateway interface for Kaba.
  * Implementations: MockPaymentGateway, StripeGateway, KkiaPayGateway, etc.
  */
 

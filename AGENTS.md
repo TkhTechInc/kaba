@@ -1,4 +1,4 @@
-# QuickBooks West Africa - Agent Coordination
+# Kaba - Agent Coordination
 
 This document guides AI agents working on this project. Follow the plan in `.cursor/plans/` and the rules in `.cursor/rules/`.
 
@@ -6,7 +6,7 @@ This document guides AI agents working on this project. Follow the plan in `.cur
 
 ## Project Context
 
-- **Product**: QuickBooks-like MSME accounting SaaS for West Africa
+- **Product**: MSME accounting MSME accounting SaaS for West Africa
 - **Stack**: NestJS backend, DynamoDB, CDK, interface-based design
 - **Reference**: Patterns from `/projects/events` (TKH-TECH)
 
@@ -47,7 +47,7 @@ This document guides AI agents working on this project. Follow the plan in `.cur
 
 ### Agent 5: Infrastructure
 - CDK: LedgerServiceStack (DynamoDB table)
-- QuickBooksApiStack (Lambda, API Gateway)
+- KabaApiStack (Lambda, API Gateway)
 - Environment config (dev/staging/prod)
 
 ## Coordination
@@ -59,9 +59,9 @@ This document guides AI agents working on this project. Follow the plan in `.cur
 
 ## File Paths
 
-- Backend: `quickbooks/backend/`
-- Rules: `quickbooks/.cursor/rules/`
-- Plan: `quickbooks/.cursor/plans/` or `~/.cursor/plans/`
+- Backend: `backend/`
+- Rules: `.cursor/rules/`
+- Plan: `.cursor/plans/` or `~/.cursor/plans/`
 
 ## When Stuck
 

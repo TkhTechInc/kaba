@@ -1,5 +1,5 @@
 /**
- * Payment domain types for QuickBooks West Africa.
+ * Payment domain types for Kaba.
  * Minimal types for IPaymentGateway interface.
  */
 

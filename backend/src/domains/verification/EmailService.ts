@@ -50,7 +50,7 @@ export class EmailService {
           Source: this.fromEmail,
           Destination: { ToAddresses: [email] },
           Message: {
-            Subject: { Data: 'Your QuickBooks verification code' },
+            Subject: { Data: 'Your Kaba verification code' },
             Body: {
               Text: {
                 Data: `Your verification code is: ${code}\n\nThis code expires in 10 minutes.`,
@@ -73,7 +73,7 @@ export class EmailService {
 
   /** Send password reset link. When disabled (dev), logs to console. */
   async sendPasswordResetLink(email: string, resetLink: string): Promise<{ success: boolean }> {
-    const subject = 'Reset your QuickBooks password';
+    const subject = 'Reset your Kaba password';
     const body = `You requested a password reset. Click the link below to set a new password:\n\n${resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`;
     if (!this.enabled) {
       // eslint-disable-next-line no-console

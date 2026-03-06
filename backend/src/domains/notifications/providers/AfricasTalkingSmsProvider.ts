@@ -10,7 +10,7 @@ export class AfricasTalkingSmsProvider implements ISmsProvider {
   constructor(@Optional() @Inject(ConfigService) config: ConfigService | null) {
     const username = config?.get<string>('sms.africastalking.username') || process.env['AFRICASTALKING_USERNAME'];
     const apiKey = config?.get<string>('sms.africastalking.apiKey') || process.env['AFRICASTALKING_API_KEY'];
-    this.senderId = config?.get<string>('sms.africastalking.senderId') || process.env['AFRICASTALKING_SENDER_ID'] || process.env['SMS_SENDER_ID'] || 'QuickBooks';
+    this.senderId = config?.get<string>('sms.africastalking.senderId') || process.env['AFRICASTALKING_SENDER_ID'] || process.env['SMS_SENDER_ID'] || 'Kaba';
 
     if (username && apiKey) {
       // eslint-disable-next-line @typescript-eslint/no-require-imports

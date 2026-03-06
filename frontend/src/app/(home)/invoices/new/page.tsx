@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { Price } from "@/components/ui/Price";
 import {
   createInvoicesApi,
@@ -28,6 +29,7 @@ export default function CreateInvoicePage() {
   const router = useRouter();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +82,7 @@ export default function CreateInvoicePage() {
     const qty = parseFloat(form.itemQty) || 1;
     const price = parseFloat(form.itemPrice) || 0;
     if (price <= 0) {
-      setError("Unit price must be greater than zero");
+      setError(t("invoiceNew.lineItems.unitPriceError"));
       return;
     }
     setError(null);
@@ -117,7 +119,7 @@ export default function CreateInvoicePage() {
     if (!businessId || !form.customerId || form.items.length === 0) return;
     const total = form.items.reduce((s, i) => s + i.amount, 0);
     if (total <= 0) {
-      setError("Add at least one line item with a price greater than zero");
+      setError(t("invoiceNew.lineItems.totalError"));
       return;
     }
     setSubmitting(true);
@@ -147,9 +149,9 @@ export default function CreateInvoicePage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Create Invoice" />
+        <Breadcrumb pageName={t("invoiceNew.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to create invoices.</p>
+          <p className="text-dark-6">{t("invoiceNew.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -158,7 +160,7 @@ export default function CreateInvoicePage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Create Invoice" />
+        <Breadcrumb pageName={t("invoiceNew.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -169,11 +171,11 @@ export default function CreateInvoicePage() {
   if (!features.isEnabled("invoicing")) {
     return (
       <>
-        <Breadcrumb pageName="Create Invoice" />
+        <Breadcrumb pageName={t("invoiceNew.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="mb-4 text-dark-6">Invoicing is not available on your plan.</p>
+          <p className="mb-4 text-dark-6">{t("invoiceNew.notAvailable")}</p>
           <Link href="/invoices" className="text-primary hover:underline">
-            ← Back to Invoices
+            {t("invoiceNew.backToInvoices")}
           </Link>
         </div>
       </>
@@ -182,7 +184,7 @@ export default function CreateInvoicePage() {
 
   return (
     <>
-      <Breadcrumb pageName="Create Invoice" />
+      <Breadcrumb pageName={t("invoiceNew.pageName")} />
 
       <div className="mx-auto max-w-2xl">
         <form
@@ -191,17 +193,17 @@ export default function CreateInvoicePage() {
         >
           <div className="mb-6 flex items-center justify-between">
             <h1 className="text-heading-4 font-bold text-dark dark:text-white">
-              Create Invoice
+              {t("invoiceNew.title")}
             </h1>
             <Link
               href="/invoices"
               className="text-sm text-primary hover:underline"
             >
-              ← Cancel
+              {t("invoiceNew.cancel")}
             </Link>
           </div>
           <p className="mb-6 text-sm text-dark-6">
-            Add a customer, line items with prices, then create. Each line needs a description, quantity, and unit price.
+            {t("invoiceNew.subtitle")}
           </p>
           {error && (
             <div className="mb-6 rounded bg-red/10 p-3 text-sm text-red">{error}</div>
@@ -209,7 +211,7 @@ export default function CreateInvoicePage() {
           <div className="space-y-6">
             <div>
               <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                Customer
+                {t("invoiceNew.customerLabel")}
               </label>
               <CustomerSelect
                 customers={customers}
@@ -218,12 +220,12 @@ export default function CreateInvoicePage() {
                 onAddCustomer={(c) => setCustomers((prev) => [c, ...prev])}
                 createCustomer={(body) => api.createCustomer(body)}
                 businessId={businessId}
-                placeholder="Search or select customer"
+                placeholder={t("invoiceNew.customerPlaceholder")}
               />
             </div>
             <div>
               <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                Currency
+                {t("invoiceNew.currencyLabel")}
               </label>
               <select
                 value={form.currency}
@@ -238,7 +240,7 @@ export default function CreateInvoicePage() {
               </select>
             </div>
             <InputGroup
-              label="Due Date"
+              label={t("invoiceNew.dueDateLabel")}
               type="date"
               placeholder="YYYY-MM-DD"
               required
@@ -247,15 +249,15 @@ export default function CreateInvoicePage() {
             />
             <div className="rounded-lg border border-dashed border-stroke p-4 dark:border-dark-3">
               <p className="mb-2 text-body-sm font-medium text-dark dark:text-white">
-                Early payment discount (optional)
+                {t("invoiceNew.earlyDiscount.title")}
               </p>
               <p className="mb-3 text-xs text-dark-6">
-                Offer a discount if customer pays within N days of invoice.
+                {t("invoiceNew.earlyDiscount.subtitle")}
               </p>
               <div className="flex gap-2">
                 <input
                   type="number"
-                  placeholder="% off"
+                  placeholder={t("invoiceNew.earlyDiscount.percentOff")}
                   min={0}
                   max={100}
                   value={form.earlyPaymentDiscountPercent}
@@ -269,7 +271,7 @@ export default function CreateInvoicePage() {
                 />
                 <input
                   type="number"
-                  placeholder="Days"
+                  placeholder={t("invoiceNew.earlyDiscount.days")}
                   min={1}
                   value={form.earlyPaymentDiscountDays}
                   onChange={(e) =>
@@ -284,10 +286,10 @@ export default function CreateInvoicePage() {
             </div>
             <div className="border-t border-stroke pt-6 dark:border-dark-3">
               <p className="mb-2 text-body-sm font-medium text-dark dark:text-white">
-                Line items (required)
+                {t("invoiceNew.lineItems.title")}
               </p>
               <p className="mb-4 text-xs text-dark-6">
-                Add each product or service. Unit price must be greater than zero.
+                {t("invoiceNew.lineItems.subtitle")}
               </p>
               {form.items.length > 0 && (
                 <ul className="mb-4 space-y-2">
@@ -310,7 +312,7 @@ export default function CreateInvoicePage() {
                         onClick={() => removeItem(i)}
                         className="shrink-0 text-sm text-red hover:underline"
                       >
-                        Remove
+                        {t("invoiceNew.lineItems.remove")}
                       </button>
                     </li>
                   ))}
@@ -318,18 +320,18 @@ export default function CreateInvoicePage() {
               )}
               {form.items.length > 0 && (
                 <p className="mb-4 text-sm font-medium text-dark dark:text-white">
-                  Subtotal: <Price amount={form.items.reduce((s, i) => s + i.amount, 0)} currency={form.currency} />
+                  {t("invoiceNew.lineItems.subtotal")} <Price amount={form.items.reduce((s, i) => s + i.amount, 0)} currency={form.currency} />
                 </p>
               )}
               <div className="space-y-3">
                 <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto]">
                   <div>
                     <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                      Description
+                      {t("invoiceNew.lineItems.description")}
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Consulting, Product name"
+                      placeholder={t("invoiceNew.lineItems.descriptionPh")}
                       value={form.itemDesc}
                       onChange={(e) => setForm((f) => ({ ...f, itemDesc: e.target.value }))}
                       className="w-full min-w-0 rounded-lg border border-stroke px-4 py-2.5 dark:border-dark-3 dark:bg-dark-2"
@@ -337,7 +339,7 @@ export default function CreateInvoicePage() {
                   </div>
                   <div>
                     <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                      Qty
+                      {t("invoiceNew.lineItems.qty")}
                     </label>
                     <input
                       type="number"
@@ -350,7 +352,7 @@ export default function CreateInvoicePage() {
                   </div>
                   <div>
                     <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                      Unit price
+                      {t("invoiceNew.lineItems.unitPrice")}
                     </label>
                     <input
                       type="number"
@@ -367,7 +369,7 @@ export default function CreateInvoicePage() {
                   onClick={addItem}
                   className="w-full rounded-lg border border-dashed border-stroke py-3 text-sm text-dark-4 hover:border-primary hover:text-primary dark:border-dark-3 dark:text-dark-6 dark:hover:border-primary dark:hover:text-primary"
                 >
-                  + Add line item
+                  {t("invoiceNew.lineItems.addItem")}
                 </button>
               </div>
             </div>
@@ -382,7 +384,7 @@ export default function CreateInvoicePage() {
             className="mt-8 w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
             aria-busy={submitting}
           >
-            {submitting ? "Creating…" : "Create Invoice"}
+            {submitting ? t("invoiceNew.submitting") : t("invoiceNew.submit")}
           </button>
         </form>
       </div>

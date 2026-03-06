@@ -9,7 +9,7 @@ export class CreateInvitationDto {
   businessId!: string;
 
   @IsString()
-  @IsIn(['owner', 'accountant', 'viewer', 'sales'])
+  @IsIn(['owner', 'manager', 'accountant', 'viewer', 'sales'])
   role!: Role;
 
   @IsOptional()

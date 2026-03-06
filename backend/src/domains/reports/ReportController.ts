@@ -186,9 +186,9 @@ export class ReportController {
     const roles = await Promise.all(
       businesses.map((b) => this.accessService.getUserRole(b.id, userId))
     );
-    const authorizedRoles = ['owner', 'accountant'];
+    const authorizedRoles = ['owner', 'manager', 'accountant'];
     if (!roles.some((r) => r !== null && authorizedRoles.includes(r))) {
-      throw new ValidationError('Only owners and accountants can access consolidated reports');
+      throw new ValidationError('Only owners, managers, and accountants can access consolidated reports');
     }
 
     const report = await this.consolidatedReportService.getConsolidatedPL(

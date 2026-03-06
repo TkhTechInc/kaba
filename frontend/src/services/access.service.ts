@@ -1,14 +1,22 @@
 import { apiUrl } from "@/lib/api";
+import { apiGetWithOfflineCache } from "@/lib/api-client";
+import { CACHE_KEYS } from "@/lib/offline-cache";
 
 export type BusinessAccess = {
   businessId: string;
-  role: "owner" | "accountant" | "viewer";
+  role: "owner" | "manager" | "accountant" | "viewer" | "sales";
+};
+
+export type OrganizationAccess = {
+  id: string;
+  name: string;
 };
 
 export type ListBusinessesResponse = {
   success: boolean;
   data: BusinessAccess[];
 };
+
 
 export async function listBusinesses(
   accessToken?: string
@@ -26,4 +34,18 @@ export async function listBusinesses(
     throw new Error("Invalid businesses response");
   }
   return json.data;
+}
+
+export async function listOrganizations(
+  accessToken?: string
+): Promise<OrganizationAccess[]> {
+  const res = await apiGetWithOfflineCache<OrganizationAccess[]>(
+    "/api/v1/access/organizations",
+    `${CACHE_KEYS.ORGANIZATIONS}:user`,
+    { token: accessToken ?? undefined }
+  );
+  if (!res.success || !Array.isArray(res.data)) {
+    throw new Error("Invalid organizations response");
+  }
+  return res.data;
 }

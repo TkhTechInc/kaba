@@ -16,7 +16,7 @@ export class AwsSnsSmsProvider implements ISmsProvider {
       'ca-central-1';
     this.sns = new SNSClient({ region });
     this.senderId =
-      config?.get<string>('sms.senderId') || process.env['SMS_SENDER_ID'] || 'QuickBooks';
+      config?.get<string>('sms.senderId') || process.env['SMS_SENDER_ID'] || 'Kaba';
   }
 
   async send(phone: string, message: string): Promise<{ success: boolean; messageId?: string }> {

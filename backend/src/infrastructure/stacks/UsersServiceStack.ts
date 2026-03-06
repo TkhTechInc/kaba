@@ -27,7 +27,7 @@ export class UsersServiceStack extends cdk.Stack {
     super(scope, id, props);
 
     const { environment, config } = props;
-    const resourcePrefix = `QuickBooks-UsersService-${environment}`;
+    const resourcePrefix = `Kaba-UsersService-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
     const enablePITR = config.database?.enablePITR ?? (environment === 'prod');
@@ -46,7 +46,7 @@ export class UsersServiceStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'UsersTableName', {
       value: this.usersTable.tableName,
       description: 'Users DynamoDB table name',
-      exportName: `QuickBooks-${environment}-UsersTableName`,
+      exportName: `Kaba-${environment}-UsersTableName`,
     });
   }
 }

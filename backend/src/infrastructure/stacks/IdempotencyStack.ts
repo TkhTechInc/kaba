@@ -23,7 +23,7 @@ export class IdempotencyStack extends cdk.Stack {
     super(scope, id, props);
 
     const { environment, config } = props;
-    const resourcePrefix = `QuickBooks-Idempotency-${environment}`;
+    const resourcePrefix = `Kaba-Idempotency-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
 
@@ -41,7 +41,7 @@ export class IdempotencyStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'IdempotencyTableName', {
       value: this.idempotencyTable.tableName,
       description: 'Idempotency DynamoDB table name',
-      exportName: `QuickBooks-${environment}-IdempotencyTableName`,
+      exportName: `Kaba-${environment}-IdempotencyTableName`,
     });
   }
 }

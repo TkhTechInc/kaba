@@ -3,6 +3,7 @@ import {
   GetCommand,
   PutCommand,
   UpdateCommand,
+  QueryCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { DatabaseError } from '@/shared/errors/DomainError';
@@ -23,6 +24,7 @@ export interface UpdateOnboardingInput {
   trustScore?: number;
   trustScoredAt?: string;
   marketDayCycle?: number;
+  organizationId?: string;
 }
 
 const SK_META = 'META';
@@ -130,31 +132,59 @@ export class BusinessRepository {
 
   /**
    * List all businesses belonging to an organization.
-   * Uses a Scan with filter on organizationId (no GSI required).
-   * For large platforms, add an organizationId-index GSI for O(1) lookups.
+   * Uses organizationId-pk-index GSI when ACTIVE; falls back to a filtered
+   * Scan while the GSI is still being built (CREATING state).
    */
   async listByOrganization(organizationId: string): Promise<import('@/domains/ledger/models/Business').Business[]> {
     const items: import('@/domains/ledger/models/Business').Business[] = [];
     let lastKey: Record<string, unknown> | undefined;
 
-    do {
-      const result = await this.docClient.send(
-        new ScanCommand({
-          TableName: this.tableName,
-          FilterExpression: 'organizationId = :orgId AND sk = :sk',
-          ExpressionAttributeValues: {
-            ':orgId': organizationId,
-            ':sk': SK_META,
-          },
-          ...(lastKey && { ExclusiveStartKey: lastKey }),
-        })
-      );
-      const batch = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
-      items.push(...batch);
-      lastKey = result.LastEvaluatedKey;
-    } while (lastKey);
+    try {
+      do {
+        const result = await this.docClient.send(
+          new QueryCommand({
+            TableName: this.tableName,
+            IndexName: 'organizationId-pk-index',
+            KeyConditionExpression: 'organizationId = :orgId',
+            ExpressionAttributeValues: {
+              ':orgId': organizationId,
+            },
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
+          })
+        );
+        const batch = (result.Items ?? [])
+          .filter((item) => item.sk === SK_META)
+          .map((item) => this.mapFromDynamoDB(item));
+        items.push(...batch);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-    return items;
+      return items;
+    } catch (e: unknown) {
+      const errMsg = (e as { message?: string })?.message ?? '';
+      if (!errMsg.includes('does not have the specified index')) throw e;
+
+      // GSI not yet active — fall back to a Scan with filter
+      const fallback: import('@/domains/ledger/models/Business').Business[] = [];
+      let scanKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
+          new ScanCommand({
+            TableName: this.tableName,
+            FilterExpression: 'organizationId = :orgId AND sk = :meta',
+            ExpressionAttributeValues: {
+              ':orgId': organizationId,
+              ':meta': SK_META,
+            },
+            ...(scanKey && { ExclusiveStartKey: scanKey }),
+          })
+        );
+        fallback.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+        scanKey = result.LastEvaluatedKey;
+      } while (scanKey);
+
+      return fallback;
+    }
   }
 
   async updateOnboarding(
@@ -179,6 +209,31 @@ export class BusinessRepository {
       return updated;
     } catch (e) {
       throw new DatabaseError('Update onboarding failed', e);
+    }
+  }
+
+  /**
+   * Remove a business from its organization by clearing the organizationId field.
+   * The business continues to exist as a standalone entity.
+   */
+  async unlinkFromOrganization(businessId: string): Promise<void> {
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: SK_META },
+          UpdateExpression: 'REMOVE organizationId SET updatedAt = :now',
+          ExpressionAttributeValues: {
+            ':now': new Date().toISOString(),
+          },
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        throw new Error(`Business ${businessId} not found`);
+      }
+      throw new DatabaseError('Unlink from organization failed', e);
     }
   }
 

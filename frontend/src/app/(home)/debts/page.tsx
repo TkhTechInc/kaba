@@ -8,10 +8,12 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
+import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
 export default function DebtsPage() {
+  const { t } = useLocale();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const [debts, setDebts] = useState<Debt[]>([]);
@@ -65,7 +67,7 @@ export default function DebtsPage() {
         if (r.sent) {
           setError(null);
         } else {
-          setError("Failed to send reminder");
+          setError(t("debts.error.sendReminderFailed"));
         }
       })
       .catch((e) => setError(e.message))
@@ -75,9 +77,9 @@ export default function DebtsPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="People who owe me" />
+        <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
         <div className="min-w-0 rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to manage debts.</p>
+          <p className="text-dark-6">{t("debts.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -86,7 +88,7 @@ export default function DebtsPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="People who owe me" />
+        <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -97,7 +99,7 @@ export default function DebtsPage() {
   if (!features.isEnabled("debt_tracker")) {
     return (
       <>
-        <Breadcrumb pageName="People who owe me" />
+        <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
         <UpgradePrompt feature="Debt tracker" />
       </>
     );
@@ -105,16 +107,16 @@ export default function DebtsPage() {
 
   return (
     <>
-      <Breadcrumb pageName="People who owe me" />
+      <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
 
       <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
-          <h3 className="font-semibold text-dark dark:text-white">Outstanding debts</h3>
+          <h3 className="font-semibold text-dark dark:text-white">{t("debts.title")}</h3>
           <Link
             href="/debts/new"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            + Add Debt
+            {t("dashboard.debtsToCollect.addDebt")}
           </Link>
         </div>
         {error && (
@@ -133,7 +135,7 @@ export default function DebtsPage() {
                     : "bg-gray-2 text-dark-6 hover:bg-gray-3 dark:bg-dark-2 dark:text-dark-5"
                 }`}
               >
-                {s === "all" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
+                {s === "all" ? t("ledger.filter.all") : s === "overdue" ? t("dashboard.debtsToCollect.overdue") : s === "pending" ? t("debts.filter.pending") : t("invoices.filter.paid")}
               </button>
             ))}
           </div>
@@ -143,30 +145,29 @@ export default function DebtsPage() {
             </div>
           ) : debts.length === 0 ? (
             <p className="py-8 text-center text-dark-6">
-              No debts yet.{" "}
+              {t("dashboard.debtsToCollect.noPending")}{" "}
               <Link href="/debts/new" className="text-primary hover:underline">
-                Add one to get started
+                {t("dashboard.debtsToCollect.addDebt")}
               </Link>
-              .
             </p>
           ) : (
             <ResponsiveDataList<Debt>
               items={debts}
               keyExtractor={(d) => d.id}
-              emptyMessage="No debts yet."
+              emptyMessage={t("dashboard.debtsToCollect.noPending")}
               columns={[
-                { key: "name", label: "Name", render: (d) => d.debtorName, prominent: true },
+                { key: "name", label: t("debts.column.name"), render: (d) => d.debtorName, prominent: true },
                 {
                   key: "amount",
-                  label: "Amount",
+                  label: t("debts.column.amount"),
                   render: (d) => <Price amount={d.amount} currency={d.currency} />,
                   align: "right",
                 },
-                { key: "due", label: "Due", render: (d) => d.dueDate },
+                { key: "due", label: t("debts.column.due"), render: (d) => d.dueDate },
                 {
                   key: "status",
-                  label: "Status",
-                  render: (d) => (
+                  label: t("debts.column.status"),
+                    render: (d) => (
                     <span
                       className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
                         d.status === "overdue"
@@ -176,7 +177,7 @@ export default function DebtsPage() {
                             : "bg-amber/20 text-amber-700 dark:text-amber-300"
                       }`}
                     >
-                      {d.status}
+                      {t(`debts.status.${d.status}` as Parameters<typeof t>[0]) || d.status}
                     </span>
                   ),
                 },
@@ -192,7 +193,7 @@ export default function DebtsPage() {
                           disabled={remindingId === d.id}
                           className="text-sm font-medium text-primary hover:underline disabled:opacity-50"
                         >
-                          {remindingId === d.id ? "Sending…" : "Send reminder"}
+                          {remindingId === d.id ? t("debts.action.sending") : t("debts.action.sendReminder")}
                         </button>
                       )}
                       <button
@@ -201,7 +202,7 @@ export default function DebtsPage() {
                         disabled={submitting}
                         className="text-sm font-medium text-green hover:underline disabled:opacity-50"
                       >
-                        Mark paid
+                        {t("debts.action.markPaid")}
                       </button>
                     </>
                   )

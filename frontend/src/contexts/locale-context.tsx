@@ -23,7 +23,12 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 
 const STORAGE_KEY = "kaba-locale";
 
-const messages: Record<Locale, Record<string, unknown>> = {
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// Messages are loaded lazily from JSON files to keep this file manageable.
+// The JSON files live in /messages/{locale}.json and are imported at runtime.
+// Auth + common + nav keys that don't yet have JSON files are inlined below.
+
+const BASE_MESSAGES: Record<Locale, Record<string, unknown>> = {
   en: {
     auth: {
       signIn: "Sign In",
@@ -42,15 +47,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Read aloud",
       holdToSpeak: "Hold to speak",
       offline: "You are offline. Changes will sync when you reconnect.",
-    },
-    nav: {
-      dashboard: "Dashboard",
-      invoices: "Invoices",
-      customers: "Customers",
-      ledger: "Ledger",
-      receipts: "Receipts",
-      reports: "Reports",
-      settings: "Settings",
+      loading: "Loading…",
+      cancel: "Cancel",
+      save: "Save",
+      noData: "No data",
+      loadMore: "Load more",
     },
   },
   fr: {
@@ -71,15 +72,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Lire à voix haute",
       holdToSpeak: "Appuyez pour parler",
       offline: "Vous êtes hors ligne. Les modifications seront synchronisées dès la reconnexion.",
-    },
-    nav: {
-      dashboard: "Tableau de bord",
-      invoices: "Factures",
-      customers: "Clients",
-      ledger: "Livre de comptes",
-      receipts: "Reçus",
-      reports: "Rapports",
-      settings: "Paramètres",
+      loading: "Chargement…",
+      cancel: "Annuler",
+      save: "Enregistrer",
+      noData: "Aucune donnée",
+      loadMore: "Charger plus",
     },
   },
   yo: {
@@ -100,15 +97,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Ka pẹ̀lú ohùn",
       holdToSpeak: "Mu lati sọrọ",
       offline: "O wa ni isinmi. Awọn ayipada yoo wa ni kika nigbati o tun sopọ.",
-    },
-    nav: {
-      dashboard: "Dashibodu",
-      invoices: "Iwe-ìdánilójú",
-      customers: "Awọn onibara",
-      ledger: "Iwe iṣiro",
-      receipts: "Awọn resiiti",
-      reports: "Awọn iroyin",
-      settings: "Eto",
+      loading: "Ń gba…",
+      cancel: "Fagilee",
+      save: "Fi pamọ",
+      noData: "Ko si data",
+      loadMore: "Gba diẹ sii",
     },
   },
   ha: {
@@ -129,15 +122,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Karanta da murya",
       holdToSpeak: "Riƙe don magana",
       offline: "Kuna kashe layi. Canje-canje za a sync lokacin da kuka sake haɗawa.",
-    },
-    nav: {
-      dashboard: "Allon sarrafawa",
-      invoices: "Kudaden fito",
-      customers: "Abokan ciniki",
-      ledger: "Littafin lissafi",
-      receipts: "Takaddun karɓa",
-      reports: "Rahotanni",
-      settings: "Saitunan",
+      loading: "Ana lodi…",
+      cancel: "Soke",
+      save: "Ajiye",
+      noData: "Babu bayani",
+      loadMore: "Ƙara lodi",
     },
   },
   ig: {
@@ -158,15 +147,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Gụọ olu",
       holdToSpeak: "Jide ịgwa okwu",
       offline: "Ị dị na mpụga. Mgbanwe ga-emekọ ihe mgbe i jikọọ ọzọ.",
-    },
-    nav: {
-      dashboard: "Ikpuike",
-      invoices: "Ụgwọ",
-      customers: "Ndị ahịa",
-      ledger: "Akwụkwọ ọnụ ego",
-      receipts: "Ọnụ ego natara",
-      reports: "Akụkọ",
-      settings: "Ntọala",
+      loading: "Na-ebu…",
+      cancel: "Kagbuo",
+      save: "Chekwa",
+      noData: "Enweghị data",
+      loadMore: "Budata ọzọ",
     },
   },
   tw: {
@@ -187,15 +172,11 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Kenkan",
       holdToSpeak: "Di so na kasa",
       offline: "Wo wɔ offline. Foforo bɛhyia biom a wobɛkɔ online.",
-    },
-    nav: {
-      dashboard: "Dashboard",
-      invoices: "Invoice",
-      customers: "Adesua",
-      ledger: "Nkontaabu",
-      receipts: "Receipt",
-      reports: "Nnwuma nhyehyɛe",
-      settings: "Nsisie",
+      loading: "Kɔ so…",
+      cancel: "Gyae",
+      save: "Sie",
+      noData: "Ɛnni data",
+      loadMore: "Fa biara",
     },
   },
   wo: {
@@ -216,18 +197,48 @@ const messages: Record<Locale, Record<string, unknown>> = {
       readAloud: "Jàng ak dëkk",
       holdToSpeak: "Amul kàddu",
       offline: "Dafa metti Internet. Ci kanam, dina sync seppo bu reental.",
-    },
-    nav: {
-      dashboard: "Taabloo",
-      invoices: "Faktiir",
-      customers: "Kliyaan",
-      ledger: "Réegistre",
-      receipts: "Resiiy",
-      reports: "Raporr",
-      settings: "Parameetri",
+      loading: "Yégël…",
+      cancel: "Dëkkal",
+      save: "Dox",
+      noData: "Amul données",
+      loadMore: "Yëgël ëllëg",
     },
   },
 };
+
+// Full messages (EN + FR) are loaded from JSON. Other locales fall back to EN for keys not yet translated.
+async function loadMessages(): Promise<Record<Locale, Record<string, unknown>>> {
+  const [en, fr] = await Promise.all([
+    import("../../messages/en.json").then((m) => m.default),
+    import("../../messages/fr.json").then((m) => m.default),
+  ]);
+  return {
+    en: deepMerge(BASE_MESSAGES.en, en as Record<string, unknown>),
+    fr: deepMerge(BASE_MESSAGES.fr, fr as Record<string, unknown>),
+    yo: deepMerge(BASE_MESSAGES.yo, en as Record<string, unknown>),
+    ha: deepMerge(BASE_MESSAGES.ha, en as Record<string, unknown>),
+    ig: deepMerge(BASE_MESSAGES.ig, en as Record<string, unknown>),
+    tw: deepMerge(BASE_MESSAGES.tw, en as Record<string, unknown>),
+    wo: deepMerge(BASE_MESSAGES.wo, en as Record<string, unknown>),
+  };
+}
+
+function deepMerge(base: Record<string, unknown>, override: Record<string, unknown>): Record<string, unknown> {
+  const result = { ...base };
+  for (const key of Object.keys(override)) {
+    const b = base[key];
+    const o = override[key];
+    if (b && o && typeof b === "object" && typeof o === "object" && !Array.isArray(b)) {
+      result[key] = deepMerge(b as Record<string, unknown>, o as Record<string, unknown>);
+    } else {
+      result[key] = o;
+    }
+  }
+  return result;
+}
+
+// Sync fallback used before async load completes
+const messages: Record<Locale, Record<string, unknown>> = BASE_MESSAGES;
 
 function getNested(obj: Record<string, unknown>, path: string): string | undefined {
   const parts = path.split(".");
@@ -239,43 +250,62 @@ function getNested(obj: Record<string, unknown>, path: string): string | undefin
   return typeof current === "string" ? current : undefined;
 }
 
-function getMsg(locale: Locale, key: string): string {
-  const val = getNested(messages[locale] as unknown as Record<string, unknown>, key);
-  return val ?? key;
+/** Interpolate {variable} placeholders in a message string. */
+function interpolate(str: string, vars?: Record<string, string | number>): string {
+  if (!vars) return str;
+  return str.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? `{${k}}`));
+}
+
+function getMsg(
+  locale: Locale,
+  loaded: Record<Locale, Record<string, unknown>>,
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  // Try current locale, fall back to EN
+  const val =
+    getNested(loaded[locale] as Record<string, unknown>, key) ??
+    getNested(loaded.en as Record<string, unknown>, key);
+  return val ? interpolate(val, vars) : key;
 }
 
 type LocaleContextValue = {
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: (key: string) => string;
+  /** Translate a dot-notation key with optional interpolation vars. */
+  t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
 export function LocaleProvider({ children }: PropsWithChildren) {
   const [locale, setLocaleState] = useState<Locale>("en");
-  const [mounted, setMounted] = useState(false);
+  const [loaded, setLoaded] = useState<Record<Locale, Record<string, unknown>>>(messages);
 
   useEffect(() => {
-    setMounted(true);
+    // Restore saved locale
     try {
       const stored = localStorage.getItem(STORAGE_KEY) as Locale | null;
       if (stored && stored in LOCALE_LABELS) setLocaleState(stored);
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
+
+    // Load full message files
+    loadMessages().then(setLoaded).catch(() => { /* fall back to base */ });
   }, []);
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
     try {
       localStorage.setItem(STORAGE_KEY, l);
-    } catch {
-      // ignore
-    }
+      // Also set cookie so server components pick it up on next request
+      document.cookie = `locale=${l};path=/;max-age=31536000;SameSite=Lax`;
+    } catch { /* ignore */ }
   }, []);
 
-  const t = useCallback((key: string) => getMsg(locale, key), [locale]);
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => getMsg(locale, loaded, key, vars),
+    [locale, loaded],
+  );
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale, t }}>
@@ -289,7 +319,7 @@ export function useLocale() {
   if (!ctx) {
     return {
       locale: "en" as Locale,
-      setLocale: () => {},
+      setLocale: (_l: Locale) => {},
       t: (key: string) => key,
     };
   }

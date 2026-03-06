@@ -6,8 +6,10 @@ import { AuditRepository } from './repositories/AuditRepository';
 import { AuditService } from './services/AuditService';
 import { AuditAnomalyService } from './services/AuditAnomalyService';
 import { BusinessAuditController } from './controllers/BusinessAuditController';
+import { AUDIT_LOGGER } from './interfaces/IAuditLogger';
 
-export const AUDIT_LOGGER = 'IAuditLogger';
+// Re-export so existing imports from AuditModule still resolve
+export { AUDIT_LOGGER } from './interfaces/IAuditLogger';
 
 @Module({
   controllers: [BusinessAuditController],
@@ -16,7 +18,7 @@ export const AUDIT_LOGGER = 'IAuditLogger';
       provide: AuditRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName =
-          config.get<string>('dynamodb.auditLogsTable') ?? 'QuickBooks-AuditLogs-dev';
+          config.get<string>('dynamodb.auditLogsTable') ?? 'Kaba-AuditLogs-dev';
         const retentionDays =
           config.get<number>('compliance.auditRetentionDays') ?? 2555;
         return new AuditRepository(docClient, tableName, retentionDays);

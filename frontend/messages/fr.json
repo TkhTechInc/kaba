@@ -1,18 +1,902 @@
 {
-  "auth": {
-    "signIn": "Connexion",
-    "signUp": "S'inscrire",
-    "phoneNumber": "Numéro de téléphone",
-    "verificationCode": "Code de vérification",
-    "email": "E-mail",
-    "password": "Mot de passe",
-    "confirmPassword": "Confirmer le mot de passe",
-    "sendOtp": "Envoyer le code",
-    "createAccount": "Créer un compte",
-    "forgotPassword": "Mot de passe oublié ?"
+  "nav": {
+    "section": {
+      "overview": "APERÇU",
+      "sales": "VENTES",
+      "finances": "FINANCES",
+      "inventory": "INVENTAIRE",
+      "reports": "RAPPORTS",
+      "account": "COMPTE",
+      "admin": "ADMIN"
+    },
+    "dashboard": "Tableau de bord",
+    "invoices": "Factures",
+    "customers": "Clients",
+    "pendingApprovals": "Approbations en attente",
+    "ledger": "Grand livre",
+    "receipts": "Reçus",
+    "mobileMoney": "Mobile Money",
+    "debts": "Dettes",
+    "products": "Produits",
+    "reports": "Rapports",
+    "reportsSub": {
+      "pl": "P&L",
+      "cashFlow": "Flux de trésorerie",
+      "taxVat": "Taxe / TVA",
+      "consolidated": "Consolidé"
+    },
+    "trustScore": "Score de confiance",
+    "branches": "Succursales",
+    "settings": "Paramètres",
+    "settingsSub": {
+      "plans": "Abonnements",
+      "team": "Équipe",
+      "activityLog": "Journal d'activité",
+      "preferences": "Préférences",
+      "apiKeys": "Clés API",
+      "webhooks": "Webhooks",
+      "compliance": "Conformité"
+    },
+    "admin": "Admin"
+  },
+  "roles": {
+    "owner": "Propriétaire",
+    "manager": "Gestionnaire",
+    "accountant": "Comptable",
+    "viewer": "Lecteur",
+    "sales": "Commercial",
+    "ownerDesc": "Accès complet y compris équipe et paramètres",
+    "managerDesc": "Accès multi-succursales, rapports et journaux — sans gestion d'équipe",
+    "accountantDesc": "Grand livre, factures, rapports",
+    "viewerDesc": "Lecture seule",
+    "salesDesc": "Ventes et facturation uniquement"
   },
   "common": {
-    "skipToContent": "Aller au contenu principal",
-    "readAloud": "Lire à voix haute"
+    "loading": "Chargement…",
+    "noData": "Aucune donnée",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "search": "Rechercher",
+    "from": "Du",
+    "to": "Au",
+    "noBusinessSelected": "Sélectionnez une entreprise pour continuer.",
+    "loadError": "Impossible de charger les données.",
+    "loadMore": "Charger plus"
+  },
+  "dashboard": {
+    "action": {
+      "newInvoice": "+ Nouvelle facture",
+      "recordTransaction": "+ Enregistrer une transaction",
+      "uploadReceipt": "Télécharger un reçu",
+      "viewReports": "Voir les rapports"
+    },
+    "cards": {
+      "noBusinessSelected": "Sélectionnez une entreprise pour voir le tableau de bord.",
+      "loadError": "Impossible de charger le tableau de bord.",
+      "noFeaturesEnabled": "Aucune fonctionnalité activée pour cette entreprise.",
+      "cashBalance": "Solde de trésorerie",
+      "invoices": "Factures",
+      "customers": "Clients",
+      "ledgerEntries": "Écritures comptables",
+      "negativeBalanceAlert": "Votre solde est négatif. Vérifiez vos écritures ou enregistrez une vente.",
+      "viewLedger": "Voir le grand livre →",
+      "decreasedBy": "{label} a diminué de {growthRate}%",
+      "increasedBy": "{label} a augmenté de {growthRate}%"
+    },
+    "paymentsOverview": {
+      "title": "Aperçu des paiements",
+      "loadError": "Impossible de charger l'aperçu des paiements.",
+      "noData": "Aucune donnée. Ajoutez des écritures ou des factures.",
+      "receivedAmount": "Montant reçu",
+      "dueAmount": "Montant dû"
+    },
+    "weeksProfit": {
+      "title": "Bénéfice {timeFrame}",
+      "thisWeek": "cette semaine",
+      "lastWeek": "la semaine dernière",
+      "loadError": "Impossible de charger les données de bénéfice.",
+      "noData": "Aucune donnée. Ajoutez des écritures comptables."
+    },
+    "activityByType": {
+      "title": "Activité par type",
+      "centerLabel": "Total",
+      "loadError": "Impossible de charger les données d'activité.",
+      "noData": "Aucune donnée. Ajoutez des écritures comptables."
+    },
+    "recentInvoices": {
+      "title": "Factures récentes",
+      "viewAll": "Voir tout →",
+      "noInvoices": "Aucune facture pour l'instant.",
+      "createFirst": "Créez votre première facture",
+      "amount": "Montant",
+      "dueDate": "Échéance",
+      "status": "Statut",
+      "view": "Voir"
+    },
+    "debtsToCollect": {
+      "title": "Personnes qui me doivent",
+      "viewAll": "Voir tout →",
+      "noPending": "Aucune dette en attente.",
+      "addDebt": "Ajouter une dette",
+      "due": "Échéance {date}",
+      "overdue": "En retard"
+    }
+  },
+  "invoices": {
+    "title": "Factures",
+    "newInvoice": "+ Nouvelle facture",
+    "noBusinessSelected": "Sélectionnez une entreprise pour voir les factures.",
+    "loading": "Chargement…",
+    "empty": "Aucune facture pour l'instant",
+    "filter": {
+      "all": "Toutes",
+      "draft": "Brouillon",
+      "sent": "Envoyée",
+      "paid": "Payée",
+      "overdue": "En retard"
+    },
+    "column": {
+      "customer": "Client",
+      "dueDate": "Échéance",
+      "status": "Statut",
+      "amount": "Montant"
+    },
+    "status": {
+      "pendingApproval": "En attente d'approbation",
+      "dgiCertified": "✓ DGI {serialNumber}",
+      "dgiPending": "⏳ DGI En attente",
+      "dgiRejected": "✗ DGI Rejeté"
+    },
+    "action": {
+      "edit": "Modifier",
+      "paymentLink": "Lien de paiement",
+      "paymentLinkAriaLabel": "Générer un lien de paiement pour la facture {id}"
+    },
+    "paymentLinkLabel": "Lien de paiement :",
+    "upgradeToDownload": "Mettez à niveau pour télécharger le PDF"
+  },
+  "customers": {
+    "title": "Clients",
+    "addCustomer": "+ Ajouter un client",
+    "noBusinessSelected": "Sélectionnez une entreprise pour gérer les clients.",
+    "loading": "Chargement…",
+    "empty": "Aucun client pour l'instant.",
+    "emptyCta": "Ajoutez-en un pour commencer",
+    "column": {
+      "name": "Nom",
+      "email": "E-mail",
+      "phone": "Téléphone",
+      "trustScore": "Score de confiance"
+    },
+    "action": {
+      "viewScore": "Voir le score"
+    },
+    "creditModal": {
+      "title": "Score de confiance — {customerName}",
+      "calculating": "Calcul du score…",
+      "scoreLabel": "Score de confiance / 100",
+      "approve": "✓ Approuver le crédit",
+      "review": "⚠ Révision manuelle",
+      "deny": "✗ Refuser le crédit",
+      "transactionFrequency": "Fréquence des transactions",
+      "debtRepaymentRatio": "Taux de remboursement",
+      "volumeConsistency": "Régularité du volume",
+      "outOf": "{value}/100",
+      "loadError": "Impossible de charger le score de crédit"
+    }
+  },
+  "ledger": {
+    "title": "Grand livre",
+    "noBusinessSelected": "Sélectionnez une entreprise pour voir le grand livre.",
+    "balance": {
+      "label": "Solde actuel",
+      "loading": "Chargement…"
+    },
+    "entries": {
+      "title": "Écritures",
+      "newEntry": "+ Nouvelle écriture",
+      "loading": "Chargement…",
+      "empty": "Aucune écriture pour l'instant.",
+      "emptyCta": "Créez votre première écriture."
+    },
+    "filter": {
+      "all": "Toutes",
+      "sale": "Vente",
+      "expense": "Dépense"
+    },
+    "column": {
+      "date": "Date",
+      "type": "Type",
+      "description": "Description",
+      "category": "Catégorie",
+      "amount": "Montant"
+    },
+    "type": {
+      "sale": "↑ Vente",
+      "expense": "↓ Dépense"
+    }
+  },
+  "reports": {
+    "title": "Rapports",
+    "noBusinessSelected": "Sélectionnez une entreprise pour voir les rapports.",
+    "loading": "Chargement des rapports…",
+    "filter": {
+      "from": "Du",
+      "to": "Au"
+    },
+    "pl": {
+      "title": "Compte de résultat ({startDate} – {endDate})",
+      "download": "Télécharger le PDF",
+      "downloading": "Téléchargement…",
+      "upgradeToDownload": "Mettez à niveau pour télécharger le PDF",
+      "totalIncome": "Revenus totaux",
+      "totalExpenses": "Dépenses totales",
+      "netProfit": "Bénéfice net",
+      "category": "Catégorie",
+      "type": "Type",
+      "amount": "Montant",
+      "noData": "Aucune donnée"
+    },
+    "cashFlow": {
+      "title": "Flux de trésorerie ({startDate} – {endDate})",
+      "download": "Télécharger le PDF",
+      "downloading": "Téléchargement…",
+      "upgradeToDownload": "Mettez à niveau pour télécharger le PDF",
+      "openingBalance": "Solde d'ouverture",
+      "inflows": "Entrées",
+      "outflows": "Sorties",
+      "closingBalance": "Solde de clôture",
+      "date": "Date",
+      "inflow": "Entrée",
+      "outflow": "Sortie",
+      "balance": "Solde",
+      "noData": "Aucune donnée"
+    },
+    "consolidated": {
+      "breadcrumb": "P&L Consolidé",
+      "heading": "Rapport consolidé multi-succursales",
+      "loadingOrgs": "Chargement des organisations…",
+      "noOrgs": "Aucune organisation avec des succursales",
+      "selectOrg": "Sélectionnez une organisation",
+      "loadReport": "Charger le rapport",
+      "branchBreakdown": "Détail par succursale",
+      "noBranches": "Aucune succursale",
+      "branch": "Succursale",
+      "income": "Revenus",
+      "expenses": "Dépenses"
+    }
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Configurez les paramètres de votre entreprise.",
+    "nav": {
+      "plans": "Abonnements",
+      "team": "Équipe",
+      "activityLog": "Journal d'activité",
+      "preferences": "Préférences",
+      "apiKeys": "Clés API",
+      "webhooks": "Webhooks",
+      "compliance": "Conformité"
+    },
+    "card": {
+      "teamLabel": "Équipe",
+      "teamDesc": "Gérez les accès à votre entreprise",
+      "preferencesLabel": "Préférences",
+      "preferencesDesc": "Notifications, langue et fuseau horaire"
+    },
+    "plans": {
+      "title": "Abonnements",
+      "currentPlan": "Votre abonnement actuel :",
+      "pricesIn": "Prix en {currency}",
+      "restrictedNotice": "Seuls les propriétaires peuvent changer d'abonnement. Contactez votre administrateur.",
+      "currentBadge": "(actuel)",
+      "upgrade": "Améliorer",
+      "downgrade": "Rétrograder",
+      "updating": "Mise à jour…",
+      "updateFailed": "Échec de la mise à jour",
+      "perMonth": " / mois",
+      "tiers": {
+        "free": {
+          "name": "Gratuit",
+          "f1": "Suivez vos ventes et dépenses",
+          "f2": "Consultez des rapports simples",
+          "f3": "Idéal pour démarrer"
+        },
+        "starter": {
+          "name": "Débutant",
+          "f1": "Envoyez des factures et soyez payé en ligne",
+          "f2": "Posez des questions à l'assistant IA (10/mois)",
+          "f3": "Assistance fiscale pour votre entreprise",
+          "f4": "Suivez plus de transactions"
+        },
+        "pro": {
+          "name": "Pro",
+          "f1": "Sauvegardez vos reçus sur votre téléphone",
+          "f2": "Envoyez des reçus par SMS à vos clients",
+          "f3": "Interrogez l'IA vocalement (100 questions/mois)",
+          "f4": "Aide pour les demandes de prêt",
+          "f5": "Imprimez des rapports professionnels"
+        },
+        "enterprise": {
+          "name": "Entreprise",
+          "f1": "Tout ce qui est inclus dans Pro",
+          "f2": "Pour les grandes entreprises",
+          "f3": "Support prioritaire quand vous en avez besoin"
+        }
+      }
+    }
+  },
+  "team": {
+    "title": "Équipe",
+    "subtitle": "Gérez les accès à votre entreprise.",
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "team": "Équipe"
+    },
+    "inviteBtn": "+ Inviter un membre",
+    "restrictedNotice": "Seuls les propriétaires peuvent gérer les membres. Contactez votre administrateur.",
+    "members": {
+      "title": "Membres",
+      "loading": "Chargement…",
+      "empty": "Aucun membre pour l'instant.",
+      "member": "Membre",
+      "role": "Rôle"
+    },
+    "loadError": "Impossible de charger les membres",
+    "updateError": "Impossible de mettre à jour le rôle"
+  },
+  "invite": {
+    "title": "Inviter un nouveau membre",
+    "subtitle": "Envoyez une invitation pour ajouter quelqu'un à votre équipe.",
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "team": "Équipe",
+      "invite": "Inviter"
+    },
+    "restricted": "Seuls les propriétaires peuvent inviter des membres. Contactez votre administrateur.",
+    "form": {
+      "inviteTo": "Inviter dans",
+      "thisBusiness": "Cette entreprise",
+      "specificBranch": "Une succursale spécifique",
+      "organization": "Organisation",
+      "orgLoading": "Chargement…",
+      "orgEmpty": "Aucune organisation trouvée",
+      "orgDefault": "Sélectionnez une organisation",
+      "branch": "Succursale",
+      "branchLoading": "Chargement…",
+      "branchEmpty": "Aucune succursale trouvée",
+      "branchDefault": "Sélectionnez une succursale",
+      "emailOrPhone": "E-mail ou téléphone",
+      "emailOrPhonePlaceholder": "email@exemple.com ou +234...",
+      "role": "Rôle",
+      "send": "Envoyer l'invitation",
+      "sending": "Envoi…",
+      "cancel": "Annuler",
+      "emptyField": "Saisissez un e-mail ou un numéro de téléphone.",
+      "selectBranch": "Sélectionnez une organisation et une succursale.",
+      "sendFailed": "Échec de l'envoi de l'invitation"
+    }
+  },
+  "branches": {
+    "title": "Succursales",
+    "subtitle": "Regroupez vos emplacements sous une organisation et gérez les équipes par succursale.",
+    "newOrg": "+ Nouvelle organisation",
+    "addBranch": "+ Ajouter une succursale",
+    "restricted": "Seuls les propriétaires peuvent gérer les organisations et les succursales.",
+    "createOrg": {
+      "title": "Créer une organisation",
+      "subtitle": "Votre entreprise actuelle deviendra la première succursale de cette organisation.",
+      "namePlaceholder": "ex. Groupe Kaba",
+      "nameLabel": "Nom de l'organisation",
+      "submit": "Créer l'organisation",
+      "submitting": "Création…",
+      "cancel": "Annuler",
+      "failed": "Échec de la création de l'organisation"
+    },
+    "createBranch": {
+      "title": "Nouvelle succursale",
+      "nameLabel": "Nom de la succursale",
+      "namePlaceholder": "ex. Succursale de Lagos",
+      "countryLabel": "Pays",
+      "countryPlaceholder": "Sélectionnez un pays",
+      "currencyLabel": "Devise",
+      "currencyPlaceholder": "ex. XOF",
+      "submit": "Créer la succursale",
+      "submitting": "Création…",
+      "cancel": "Annuler",
+      "failed": "Échec de la création de la succursale"
+    },
+    "emptyState": {
+      "title": "Aucune organisation pour l'instant",
+      "description": "Créez une organisation pour regrouper plusieurs emplacements et consulter des rapports consolidés.",
+      "createBtn": "+ Créer une organisation"
+    },
+    "orgSelector": {
+      "label": "Organisation",
+      "loading": "Chargement…",
+      "default": "Sélectionnez une organisation"
+    },
+    "list": {
+      "title": "Succursales",
+      "empty": "Aucune succursale. Utilisez \"+ Ajouter une succursale\" ci-dessus.",
+      "loadError": "Impossible de charger les succursales"
+    },
+    "row": {
+      "team": "Équipe",
+      "close": "Fermer",
+      "unlink": "Dissocier",
+      "unlinking": "Suppression…",
+      "unlinkConfirm": "Retirer cette succursale de l'organisation ? L'entreprise continuera d'exister indépendamment."
+    },
+    "panel": {
+      "members": "Membres",
+      "invite": "+ Inviter",
+      "membersEmpty": "Aucun membre. Utilisez \"+ Inviter\" pour en ajouter.",
+      "membersLoadError": "Impossible de charger les membres",
+      "remove": "Retirer",
+      "removing": "Suppression…",
+      "removeConfirm": "Retirer ce membre de la succursale ?",
+      "emailOrPhone": "E-mail ou téléphone",
+      "emailOrPhonePlaceholder": "email@exemple.com ou +234…",
+      "roleLabel": "Rôle",
+      "send": "Envoyer l'invitation",
+      "sending": "Envoi…",
+      "cancel": "Annuler",
+      "inviteSuccess": "Invitation envoyée avec succès.",
+      "inviteFailed": "Échec de l'envoi de l'invitation"
+    },
+    "unlinkFailed": "Impossible de dissocier la succursale",
+    "removeMemberFailed": "Impossible de retirer le membre"
+  },
+  "activity": {
+    "title": "Journal d'activité",
+    "subtitle": "Toutes les actions effectuées sur votre compte.",
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "activityLog": "Journal d'activité"
+    },
+    "restricted": "Seuls les propriétaires peuvent consulter le journal d'activité.",
+    "from": "Du",
+    "to": "Au",
+    "search": "Rechercher",
+    "searching": "Chargement…",
+    "time": "Heure",
+    "what": "Quoi",
+    "action": "Action",
+    "user": "Utilisateur",
+    "empty": "Aucune activité trouvée pour cette période.",
+    "loadMore": "Charger plus",
+    "loadError": "Impossible de charger l'activité"
+  },
+  "debts": {
+    "title": "Dettes en cours",
+    "noBusinessSelected": "Sélectionnez une entreprise pour gérer les dettes.",
+    "filter": {
+      "pending": "En attente"
+    },
+    "status": {
+      "pending": "En attente",
+      "overdue": "En retard",
+      "paid": "Payé"
+    },
+    "column": {
+      "name": "Nom",
+      "amount": "Montant",
+      "due": "Échéance",
+      "status": "Statut"
+    },
+    "action": {
+      "sendReminder": "Envoyer un rappel",
+      "sending": "Envoi…",
+      "markPaid": "Marquer comme payé"
+    },
+    "error": {
+      "sendReminderFailed": "Impossible d'envoyer le rappel"
+    },
+    "new": {
+      "pageName": "Ajouter une dette",
+      "title": "Ajouter une dette",
+      "subtitle": "Enregistrez quand quelqu'un vous doit de l'argent. Ajoutez son numéro de téléphone pour envoyer des rappels plus tard.",
+      "noBusinessSelected": "Sélectionnez une entreprise pour ajouter des dettes.",
+      "name": "Nom",
+      "namePlaceholder": "Nom de la personne ou de l'entreprise",
+      "amount": "Montant",
+      "currency": "Devise",
+      "dueDate": "Date d'échéance",
+      "phone": "Téléphone (pour rappels)",
+      "notes": "Notes",
+      "notesPh": "Optionnel",
+      "submit": "Ajouter une dette",
+      "submitting": "Ajout…",
+      "cancel": "Annuler",
+      "error": "Impossible d'ajouter la dette"
+    }
+  },
+  "receipts": {
+    "title": "Reçus",
+    "noBusinessSelected": "Sélectionnez une entreprise pour traiter les reçus.",
+    "upload": {
+      "title": "Télécharger un reçu",
+      "hint": "Prenez une photo de votre reçu ou choisissez une image depuis votre appareil. Nous lirons les détails pour vous.",
+      "fileLabel": "Photo ou image de votre reçu",
+      "submit": "Lire le reçu",
+      "reading": "Lecture du reçu…"
+    },
+    "details": {
+      "title": "Détails du reçu",
+      "previewAlt": "Aperçu du reçu",
+      "empty": "Les détails de votre reçu apparaîtront ici après le téléchargement.",
+      "summary": "Résumé",
+      "shop": "Boutique",
+      "date": "Date",
+      "total": "Total",
+      "category": "Catégorie",
+      "viewFullText": "Voir le texte complet"
+    },
+    "confidence": {
+      "high": "Tout semble bon",
+      "medium": "Veuillez vérifier les détails — certains peuvent nécessiter une correction",
+      "low": "Veuillez vérifier tous les champs"
+    },
+    "action": {
+      "saveAsExpense": "Enregistrer comme dépense",
+      "saving": "Enregistrement…",
+      "savedToLedger": "✓ Enregistré dans le grand livre",
+      "viewInLedger": "Voir dans le grand livre →",
+      "processAnother": "Ajouter un autre reçu"
+    },
+    "send": {
+      "phoneLabel": "Téléphone du client",
+      "submit": "Envoyer le reçu",
+      "sending": "Envoi…",
+      "sent": "✓ Envoyé"
+    },
+    "lineItems": {
+      "empty": "Aucun article",
+      "description": "Description",
+      "qty": "Qté",
+      "unitPrice": "Prix unitaire",
+      "total": "Total"
+    },
+    "error": {
+      "readFailed": "Impossible de lire le fichier",
+      "processingFailed": "Échec du traitement",
+      "uploadFailed": "Échec du téléchargement",
+      "saveFailed": "Échec de l'enregistrement",
+      "sendFailed": "Échec de l'envoi"
+    }
+  },
+  "products": {
+    "title": "Produits",
+    "subtitle": "Ajoutez les articles que vous vendez. Utilisez-les lors de l'enregistrement des ventes dans le grand livre.",
+    "noBusinessSelected": "Sélectionnez une entreprise pour gérer les produits.",
+    "addProduct": "+ Ajouter un produit",
+    "empty": "Aucun produit pour l'instant.",
+    "emptyCta": "Ajoutez votre premier produit.",
+    "column": {
+      "name": "Nom",
+      "brand": "Marque",
+      "price": "Prix",
+      "stock": "Stock",
+      "lowStock": "Stock bas"
+    },
+    "action": {
+      "restock": "Réapprovisionner",
+      "delete": "Supprimer",
+      "deleteConfirm": "Supprimer ce produit ?"
+    },
+    "error": {
+      "forecastFailed": "Impossible de charger la prévision",
+      "loanFailed": "Impossible de créer l'offre de prêt"
+    },
+    "new": {
+      "pageName": "Ajouter un produit",
+      "title": "Ajouter un produit",
+      "noBusinessSelected": "Sélectionnez une entreprise pour ajouter des produits.",
+      "viewerNotice": "Vous avez un accès lecteur. Contactez votre administrateur pour ajouter des produits.",
+      "savedOffline": "Sauvegardé hors ligne — synchronisation en attente.",
+      "name": "Nom",
+      "namePlaceholder": "ex. Sac de riz",
+      "brand": "Marque",
+      "brandPh": "Optionnel",
+      "unitPrice": "Prix unitaire",
+      "currency": "Devise",
+      "quantityInStock": "Quantité en stock",
+      "lowStockAlert": "Alerte stock bas (notifier en dessous de)",
+      "cancel": "← Annuler",
+      "submit": "Ajouter un produit",
+      "submitting": "Enregistrement…",
+      "error": "Impossible d'ajouter le produit"
+    },
+    "forecast": {
+      "title": "Prévision de réapprovisionnement — {productName}",
+      "analysing": "Analyse des données de vente…",
+      "currentStock": "Stock actuel",
+      "avgDailySales": "Ventes journalières moy.",
+      "daysUntilStockout": "Jours avant rupture",
+      "predictedDate": "Date prévue",
+      "na": "N/A",
+      "insufficientData": "Données insuffisantes",
+      "confidence": "Confiance",
+      "loanOffered": "Crédit de réapprovisionnement Sika proposé !",
+      "reorder": "Commander",
+      "units": "unités",
+      "loanAmount": "Montant du prêt",
+      "status": "Statut",
+      "requestCredit": "Demander le crédit Sika",
+      "noHistory": "Historique de ventes insuffisant pour proposer un prêt de réapprovisionnement."
+    }
+  },
+  "pagination": {
+    "perPage": "Par page :",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "pageOf": "Page {page} sur {total}"
+  },
+  "invoiceNew": {
+    "pageName": "Créer une facture",
+    "title": "Créer une facture",
+    "noBusinessSelected": "Sélectionnez une entreprise pour créer des factures.",
+    "notAvailable": "La facturation n'est pas disponible sur votre forfait.",
+    "backToInvoices": "← Retour aux factures",
+    "cancel": "← Annuler",
+    "subtitle": "Ajoutez un client, des lignes avec prix, puis créez. Chaque ligne nécessite une description, une quantité et un prix unitaire.",
+    "customerLabel": "Client",
+    "customerPlaceholder": "Rechercher ou sélectionner un client",
+    "currencyLabel": "Devise",
+    "dueDateLabel": "Date d'échéance",
+    "earlyDiscount": {
+      "title": "Remise de paiement anticipé (optionnel)",
+      "subtitle": "Offrez une remise si le client paye dans N jours.",
+      "percentOff": "% de remise",
+      "days": "Jours"
+    },
+    "lineItems": {
+      "title": "Lignes de facturation (obligatoire)",
+      "subtitle": "Ajoutez chaque produit ou service. Le prix unitaire doit être supérieur à zéro.",
+      "description": "Description",
+      "descriptionPh": "ex. Conseil, Nom du produit",
+      "qty": "Qté",
+      "unitPrice": "Prix unitaire",
+      "addItem": "+ Ajouter une ligne",
+      "remove": "Supprimer",
+      "subtotal": "Sous-total :",
+      "unitPriceError": "Le prix unitaire doit être supérieur à zéro",
+      "totalError": "Ajoutez au moins une ligne avec un prix supérieur à zéro"
+    },
+    "submit": "Créer la facture",
+    "submitting": "Création…"
+  },
+  "entryNew": {
+    "pageName": "Créer une entrée",
+    "title": "Créer une entrée",
+    "noBusinessSelected": "Sélectionnez une entreprise pour créer des entrées.",
+    "cancel": "← Annuler",
+    "viewerNotice": "Vous avez un accès lecteur. Contactez votre administrateur pour créer des entrées.",
+    "savedOffline": "Sauvegardé hors ligne — synchronisation en attente.",
+    "typeLabel": "Type",
+    "typeSale": "Vente",
+    "typeExpense": "Dépense",
+    "productLabel": "Produit (optionnel)",
+    "productManual": "Saisie manuelle",
+    "quantitySold": "Quantité vendue",
+    "amountLabel": "Montant",
+    "currencyLabel": "Devise",
+    "dateLabel": "Date",
+    "descriptionLabel": "Description",
+    "categoryLabel": "Catégorie",
+    "smsPhoneLabel": "Téléphone SMS",
+    "submit": "Créer l'entrée",
+    "submitting": "Création…",
+    "error": "Impossible de créer l'entrée"
+  },
+  "customerNew": {
+    "pageName": "Ajouter un client",
+    "title": "Ajouter un client",
+    "noBusinessSelected": "Sélectionnez une entreprise pour ajouter des clients.",
+    "subtitle": "Ajoutez un client pour créer des factures et suivre les paiements.",
+    "nameLabel": "Nom",
+    "namePlaceholder": "Nom du client",
+    "emailLabel": "Email",
+    "emailPlaceholder": "Adresse email",
+    "emailError": "Veuillez entrer une adresse email valide.",
+    "phoneLabel": "Téléphone",
+    "submit": "Ajouter le client",
+    "submitting": "Ajout…",
+    "cancel": "Annuler",
+    "error": "Impossible d'ajouter le client"
+  },
+  "mobileMoney": {
+    "pageName": "Mobile Money",
+    "noBusinessSelected": "Sélectionnez une entreprise pour réconcilier les Mobile Money.",
+    "inputTitle": "Coller le SMS MTN MoMo ou Moov",
+    "inputSubtitle": "Collez votre SMS de transaction Mobile Money ici. Nous lirons le montant, la date et le type (crédit/débit) et créerons une entrée dans le grand livre pour vous.",
+    "limitNotice": "{limit} réconciliations par mois sur votre forfait.",
+    "smsLabel": "Texte SMS",
+    "smsPlaceholder": "ex. Vous avez reçu 50 000 XAF de Jean. Réf : ABC123. 04/03/2025",
+    "submit": "Créer une entrée de grand livre",
+    "processing": "Traitement…",
+    "resultTitle": "Résultat",
+    "resultEmpty": "Collez un SMS et cliquez sur « Créer une entrée » pour voir le résultat ici.",
+    "entryCreated": "Entrée créée avec succès",
+    "invoiceAutoPaid": "Facture #{number} marquée comme payée automatiquement",
+    "multipleInvoices": "Plusieurs factures correspondent — veuillez en sélectionner une",
+    "parsedTitle": "Analysé",
+    "parsedType": "Type :",
+    "parsedAmount": "Montant :",
+    "parsedDate": "Date :",
+    "parsedRef": "Réf :",
+    "parsedReceived": "Reçu",
+    "parsedSent": "Envoyé",
+    "ledgerEntryTitle": "Entrée de grand livre",
+    "entryType": {
+      "sale": "Vente",
+      "expense": "Dépense"
+    },
+    "viewInLedger": "Voir dans le grand livre →"
+  },
+  "tax": {
+    "pageName": "Taxe / TVA",
+    "noBusinessSelected": "Sélectionnez une entreprise pour voir les rapports fiscaux.",
+    "fromLabel": "Du",
+    "toLabel": "Au",
+    "countryLabel": "Pays",
+    "loading": "Chargement du résumé TVA...",
+    "summaryTitle": "Résumé TVA ({startDate} – {endDate})",
+    "totalVAT": "TVA totale",
+    "totalSales": "Ventes totales",
+    "totalPurchases": "Achats totaux",
+    "rate": "Taux",
+    "base": "Base",
+    "vatAmount": "Montant TVA",
+    "noBreakdown": "Aucune ventilation",
+    "noData": "Aucune donnée TVA pour cette période."
+  },
+  "trust": {
+    "pageName": "Score de confiance",
+    "noBusinessSelected": "Sélectionnez une entreprise pour voir votre score de confiance.",
+    "loading": "Chargement du score de confiance...",
+    "unableToLoad": "Impossible de charger le score de confiance.",
+    "scoreTitle": "Score Sika Trust",
+    "shareScore": "Partager le score",
+    "sharing": "Génération…",
+    "lastScored": "Dernière évaluation le {date}",
+    "marketDayApplied": "Sensibilisation aux jours de marché appliquée",
+    "scoreBreakdown": "Détail du score",
+    "shareLink": {
+      "title": "Lien de partage",
+      "subtitle": "Toute personne ayant ce lien peut voir votre badge de confiance.",
+      "copy": "Copier"
+    },
+    "breakdown": {
+      "repaymentVelocity": "Vélocité de remboursement",
+      "transactionRecency": "Récence des transactions",
+      "momoReconciliation": "Réconciliation MoMo",
+      "customerRetention": "Fidélisation client",
+      "networkDiversity": "Diversité du réseau"
+    }
+  },
+  "preferences": {
+    "pageName": "Préférences",
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "preferences": "Préférences"
+    },
+    "title": "Préférences",
+    "subtitle": "Gérez vos préférences de notification et d'affichage. Synchronisé sur tous vos appareils.",
+    "notifications": {
+      "title": "Notifications",
+      "emailLabel": "Notifications par email",
+      "emailDesc": "Recevoir les factures, paiements et rappels par email",
+      "inAppLabel": "Notifications dans l'application",
+      "inAppDesc": "Afficher les notifications quand vous êtes dans l'application",
+      "smsLabel": "Rappels SMS",
+      "smsDesc": "Recevoir les rappels de paiement par SMS (peut entraîner des frais)"
+    },
+    "display": {
+      "title": "Affichage",
+      "languageLabel": "Langue",
+      "timezoneLabel": "Fuseau horaire",
+      "timezones": {
+        "lagos": "Afrique de l'Ouest (Lagos)",
+        "accra": "Afrique de l'Ouest (Accra)",
+        "cotonou": "Bénin (Cotonou)",
+        "abidjan": "Côte d'Ivoire (Abidjan)",
+        "utc": "UTC"
+      }
+    }
+  },
+  "apiKeys": {
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "apiKeys": "Clés API"
+    },
+    "title": "Clés API",
+    "subtitle": "Les clés API permettent un accès serveur-à-serveur à vos données. Gardez-les secrètes.",
+    "noPermission": "Vous n'avez pas la permission de gérer les clés API.",
+    "created": {
+      "banner": "Clé API créée — copiez-la maintenant, elle ne sera plus affichée.",
+      "dismiss": "Fermer"
+    },
+    "createSection": {
+      "title": "Créer une nouvelle clé API",
+      "keyNameLabel": "Nom de la clé",
+      "keyNamePh": "ex. Mon intégration",
+      "scopesLabel": "Portées",
+      "submit": "Créer la clé",
+      "submitting": "Création…"
+    },
+    "listSection": {
+      "title": "Vos clés API",
+      "loading": "Chargement…",
+      "empty": "Aucune clé API pour l'instant.",
+      "unnamed": "Clé sans nom",
+      "created": "Créé le",
+      "revoke": "Révoquer",
+      "revoking": "Révocation…"
+    },
+    "revokeModal": {
+      "title": "Révoquer la clé API",
+      "body": "Êtes-vous sûr de vouloir révoquer « {name} » ? Cette action est irréversible et les intégrations utilisant cette clé cesseront de fonctionner.",
+      "cancel": "Annuler",
+      "confirm": "Révoquer la clé"
+    },
+    "copy": "Copier",
+    "copied": "Copié !",
+    "error": {
+      "load": "Impossible de charger les clés API",
+      "create": "Impossible de créer la clé API",
+      "revoke": "Impossible de révoquer la clé",
+      "copy": "Impossible de copier dans le presse-papiers"
+    }
+  },
+  "webhooks": {
+    "breadcrumb": {
+      "settings": "Paramètres",
+      "webhooks": "Webhooks"
+    },
+    "title": "Webhooks",
+    "subtitle": "Votre serveur recevra une requête POST signée avec votre secret quand les événements sélectionnés se produisent.",
+    "noPermission": "Vous n'avez pas la permission de gérer les webhooks.",
+    "registerBtn": "+ Enregistrer un webhook",
+    "listSection": {
+      "title": "Webhooks enregistrés",
+      "loading": "Chargement…",
+      "empty": "Aucun webhook enregistré pour l'instant.",
+      "registerOne": "En enregistrer un",
+      "registered": "Enregistré le {date}",
+      "active": "Actif",
+      "disabled": "Désactivé",
+      "remove": "Supprimer",
+      "removing": "Suppression…"
+    },
+    "error": {
+      "load": "Impossible de charger les webhooks",
+      "remove": "Impossible de supprimer le webhook"
+    }
+  },
+  "compliance": {
+    "title": "Conformité et confidentialité",
+    "subtitle": "Gérez vos droits sur les données en vertu des réglementations applicables (RGPD, NDPR).",
+    "export": {
+      "title": "Exporter vos données",
+      "subtitle": "Téléchargez toutes vos données professionnelles sous forme de fichier JSON.",
+      "noPermission": "Seuls les propriétaires et les comptables peuvent exporter les données.",
+      "done": "Export téléchargé avec succès.",
+      "submit": "Télécharger mes données",
+      "exporting": "Export…"
+    },
+    "erasure": {
+      "title": "Demander l'effacement des données",
+      "subtitle": "Demandez la suppression permanente de toutes vos données. Cette action est irréversible.",
+      "noPermission": "Seuls les propriétaires d'entreprise peuvent demander l'effacement des données.",
+      "done": "Demande d'effacement soumise. Vous serez contacté pour confirmation.",
+      "request": "Demander l'effacement",
+      "confirm": "Êtes-vous sûr ? Toutes vos données seront définitivement supprimées.",
+      "submit": "Oui, supprimer mes données",
+      "submitting": "Envoi…",
+      "cancel": "Annuler"
+    },
+    "error": "Échec de l'export"
   }
 }

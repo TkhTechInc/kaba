@@ -1,5 +1,5 @@
 /**
- * QuickBooksApiStack - API Gateway REST + Lambda (NestJS), proxy to /api/v1/*
+ * KabaApiStack - API Gateway REST + Lambda (NestJS), proxy to /api/v1/*
  *
  * Mirrors EventAppApiStack pattern: own RestApi, Lambda proxy for /api/v1/{proxy+}
  */
@@ -20,7 +20,7 @@ import { Construct } from 'constructs';
 import * as path from 'path';
 import { EnvironmentConfig } from '../config/environments';
 
-export interface QuickBooksApiStackProps extends cdk.StackProps {
+export interface KabaApiStackProps extends cdk.StackProps {
   environment: string;
   config: EnvironmentConfig;
   ledgerTable: dynamodb.ITable;
@@ -33,18 +33,18 @@ export interface QuickBooksApiStackProps extends cdk.StackProps {
   receiptsBucket?: s3.IBucket;
 }
 
-export class QuickBooksApiStack extends cdk.Stack {
+export class KabaApiStack extends cdk.Stack {
   public readonly apiLambda: lambda.Function;
 
-  constructor(scope: Construct, id: string, props: QuickBooksApiStackProps) {
+  constructor(scope: Construct, id: string, props: KabaApiStackProps) {
     super(scope, id, props);
 
     const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, idempotencyTable, region, receiptsBucket } = props;
-    const resourcePrefix = `QuickBooks-Api-${environment}`;
+    const resourcePrefix = `Kaba-Api-${environment}`;
 
     // SECURITY: JWT secret from Secrets Manager. Lambda resolves at runtime via JWT_SECRET_SECRET_NAME.
-    // Create secret: quickbooks/{environment}/jwt-secret with key 'jwt_secret'
-    const jwtSecretName = `quickbooks/${environment}/jwt-secret`;
+    // Create secret: kaba/{environment}/jwt-secret with key 'jwt_secret'
+    const jwtSecretName = `kaba/${environment}/jwt-secret`;
     const jwtSecret = secretsmanager.Secret.fromSecretNameV2(this, 'JwtSecret', jwtSecretName);
 
     // Lambda assets: pre-bundled NestJS (npm run bundle -> dist/api-lambda)
@@ -74,7 +74,7 @@ export class QuickBooksApiStack extends cdk.Stack {
         S3_RECEIPTS_BUCKET: receiptsBucket?.bucketName ?? '',
         SMS_ENABLED: config.sms?.enabled ? 'true' : 'false',
         SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
-        SMS_SENDER_ID: config.sms?.senderId ?? 'QuickBooks',
+        SMS_SENDER_ID: config.sms?.senderId ?? 'Kaba',
         ...(config.googleClientId && { GOOGLE_CLIENT_ID: config.googleClientId }),
         ...(config.googleClientSecret && { GOOGLE_CLIENT_SECRET: config.googleClientSecret }),
         FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
@@ -85,7 +85,7 @@ export class QuickBooksApiStack extends cdk.Stack {
           MOBILE_MONEY_PARSER_PROVIDER: config.ai.mobileMoneyParserProvider,
         }),
         ...(config.ai?.provider === 'openrouter' && {
-          OPENROUTER_API_KEY_SECRET_NAME: `quickbooks/${environment}/openrouter-api-key`,
+          OPENROUTER_API_KEY_SECRET_NAME: `kaba/${environment}/openrouter-api-key`,
         }),
       },
     });
@@ -116,7 +116,7 @@ export class QuickBooksApiStack extends cdk.Stack {
 
     // OpenRouter API key for AI (when provider=openrouter). Create secret before deploy.
     if (config.ai?.provider === 'openrouter') {
-      const openRouterSecretName = `quickbooks/${environment}/openrouter-api-key`;
+      const openRouterSecretName = `kaba/${environment}/openrouter-api-key`;
       const openRouterSecret = secretsmanager.Secret.fromSecretNameV2(
         this,
         'OpenRouterSecret',
@@ -161,14 +161,14 @@ export class QuickBooksApiStack extends cdk.Stack {
 
     // EventBridge rule: match ledger.entry.created for future consumers / debugging
     const ledgerEventsLogGroup = new logs.LogGroup(this, 'LedgerEventsLog', {
-      logGroupName: `/quickbooks/${environment}/ledger-events`,
+      logGroupName: `/kaba/${environment}/ledger-events`,
       retention: logs.RetentionDays.ONE_WEEK,
     });
     new events.Rule(this, 'LedgerEntryCreatedRule', {
       ruleName: `${resourcePrefix}-ledger-entry-created`,
       description: 'Matches ledger.entry.created for debugging and future consumers',
       eventPattern: {
-        source: ['quickbooks.ledger'],
+        source: ['kaba.ledger'],
         detailType: ['LedgerEntryCreated'],
       },
       targets: [new targets.CloudWatchLogGroup(ledgerEventsLogGroup)],
@@ -184,7 +184,7 @@ export class QuickBooksApiStack extends cdk.Stack {
     ].filter(Boolean);
     const restApi = new apigateway.RestApi(this, 'Api', {
       restApiName: `${resourcePrefix}-api`,
-      description: 'QuickBooks West Africa API - /api/v1 (NestJS)',
+      description: 'Kaba API - /api/v1 (NestJS)',
       deployOptions: { stageName: environment },
       defaultCorsPreflightOptions: {
         allowOrigins: corsOrigins,
@@ -271,7 +271,7 @@ export class QuickBooksApiStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, 'ApiV1BaseUrl', {
       value: `${restApi.url}api/v1`,
-      description: 'QuickBooks API v1 base URL',
+      description: 'Kaba API v1 base URL',
       exportName: `${resourcePrefix}-ApiV1Url`,
     });
 

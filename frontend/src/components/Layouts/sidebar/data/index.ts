@@ -20,7 +20,7 @@ export type NavSection = {
 
 export const NAV_DATA: NavSection[] = [
   {
-    label: "HOME",
+    label: "OVERVIEW",
     items: [
       {
         title: "Dashboard",
@@ -31,7 +31,7 @@ export const NAV_DATA: NavSection[] = [
     ],
   },
   {
-    label: "MONEY IN",
+    label: "SALES",
     items: [
       {
         title: "Invoices",
@@ -50,39 +50,26 @@ export const NAV_DATA: NavSection[] = [
         permission: "invoices:read",
       },
       {
-        title: "People who owe me",
-        icon: Icons.User,
-        url: "/debts",
+        title: "Pending Approvals",
+        icon: Icons.Calendar,
+        url: "/invoices/pending-approval",
         items: [],
-        featureKey: "debt_tracker",
-        permission: "ledger:read",
+        featureKey: "invoicing",
+        permission: "invoices:write",
       },
     ],
   },
   {
-    label: "MONEY OUT",
+    label: "FINANCES",
     items: [
       {
-        title: "Products",
-        icon: Icons.Table,
-        url: "/products",
-        items: [],
-        featureKey: "inventory_lite",
-        permission: "inventory:read",
-      },
-      {
-        title: "Ledger Entries",
-        icon: Icons.Table,
+        title: "Ledger",
+        icon: Icons.ChartBarIcon,
         url: "/ledger",
         items: [],
         featureKey: "ledger",
         permission: "ledger:read",
       },
-    ],
-  },
-  {
-    label: "RECORDS",
-    items: [
       {
         title: "Receipts",
         icon: Icons.ReceiptIcon,
@@ -93,29 +80,37 @@ export const NAV_DATA: NavSection[] = [
       },
       {
         title: "Mobile Money",
-        icon: Icons.Table,
+        icon: Icons.Authentication,
         url: "/reconciliation",
         items: [],
         featureKey: "mobile_money_recon",
         permission: "ledger:write",
       },
-    ],
-  },
-  {
-    label: "APPROVAL",
-    items: [
       {
-        title: "Pending Approvals",
-        icon: Icons.DocumentIcon,
-        url: "/invoices/pending-approval",
+        title: "Debts",
+        icon: Icons.Alphabet,
+        url: "/debts",
         items: [],
-        featureKey: "invoicing",
-        permission: "invoices:write",
+        featureKey: "debt_tracker",
+        permission: "ledger:read",
       },
     ],
   },
   {
-    label: "INSIGHTS",
+    label: "INVENTORY",
+    items: [
+      {
+        title: "Products",
+        icon: Icons.Table,
+        url: "/products",
+        items: [],
+        featureKey: "inventory_lite",
+        permission: "inventory:read",
+      },
+    ],
+  },
+  {
+    label: "REPORTS",
     items: [
       {
         title: "Reports",
@@ -144,12 +139,20 @@ export const NAV_DATA: NavSection[] = [
     label: "ACCOUNT",
     items: [
       {
+        title: "Branches",
+        icon: Icons.FourCircle,
+        url: "/settings/branches",
+        items: [],
+        permission: "reports:read",
+      },
+      {
         title: "Settings",
         icon: Icons.SettingsIcon,
         url: "/settings",
         items: [
           { title: "Plans", url: "/settings" },
           { title: "Team", url: "/settings/team" },
+          { title: "Activity Log", url: "/settings/activity" },
           { title: "Preferences", url: "/settings/preferences" },
           { title: "API Keys", url: "/settings/api-keys" },
           { title: "Webhooks", url: "/settings/webhooks" },

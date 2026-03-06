@@ -2,6 +2,7 @@
 
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { usePermissions } from "@/hooks/use-permissions";
 import {
   listMembers,
@@ -12,22 +13,24 @@ import {
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
-const ROLES: { value: TeamMemberRole; label: string }[] = [
-  { value: "owner", label: "Owner" },
-  { value: "accountant", label: "Accountant" },
-  { value: "viewer", label: "Viewer" },
-  { value: "sales", label: "Sales" },
-];
-
 function formatUserId(userId: string): string {
   if (userId.length <= 12) return userId;
   return `${userId.slice(0, 8)}…${userId.slice(-4)}`;
 }
 
 export default function TeamPage() {
+  const { t } = useLocale();
   const { token, businessId } = useAuth();
   const { hasPermission } = usePermissions(businessId);
   const canManage = hasPermission("members:manage" as import("@/types/permissions").Permission);
+
+  const ROLES: { value: TeamMemberRole; label: string }[] = [
+    { value: "owner",      label: t("roles.owner") },
+    { value: "manager",    label: t("roles.manager") },
+    { value: "accountant", label: t("roles.accountant") },
+    { value: "viewer",     label: t("roles.viewer") },
+    { value: "sales",      label: t("roles.sales") },
+  ];
 
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,11 +51,11 @@ export default function TeamPage() {
       const list = await listMembers(businessId, token);
       setMembers(list);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load members");
+      setError(e instanceof Error ? e.message : t("team.loadError"));
     } finally {
       setLoading(false);
     }
-  }, [businessId, token, canManage]);
+  }, [businessId, token, canManage, t]);
 
   useEffect(() => {
     fetchMembers();
@@ -65,7 +68,7 @@ export default function TeamPage() {
       await updateMemberRole(businessId, userId, newRole, token);
       await fetchMembers();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to update role");
+      setError(e instanceof Error ? e.message : t("team.updateError"));
     } finally {
       setUpdatingUserId(null);
     }
@@ -75,11 +78,13 @@ export default function TeamPage() {
     <div>
       <nav className="mb-6 flex flex-wrap gap-2" aria-label="Settings navigation">
         {[
-          { label: "Plans", href: "/settings" },
-          { label: "Team", href: "/settings/team" },
-          { label: "API Keys", href: "/settings/api-keys" },
-          { label: "Webhooks", href: "/settings/webhooks" },
-          { label: "Compliance", href: "/settings/compliance" },
+          { label: t("settings.nav.plans"), href: "/settings" },
+          { label: t("settings.nav.team"), href: "/settings/team" },
+          { label: t("settings.nav.activityLog"), href: "/settings/activity" },
+          { label: t("settings.nav.preferences"), href: "/settings/preferences" },
+          { label: t("settings.nav.apiKeys"), href: "/settings/api-keys" },
+          { label: t("settings.nav.webhooks"), href: "/settings/webhooks" },
+          { label: t("settings.nav.compliance"), href: "/settings/compliance" },
         ].map(({ label, href }) => (
           <Link
             key={href}
@@ -92,19 +97,19 @@ export default function TeamPage() {
       </nav>
       <div className="mb-4 flex items-center gap-2 text-sm text-dark-4 dark:text-dark-6">
         <Link href="/settings" className="hover:text-primary">
-          Settings
+          {t("team.breadcrumb.settings")}
         </Link>
         <span>/</span>
-        <span className="text-dark dark:text-white">Team</span>
+        <span className="text-dark dark:text-white">{t("team.breadcrumb.team")}</span>
       </div>
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-heading-4 font-bold text-dark dark:text-white">
-            Team
+            {t("team.title")}
           </h1>
           <p className="mt-1 text-dark-4 dark:text-dark-6">
-            Manage who has access to this business.
+            {t("team.subtitle")}
           </p>
         </div>
         {canManage && (
@@ -112,21 +117,20 @@ export default function TeamPage() {
             href="/settings/team/invite"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
-            + Invite member
+            {t("team.inviteBtn")}
           </Link>
         )}
       </div>
 
       {!canManage && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-          Only owners can manage team members. Contact your administrator to
-          change roles or invite new people.
+          {t("team.restrictedNotice")}
         </div>
       )}
 
       <section className="rounded-lg border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-dark">
         <h2 className="border-b border-gray-200 p-4 text-lg font-semibold text-dark dark:border-gray-700 dark:text-white">
-          Members
+          {t("team.members.title")}
         </h2>
         {error && (
           <div className="mx-4 mt-2 rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
@@ -135,21 +139,21 @@ export default function TeamPage() {
         )}
         {loading ? (
           <div className="p-8 text-center text-dark-4 dark:text-dark-6">
-            Loading…
+            {t("team.members.loading")}
           </div>
         ) : members.length === 0 ? (
           <div className="p-8 text-center text-dark-4 dark:text-dark-6">
-            No members yet.
+            {t("team.members.empty")}
           </div>
         ) : (
           <ResponsiveDataList<TeamMember>
             items={members}
             keyExtractor={(m) => m.userId}
-            emptyMessage="No members yet."
+            emptyMessage={t("team.members.empty")}
             columns={[
               {
                 key: "member",
-                label: "Member",
+                label: t("team.members.member"),
                 render: (m) => (
                   <span className="font-mono text-sm text-dark dark:text-white">
                     {formatUserId(m.userId)}
@@ -159,7 +163,7 @@ export default function TeamPage() {
               },
               {
                 key: "role",
-                label: "Role",
+                label: t("team.members.role"),
                 render: (m) =>
                   canManage ? (
                     <select

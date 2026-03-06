@@ -1,5 +1,5 @@
 /**
- * API client for QuickBooks backend.
+ * API client for Kaba backend.
  * Base URL from NEXT_PUBLIC_API_URL. Supports Bearer token and X-API-Key auth.
  */
 

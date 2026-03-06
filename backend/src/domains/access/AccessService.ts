@@ -2,22 +2,33 @@ import { Injectable, NotFoundException, Inject, Optional } from '@nestjs/common'
 import { DatabaseError } from '@/shared/errors/DomainError';
 import { TeamMemberRepository } from './repositories/TeamMemberRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
+import { OrganizationRepository } from './repositories/OrganizationRepository';
 import type { Role } from './role.types';
 import type { Permission } from './role.types';
 import { roleHasPermission } from './role.types';
 import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
-import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
+import { AUDIT_LOGGER } from '@/domains/audit/interfaces/IAuditLogger';
 
 export interface BusinessAccess {
   businessId: string;
   role: Role;
 }
 
+export interface OrganizationAccess {
+  id: string;
+  name: string;
+}
+
+const ORG_LIST_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+const orgListCache = new Map<string, { data: OrganizationAccess[]; expiresAt: number }>();
+
 @Injectable()
 export class AccessService {
   constructor(
     private readonly teamMemberRepo: TeamMemberRepository,
     private readonly businessRepo: BusinessRepository,
+    private readonly organizationRepo: OrganizationRepository,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
@@ -65,6 +76,76 @@ export class AccessService {
     return members
       .filter((m) => m.businessId)
       .map((m) => ({ businessId: m.businessId!, role: m.role }));
+  }
+
+  /**
+   * Create a new organization and link the given business to it as its first branch.
+   * The calling user is added as org-level owner.
+   */
+  async createOrganization(
+    name: string,
+    businessId: string,
+    userId: string,
+  ): Promise<OrganizationAccess> {
+    const role = await this.getUserRole(businessId, userId);
+    if (role !== 'owner') {
+      throw new Error('Only owners can create organizations');
+    }
+
+    const org = await this.organizationRepo.create({ name: name.trim() });
+
+    // Link the founding business to the org
+    await this.businessRepo.updateOnboarding(businessId, { organizationId: org.id });
+
+    // Add user as org-level owner so they can access all branches
+    await this.teamMemberRepo.addOrgMember({
+      organizationId: org.id,
+      userId,
+      role: 'owner',
+      createdAt: new Date().toISOString(),
+    });
+
+    // Bust the org list cache for this user
+    orgListCache.delete(userId);
+
+    return { id: org.id, name: org.name };
+  }
+
+  /**
+   * List organizations the user can access for consolidated reports.
+   * User must have owner or accountant role on at least one business in the org.
+   * Results are cached for 5 minutes per user.
+   */
+  async listOrganizationsForConsolidatedReports(userId: string): Promise<OrganizationAccess[]> {
+    const cached = orgListCache.get(userId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data;
+    }
+
+    const members = await this.teamMemberRepo.listBusinessesForUser(userId);
+    const authorizedRoles: Role[] = ['owner', 'manager', 'accountant'];
+    const eligible = members.filter(
+      (m) => m.businessId && authorizedRoles.includes(m.role),
+    );
+
+    const businesses = await Promise.all(
+      eligible.map((m) => this.businessRepo.getById(m.businessId!)),
+    );
+    const orgIds = new Set<string>(
+      businesses
+        .map((b) => b?.organizationId)
+        .filter((id): id is string => id != null),
+    );
+
+    const orgResults = await Promise.all(
+      Array.from(orgIds).map((orgId) => this.organizationRepo.getById(orgId).then((org) =>
+        org ? { id: org.id, name: org.name } : { id: orgId, name: orgId }
+      )),
+    );
+    const orgs: OrganizationAccess[] = orgResults;
+    const sorted = orgs.sort((a, b) => a.name.localeCompare(b.name));
+    orgListCache.set(userId, { data: sorted, expiresAt: Date.now() + ORG_LIST_CACHE_TTL_MS });
+    return sorted;
   }
 
   /**

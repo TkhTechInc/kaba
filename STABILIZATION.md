@@ -1,4 +1,4 @@
-# QuickBooks West Africa — Stabilization Status
+# Kaba — Stabilization Status
 
 **Goal:** Freeze feature development and ensure the project builds, runs, and is ready for testing/deployment.
 

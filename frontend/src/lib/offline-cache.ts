@@ -18,6 +18,7 @@ const CACHE_KEYS = {
   CUSTOMERS: "customers",
   PRODUCTS: "products",
   BUSINESSES: "businesses",
+  ORGANIZATIONS: "organizations",
   DASHBOARD: "dashboard",
 } as const;
 

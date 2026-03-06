@@ -3,6 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createReconciliationApi } from "@/services/reconciliation.service";
@@ -12,6 +13,7 @@ import Link from "next/link";
 export default function ReconciliationPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [smsText, setSmsText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,9 +40,9 @@ export default function ReconciliationPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Mobile Money" />
+        <Breadcrumb pageName={t("mobileMoney.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to reconcile mobile money.</p>
+          <p className="text-dark-6">{t("mobileMoney.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -49,7 +51,7 @@ export default function ReconciliationPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Mobile Money" />
+        <Breadcrumb pageName={t("mobileMoney.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -60,7 +62,7 @@ export default function ReconciliationPage() {
   if (!features.isEnabled("mobile_money_recon")) {
     return (
       <>
-        <Breadcrumb pageName="Mobile Money" />
+        <Breadcrumb pageName={t("mobileMoney.pageName")} />
         <UpgradePrompt feature="Mobile money reconciliation" />
       </>
     );
@@ -70,20 +72,19 @@ export default function ReconciliationPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Mobile Money" />
+      <Breadcrumb pageName={t("mobileMoney.pageName")} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <h3 className="mb-4 font-semibold text-dark dark:text-white">
-            Paste MTN MoMo or Moov SMS
+            {t("mobileMoney.inputTitle")}
           </h3>
           <p className="mb-4 text-sm text-dark-6">
-            Paste your mobile money transaction SMS here. We&apos;ll read the amount, date, and type
-            (credit/debit) and create a ledger entry for you. No more manual typing.
+            {t("mobileMoney.inputSubtitle")}
           </p>
           {limit != null && (
             <p className="mb-4 text-sm text-dark-6">
-              {limit} reconciliations per month on your plan.
+              {t("mobileMoney.limitNotice", { limit: String(limit) })}
             </p>
           )}
           {error && (
@@ -95,13 +96,13 @@ export default function ReconciliationPage() {
                 htmlFor="sms-text"
                 className="mb-2 block text-body-sm font-medium text-dark dark:text-white"
               >
-                SMS text
+                {t("mobileMoney.smsLabel")}
               </label>
               <textarea
                 id="sms-text"
                 value={smsText}
                 onChange={(e) => setSmsText(e.target.value)}
-                placeholder="e.g. You have received 50,000 XAF from John. Ref: ABC123. 04/03/2025"
+                placeholder={t("mobileMoney.smsPlaceholder")}
                 rows={5}
                 className="w-full rounded-lg border border-stroke px-4 py-3 dark:border-dark-3 dark:bg-dark-2"
               />
@@ -111,29 +112,29 @@ export default function ReconciliationPage() {
               disabled={loading || !smsText.trim()}
               className="w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {loading ? "Processing…" : "Create ledger entry"}
+              {loading ? t("mobileMoney.processing") : t("mobileMoney.submit")}
             </button>
           </form>
         </div>
 
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <h3 className="mb-4 font-semibold text-dark dark:text-white">Result</h3>
+          <h3 className="mb-4 font-semibold text-dark dark:text-white">{t("mobileMoney.resultTitle")}</h3>
           {!result ? (
             <p className="text-dark-6">
-              Paste an SMS and click &quot;Create ledger entry&quot; to see the result here.
+              {t("mobileMoney.resultEmpty")}
             </p>
           ) : (
             <div className="space-y-4">
               <div className="rounded-lg bg-green/10 p-4 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                <p className="font-medium">Entry created successfully</p>
+                <p className="font-medium">{t("mobileMoney.entryCreated")}</p>
                 {result.matchedInvoice && (
                   <p className="mt-2 text-sm">
-                    Invoice #{result.matchedInvoice.number} automatically marked as paid
+                    {t("mobileMoney.invoiceAutoPaid", { number: result.matchedInvoice.number })}
                   </p>
                 )}
                 {result.matchedInvoices && result.matchedInvoices.length > 0 && (
                   <div className="mt-2 text-sm">
-                    <p className="font-medium">Multiple invoices match — please select</p>
+                    <p className="font-medium">{t("mobileMoney.multipleInvoices")}</p>
                     <ul className="mt-1 list-inside list-disc space-y-0.5">
                       {result.matchedInvoices.map((inv) => (
                         <li key={inv.id}>
@@ -151,28 +152,28 @@ export default function ReconciliationPage() {
               </div>
               <div className="rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                 <h4 className="mb-2 text-sm font-medium text-dark dark:text-white">
-                  Parsed
+                  {t("mobileMoney.parsedTitle")}
                 </h4>
                 <dl className="space-y-1 text-sm">
                   <div>
-                    <dt className="inline font-medium text-dark-6">Type: </dt>
+                    <dt className="inline font-medium text-dark-6">{t("mobileMoney.parsedType")} </dt>
                     <dd className="inline">
-                      {result.parsed.type === "credit" ? "Received" : "Sent"}
+                      {result.parsed.type === "credit" ? t("mobileMoney.parsedReceived") : t("mobileMoney.parsedSent")}
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline font-medium text-dark-6">Amount: </dt>
+                    <dt className="inline font-medium text-dark-6">{t("mobileMoney.parsedAmount")} </dt>
                     <dd className="inline">
                       <Price amount={result.parsed.amount} currency={result.parsed.currency} />
                     </dd>
                   </div>
                   <div>
-                    <dt className="inline font-medium text-dark-6">Date: </dt>
+                    <dt className="inline font-medium text-dark-6">{t("mobileMoney.parsedDate")} </dt>
                     <dd className="inline">{result.parsed.date}</dd>
                   </div>
                   {result.parsed.reference && (
                     <div>
-                      <dt className="inline font-medium text-dark-6">Ref: </dt>
+                      <dt className="inline font-medium text-dark-6">{t("mobileMoney.parsedRef")} </dt>
                       <dd className="inline">{result.parsed.reference}</dd>
                     </div>
                   )}
@@ -180,10 +181,10 @@ export default function ReconciliationPage() {
               </div>
               <div className="rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                 <h4 className="mb-2 text-sm font-medium text-dark dark:text-white">
-                  Ledger entry
+                  {t("mobileMoney.ledgerEntryTitle")}
                 </h4>
                 <p className="text-sm text-dark-6">
-                  {result.entry.type === "sale" ? "Sale" : "Expense"} •{" "}
+                  {result.entry.type === "sale" ? t("mobileMoney.entryType.sale") : t("mobileMoney.entryType.expense")} •{" "}
                   <Price amount={result.entry.amount} currency={result.entry.currency} /> •{" "}
                   {result.entry.date}
                 </p>
@@ -192,7 +193,7 @@ export default function ReconciliationPage() {
                 href="/ledger"
                 className="inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
               >
-                View in Ledger →
+                {t("mobileMoney.viewInLedger")}
               </Link>
             </div>
           )}

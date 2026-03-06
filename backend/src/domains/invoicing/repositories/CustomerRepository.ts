@@ -52,6 +52,25 @@ export class CustomerRepository {
     }
   }
 
+  async countByBusiness(businessId: string): Promise<number> {
+    let count = 0;
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          Select: 'COUNT',
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
+          ...(lastKey && { ExclusiveStartKey: lastKey }),
+        })
+      );
+      count += result.Count ?? 0;
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+    return count;
+  }
+
   async getById(businessId: string, id: string): Promise<Customer | null> {
     try {
       const result = await this.docClient.send(

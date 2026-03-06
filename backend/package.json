@@ -1,7 +1,7 @@
 {
-  "name": "quickbooks-west-africa-backend",
+  "name": "kaba-backend",
   "version": "1.0.0",
-  "description": "QuickBooks-like MSME accounting SaaS for West Africa",
+  "description": "Kaba - MSME accounting SaaS for West Africa",
   "main": "dist/nest/main.js",
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register src/nest/main.ts",

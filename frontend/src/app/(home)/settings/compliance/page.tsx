@@ -2,20 +2,14 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { usePermissions } from "@/hooks/use-permissions";
+import { useLocale } from "@/contexts/locale-context";
 import { apiGet } from "@/lib/api-client";
 import Link from "next/link";
-
-const SETTINGS_NAV = [
-  { label: "Plans", href: "/settings" },
-  { label: "Team", href: "/settings/team" },
-  { label: "API Keys", href: "/settings/api-keys" },
-  { label: "Webhooks", href: "/settings/webhooks" },
-  { label: "Compliance", href: "/settings/compliance" },
-];
 
 export default function CompliancePage() {
   const { token, businessId } = useAuth();
   const { hasPermission } = usePermissions(businessId);
+  const { t } = useLocale();
   const canExport = hasPermission("compliance:export");
   const canErase = hasPermission("compliance:erasure");
 
@@ -25,6 +19,16 @@ export default function CompliancePage() {
   const [eraseConfirm, setEraseConfirm] = useState(false);
   const [eraseDone, setEraseDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const SETTINGS_NAV = [
+    { label: t("settings.nav.plans"), href: "/settings" },
+    { label: t("settings.nav.team"), href: "/settings/team" },
+    { label: t("settings.nav.activityLog"), href: "/settings/activity" },
+    { label: t("settings.nav.preferences"), href: "/settings/preferences" },
+    { label: t("settings.nav.apiKeys"), href: "/settings/api-keys" },
+    { label: t("settings.nav.webhooks"), href: "/settings/webhooks" },
+    { label: t("settings.nav.compliance"), href: "/settings/compliance" },
+  ];
 
   const handleExport = async () => {
     if (!businessId || !token) return;
@@ -44,7 +48,7 @@ export default function CompliancePage() {
       URL.revokeObjectURL(url);
       setExportDone(true);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Export failed");
+      setError(e instanceof Error ? e.message : t("compliance.error"));
     } finally {
       setExporting(false);
     }
@@ -66,7 +70,7 @@ export default function CompliancePage() {
       setEraseDone(true);
       setEraseConfirm(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erasure request failed");
+      setError(e instanceof Error ? e.message : t("compliance.error"));
     } finally {
       setErasing(false);
     }
@@ -86,9 +90,9 @@ export default function CompliancePage() {
         ))}
       </nav>
 
-      <h1 className="mb-2 text-heading-4 font-bold text-dark dark:text-white">Compliance & Privacy</h1>
+      <h1 className="mb-2 text-heading-4 font-bold text-dark dark:text-white">{t("compliance.title")}</h1>
       <p className="mb-6 text-sm text-dark-4 dark:text-dark-6">
-        Manage your data rights under applicable privacy regulations (GDPR, NDPR).
+        {t("compliance.subtitle")}
       </p>
 
       {error && (
@@ -97,45 +101,45 @@ export default function CompliancePage() {
 
       <div className="space-y-4">
         <div className="rounded-lg border border-stroke bg-white p-6 shadow-sm dark:border-dark-3 dark:bg-gray-dark">
-          <h2 className="mb-1 text-base font-semibold text-dark dark:text-white">Export your data</h2>
+          <h2 className="mb-1 text-base font-semibold text-dark dark:text-white">{t("compliance.export.title")}</h2>
           <p className="mb-4 text-sm text-dark-4 dark:text-dark-6">
-            Download all your business data as a JSON file. This includes ledger entries, invoices, customers, and receipts.
+            {t("compliance.export.subtitle")}
           </p>
           {!canExport ? (
-            <p className="text-sm text-amber-700 dark:text-amber-400">Only owners and accountants can export data.</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("compliance.export.noPermission")}</p>
           ) : exportDone ? (
-            <p className="text-sm text-green-700 dark:text-green-400">Export downloaded successfully.</p>
+            <p className="text-sm text-green-700 dark:text-green-400">{t("compliance.export.done")}</p>
           ) : (
             <button
               onClick={handleExport}
               disabled={exporting}
               className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {exporting ? "Exporting…" : "Download my data"}
+              {exporting ? t("compliance.export.exporting") : t("compliance.export.submit")}
             </button>
           )}
         </div>
 
         <div className="rounded-lg border border-red/20 bg-white p-6 shadow-sm dark:bg-gray-dark">
-          <h2 className="mb-1 text-base font-semibold text-dark dark:text-white">Request data erasure</h2>
+          <h2 className="mb-1 text-base font-semibold text-dark dark:text-white">{t("compliance.erasure.title")}</h2>
           <p className="mb-4 text-sm text-dark-4 dark:text-dark-6">
-            Request permanent deletion of all your business data. This action cannot be undone. Your account and all associated data will be scheduled for erasure.
+            {t("compliance.erasure.subtitle")}
           </p>
           {!canErase ? (
-            <p className="text-sm text-amber-700 dark:text-amber-400">Only business owners can request data erasure.</p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">{t("compliance.erasure.noPermission")}</p>
           ) : eraseDone ? (
-            <p className="text-sm text-green-700 dark:text-green-400">Erasure request submitted. You will be contacted to confirm.</p>
+            <p className="text-sm text-green-700 dark:text-green-400">{t("compliance.erasure.done")}</p>
           ) : !eraseConfirm ? (
             <button
               onClick={() => setEraseConfirm(true)}
               className="rounded-lg border border-red/40 px-5 py-2 text-sm font-medium text-red hover:bg-red/5"
             >
-              Request erasure
+              {t("compliance.erasure.request")}
             </button>
           ) : (
             <div className="rounded-lg border border-red/30 bg-red-50 p-4 dark:bg-red-950/20">
               <p className="mb-3 text-sm font-medium text-red-800 dark:text-red-300">
-                Are you sure? This will permanently delete all your data and cannot be undone.
+                {t("compliance.erasure.confirm")}
               </p>
               <div className="flex gap-3">
                 <button
@@ -143,13 +147,13 @@ export default function CompliancePage() {
                   disabled={erasing}
                   className="rounded-lg bg-red px-4 py-1.5 text-sm font-medium text-white hover:bg-red/90 disabled:opacity-50"
                 >
-                  {erasing ? "Submitting…" : "Yes, delete my data"}
+                  {erasing ? t("compliance.erasure.submitting") : t("compliance.erasure.submit")}
                 </button>
                 <button
                   onClick={() => setEraseConfirm(false)}
                   className="rounded-lg border border-stroke px-4 py-1.5 text-sm text-dark dark:border-dark-3 dark:text-white"
                 >
-                  Cancel
+                  {t("compliance.erasure.cancel")}
                 </button>
               </div>
             </div>

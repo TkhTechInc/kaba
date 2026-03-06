@@ -10,9 +10,11 @@ import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import { createReceiptsApi } from "@/services/receipts.service";
 import { createLedgerApi } from "@/services/ledger.service";
 import type { ProcessReceiptResult } from "@/services/receipts.service";
+import { useLocale } from "@/contexts/locale-context";
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
 export default function ReceiptsPage() {
+  const { t } = useLocale();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const [file, setFile] = useState<File | null>(null);
@@ -78,7 +80,7 @@ export default function ReceiptsPage() {
       });
       setSaveStatus("saved");
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Failed to save");
+      setSaveError(e instanceof Error ? e.message : t("receipts.error.saveFailed"));
       setSaveStatus("error");
     }
   };
@@ -106,11 +108,11 @@ export default function ReceiptsPage() {
       if (res.success) {
         setSendStatus("sent");
       } else {
-        setSendError("Failed to send");
+        setSendError(t("receipts.error.sendFailed"));
         setSendStatus("error");
       }
     } catch (e) {
-      setSendError(e instanceof Error ? e.message : "Failed to send");
+      setSendError(e instanceof Error ? e.message : t("receipts.error.sendFailed"));
       setSendStatus("error");
     }
   };
@@ -124,7 +126,7 @@ export default function ReceiptsPage() {
     reader.onload = async () => {
       const base64 = (reader.result as string)?.split(",")[1];
       if (!base64) {
-        setError("Failed to read file");
+        setError(t("receipts.error.readFailed"));
         setLoading(false);
         return;
       }
@@ -132,7 +134,7 @@ export default function ReceiptsPage() {
         const res = await api.process(businessId, { imageBase64: base64 });
         setResult(res);
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Processing failed");
+        setError(e instanceof Error ? e.message : t("receipts.error.processingFailed"));
       } finally {
         setLoading(false);
       }
@@ -154,12 +156,12 @@ export default function ReceiptsPage() {
         headers: { "Content-Type": contentType },
       });
       if (!uploadRes.ok) {
-        throw new Error("Upload failed");
+        throw new Error(t("receipts.error.uploadFailed"));
       }
       const res = await api.process(businessId, { s3Key: data.key });
       setResult(res);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Processing failed");
+      setError(e instanceof Error ? e.message : t("receipts.error.processingFailed"));
     } finally {
       setLoading(false);
     }
@@ -178,9 +180,9 @@ export default function ReceiptsPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Receipts" />
+        <Breadcrumb pageName={t("receipts.title")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Select a business to process receipts.</p>
+          <p className="text-dark-6">{t("receipts.noBusinessSelected")}</p>
         </div>
       </>
     );
@@ -189,7 +191,7 @@ export default function ReceiptsPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Receipts" />
+        <Breadcrumb pageName={t("receipts.title")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -200,7 +202,7 @@ export default function ReceiptsPage() {
   if (!features.isEnabled("receipts")) {
     return (
       <>
-        <Breadcrumb pageName="Receipts" />
+        <Breadcrumb pageName={t("receipts.title")} />
         <UpgradePrompt feature="Receipts" />
       </>
     );
@@ -208,15 +210,15 @@ export default function ReceiptsPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Receipts" />
+      <Breadcrumb pageName={t("receipts.title")} />
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <h3 className="mb-4 font-semibold text-dark dark:text-white">
-            Upload Receipt
+            {t("receipts.upload.title")}
           </h3>
           <p className="mb-4 text-sm text-dark-6">
-            Take a photo of your receipt or choose an image from your device. We&apos;ll read the details for you.
+            {t("receipts.upload.hint")}
           </p>
           {error && (
             <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">
@@ -226,7 +228,7 @@ export default function ReceiptsPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                Photo or image of your receipt
+                {t("receipts.upload.fileLabel")}
               </label>
               <input
                 ref={fileInputRef}
@@ -242,24 +244,24 @@ export default function ReceiptsPage() {
               disabled={loading || !file}
               className="w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {loading ? "Reading receipt…" : "Read receipt"}
+              {loading ? t("receipts.upload.reading") : t("receipts.upload.submit")}
             </button>
           </form>
         </div>
 
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <h3 className="mb-4 font-semibold text-dark dark:text-white">
-            Receipt details
+            {t("receipts.details.title")}
           </h3>
           {!result ? (
             <div className="space-y-4">
               {preview && (
                 <div className="overflow-hidden rounded-lg border border-stroke dark:border-dark-3">
-                  <img src={preview} alt="Receipt preview" className="max-h-48 w-full object-contain" />
+                  <img src={preview} alt={t("receipts.details.previewAlt")} className="max-h-48 w-full object-contain" />
                 </div>
               )}
               <p className="text-dark-6">
-                Your receipt details will appear here after you upload.
+                {t("receipts.details.empty")}
               </p>
             </div>
           ) : (
@@ -285,34 +287,34 @@ export default function ReceiptsPage() {
                     </span>
                     <span>
                       {confidence === "high"
-                        ? "Looks good"
+                        ? t("receipts.confidence.high")
                         : confidence === "medium"
-                        ? "Please check the details — some may need editing"
-                        : "Please double-check all fields"}
+                        ? t("receipts.confidence.medium")
+                        : t("receipts.confidence.low")}
                     </span>
                   </div>
                 );
               })()}
               <div className="rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
                 <h4 className="mb-2 text-sm font-medium text-dark dark:text-white">
-                  Summary
+                  {t("receipts.details.summary")}
                 </h4>
                 <dl className="space-y-1 text-sm">
                   {result.extracted.vendor && (
                     <div>
-                      <dt className="inline font-medium text-dark-6">Shop: </dt>
+                      <dt className="inline font-medium text-dark-6">{t("receipts.details.shop")}: </dt>
                       <dd className="inline">{result.extracted.vendor}</dd>
                     </div>
                   )}
                   {result.extracted.date && (
                     <div>
-                      <dt className="inline font-medium text-dark-6">Date: </dt>
+                      <dt className="inline font-medium text-dark-6">{t("receipts.details.date")}: </dt>
                       <dd className="inline">{result.extracted.date}</dd>
                     </div>
                   )}
                   {result.extracted.total != null && (
                     <div>
-                      <dt className="inline font-medium text-dark-6">Total: </dt>
+                      <dt className="inline font-medium text-dark-6">{t("receipts.details.total")}: </dt>
                       <dd className="inline">
                         <Price amount={result.extracted.total} currency={result.extracted.currency ?? "NGN"} />
                       </dd>
@@ -320,7 +322,7 @@ export default function ReceiptsPage() {
                   )}
                   <div>
                     <dt className="inline font-medium text-dark-6">
-                      Category:{" "}
+                      {t("receipts.details.category")}:{" "}
                     </dt>
                     <dd className="inline font-medium">
                       {result.suggestedCategory}
@@ -339,7 +341,7 @@ export default function ReceiptsPage() {
                     {saveStatus === "saving" && (
                       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
                     )}
-                    {saveStatus === "saved" ? "✓ Saved to Ledger" : saveStatus === "saving" ? "Saving…" : "Save as expense"}
+                    {saveStatus === "saved" ? t("receipts.action.savedToLedger") : saveStatus === "saving" ? t("receipts.action.saving") : t("receipts.action.saveAsExpense")}
                   </button>
                   {saveStatus === "error" && saveError && (
                     <span className="text-sm text-red">{saveError}</span>
@@ -349,7 +351,7 @@ export default function ReceiptsPage() {
                       href="/ledger"
                       className="text-sm font-medium text-primary underline hover:no-underline"
                     >
-                      View in Ledger →
+                      {t("receipts.action.viewInLedger")}
                     </a>
                   )}
                 </div>
@@ -358,7 +360,7 @@ export default function ReceiptsPage() {
                 <div className="flex flex-wrap items-end gap-2">
                   <div>
                     <label className="mb-1 block text-body-sm font-medium text-dark dark:text-white">
-                      Customer phone
+                      {t("receipts.send.phoneLabel")}
                     </label>
                     <input
                       type="tel"
@@ -382,10 +384,10 @@ export default function ReceiptsPage() {
                       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                     )}
                     {sendStatus === "sent"
-                      ? "✓ Sent"
+                      ? t("receipts.send.sent")
                       : sendStatus === "sending"
-                        ? "Sending…"
-                        : "Send receipt"}
+                        ? t("receipts.send.sending")
+                        : t("receipts.send.submit")}
                   </button>
                   {sendStatus === "error" && sendError && (
                     <span className="text-sm text-red">{sendError}</span>
@@ -396,19 +398,19 @@ export default function ReceiptsPage() {
                 <ResponsiveDataList<{ description: string; quantity: number; unitPrice: number; total: number }>
                   items={result.extracted.lineItems}
                   keyExtractor={(item) => `${item.description}-${item.quantity}-${item.total}`}
-                  emptyMessage="No line items"
+                  emptyMessage={t("receipts.lineItems.empty")}
                   columns={[
-                    { key: "description", label: "Description", render: (item) => item.description, prominent: true },
-                    { key: "qty", label: "Qty", render: (item) => String(item.quantity), align: "right" },
-                    { key: "unitPrice", label: "Unit Price", render: (item) => <Price amount={item.unitPrice} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
-                    { key: "total", label: "Total", render: (item) => <Price amount={item.total} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
+                    { key: "description", label: t("receipts.lineItems.description"), render: (item) => item.description, prominent: true },
+                    { key: "qty", label: t("receipts.lineItems.qty"), render: (item) => String(item.quantity), align: "right" },
+                    { key: "unitPrice", label: t("receipts.lineItems.unitPrice"), render: (item) => <Price amount={item.unitPrice} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
+                    { key: "total", label: t("receipts.lineItems.total"), render: (item) => <Price amount={item.total} currency={result.extracted.currency ?? "NGN"} />, align: "right" },
                   ]}
                 />
               )}
               {result.extracted.rawText && (
                 <details className="text-sm">
                   <summary className="cursor-pointer font-medium text-dark-6">
-                    View full text
+                    {t("receipts.details.viewFullText")}
                   </summary>
                   <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-gray-2 p-3 text-dark-6 dark:bg-dark-2">
                     {result.extracted.rawText}
@@ -420,7 +422,7 @@ export default function ReceiptsPage() {
                 onClick={handleProcessAnother}
                 className="mt-4 rounded-lg border border-stroke px-4 py-2 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-2"
               >
-                Add another receipt
+                {t("receipts.action.processAnother")}
               </button>
             </div>
           )}

@@ -42,6 +42,11 @@ export class CustomerService {
     return customer;
   }
 
+  async count(businessId: string): Promise<number> {
+    if (!businessId?.trim()) return 0;
+    return this.customerRepository.countByBusiness(businessId);
+  }
+
   async list(
     businessId: string,
     page: number = 1,
