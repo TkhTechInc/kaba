@@ -35,11 +35,28 @@ export interface EnvironmentConfig {
   /** Google OAuth — pass via cdk deploy -c googleClientId=... -c googleClientSecret=... */
   googleClientId?: string;
   googleClientSecret?: string;
-  /** AI: receipts, mobile money parsing. Pass via -c aiProvider=openrouter -c aiModel=openrouter/free -c mobileMoneyParserProvider=llm */
+  /**
+   * AI configuration. Base provider selected via `provider`.
+   * Per-task model overrides route specific workloads to optimised models via OpenRouter.
+   * All model strings are OpenRouter model IDs (e.g. "mistralai/mistral-small-3.2-24b-instruct").
+   */
   ai?: {
     provider?: string;
+    /** Default/fallback model when no task-specific model is set */
     model?: string;
     mobileMoneyParserProvider?: 'mock' | 'llm';
+    /** Fast chat-intent classification — default: Mistral Small 3.2 24B */
+    intentModel?: string;
+    /** Multilingual voice-to-transaction extraction — default: Qwen3.5-Flash */
+    voiceModel?: string;
+    /** Reasoning model for loan readiness scoring — default: DeepSeek R1 0528 */
+    loanModel?: string;
+    /** Ledger Q&A — default: Llama 3.3 70B Instruct */
+    ledgerQaModel?: string;
+    /** Vision/receipt extraction — default: Qwen3 VL 235B */
+    visionModel?: string;
+    /** Embeddings — default: Qwen3 Embedding 8B */
+    embeddingModel?: string;
   };
   database?: {
     useOnDemand: boolean;
@@ -81,6 +98,12 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       provider: 'openrouter',
       model: 'deepseek/deepseek-chat-v3-0324:free',
       mobileMoneyParserProvider: 'llm',
+      intentModel: 'mistralai/mistral-small-3.2-24b-instruct',
+      voiceModel: 'qwen/qwen3.5-flash',
+      loanModel: 'deepseek/deepseek-r1-0528',
+      ledgerQaModel: 'meta-llama/llama-3.3-70b-instruct',
+      visionModel: 'qwen/qwen3-vl-235b-a22b-instruct',
+      embeddingModel: 'qwen/qwen3-embedding-8b',
     },
   },
   staging: {

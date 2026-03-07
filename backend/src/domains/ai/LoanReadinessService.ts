@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AI_LLM_PROVIDER } from '@/nest/modules/ai/ai.tokens';
+import { AI_LOAN_PROVIDER } from '@/nest/modules/ai/ai.tokens';
 import type { ILLMProvider } from './ILLMProvider';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { ReportService } from '@/domains/reports/ReportService';
@@ -20,7 +20,7 @@ export interface LoanReadinessResult {
 @Injectable()
 export class LoanReadinessService {
   constructor(
-    @Inject(AI_LLM_PROVIDER) private readonly llm: ILLMProvider,
+    @Inject(AI_LOAN_PROVIDER) private readonly llm: ILLMProvider,
     private readonly ledgerRepo: LedgerRepository,
     private readonly reportService: ReportService,
   ) {}

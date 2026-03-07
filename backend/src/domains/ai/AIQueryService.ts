@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AI_LLM_PROVIDER } from '@/nest/modules/ai/ai.tokens';
+import { AI_LEDGER_QA_PROVIDER } from '@/nest/modules/ai/ai.tokens';
 import type { ILLMProvider } from './ILLMProvider';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { FeatureService } from '@/domains/features/FeatureService';
@@ -23,7 +23,7 @@ export interface CashFlowForecastResult {
 @Injectable()
 export class AIQueryService {
   constructor(
-    @Inject(AI_LLM_PROVIDER) private readonly llm: ILLMProvider,
+    @Inject(AI_LEDGER_QA_PROVIDER) private readonly llm: ILLMProvider,
     private readonly ledgerRepo: LedgerRepository,
     private readonly featureService: FeatureService,
     private readonly businessRepo: BusinessRepository,

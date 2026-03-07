@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ILLMProvider } from '@/domains/ai/ILLMProvider';
-import { AI_LLM_PROVIDER } from '@/nest/modules/ai/ai.module';
+import { AI_INTENT_PARSER_PROVIDER } from '@/nest/modules/ai/ai.module';
 import { IIntentParser, IntentType, ParsedIntent } from '../interfaces/IIntentParser';
 
 const INTENT_TYPES: IntentType[] = [
@@ -36,7 +36,7 @@ const INTENT_SCHEMA = {
 
 @Injectable()
 export class IntentParserService implements IIntentParser {
-  constructor(@Inject(AI_LLM_PROVIDER) private readonly llm: ILLMProvider) {}
+  constructor(@Inject(AI_INTENT_PARSER_PROVIDER) private readonly llm: ILLMProvider) {}
 
   async parse(text: string, sessionContext: string[] = []): Promise<ParsedIntent> {
     const contextSnippet = sessionContext.slice(-3).join('\n');

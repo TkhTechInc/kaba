@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AI_LLM_PROVIDER, AI_SPEECH_TO_TEXT } from '@/nest/modules/ai/ai.tokens';
+import { AI_VOICE_PROVIDER, AI_SPEECH_TO_TEXT } from '@/nest/modules/ai/ai.tokens';
 import type { ILLMProvider } from './ILLMProvider';
 import type { ISpeechToText } from './ISpeechToText';
 import { LedgerService } from '@/domains/ledger/services/LedgerService';
@@ -19,7 +19,7 @@ export interface VoiceTransactionResult {
 @Injectable()
 export class VoiceToTransactionService {
   constructor(
-    @Inject(AI_LLM_PROVIDER) private readonly llm: ILLMProvider,
+    @Inject(AI_VOICE_PROVIDER) private readonly llm: ILLMProvider,
     @Inject(AI_SPEECH_TO_TEXT) private readonly speechToText: ISpeechToText,
     private readonly ledgerService: LedgerService,
   ) {}

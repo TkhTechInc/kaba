@@ -80,12 +80,18 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.googleClientId && { GOOGLE_CLIENT_ID: config.googleClientId }),
         ...(config.googleClientSecret && { GOOGLE_CLIENT_SECRET: config.googleClientSecret }),
         FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
-        // AI: mobile money parsing, receipts. OPENROUTER_API_KEY loaded from secret at runtime.
+        // AI: base provider + per-task model overrides. OPENROUTER_API_KEY loaded from secret.
         ...(config.ai?.provider && { AI_PROVIDER: config.ai.provider }),
         ...(config.ai?.model && { AI_MODEL: config.ai.model }),
         ...(config.ai?.mobileMoneyParserProvider && {
           MOBILE_MONEY_PARSER_PROVIDER: config.ai.mobileMoneyParserProvider,
         }),
+        ...(config.ai?.intentModel && { AI_INTENT_MODEL: config.ai.intentModel }),
+        ...(config.ai?.voiceModel && { AI_VOICE_MODEL: config.ai.voiceModel }),
+        ...(config.ai?.loanModel && { AI_LOAN_MODEL: config.ai.loanModel }),
+        ...(config.ai?.ledgerQaModel && { AI_LEDGER_QA_MODEL: config.ai.ledgerQaModel }),
+        ...(config.ai?.visionModel && { AI_VISION_MODEL: config.ai.visionModel }),
+        ...(config.ai?.embeddingModel && { AI_EMBEDDING_MODEL: config.ai.embeddingModel }),
         ...(config.ai?.provider === 'openrouter' && {
           OPENROUTER_API_KEY_SECRET_NAME: `kaba/${environment}/openrouter-api-key`,
         }),
