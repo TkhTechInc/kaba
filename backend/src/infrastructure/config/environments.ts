@@ -43,6 +43,10 @@ export interface EnvironmentConfig {
     useOnDemand: boolean;
     enablePITR: boolean;
   };
+  /** TKH Payments microservice base URL (e.g. https://<id>.execute-api.ca-central-1.amazonaws.com/dev/api/v1) */
+  paymentsServiceUrl?: string;
+  /** SNS topic ARN for payment events published by TKH Payments service */
+  paymentsSnsTopicArn?: string;
 }
 
 export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
@@ -68,6 +72,8 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       useOnDemand: true,
       enablePITR: false,
     },
+    paymentsServiceUrl: 'https://hfy53j9rjc.execute-api.ca-central-1.amazonaws.com/dev/api/v1',
+    paymentsSnsTopicArn: 'arn:aws:sns:ca-central-1:497172038983:tkhtech-payment-events-dev',
   },
   staging: {
     name: 'Staging',

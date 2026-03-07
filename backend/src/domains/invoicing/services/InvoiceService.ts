@@ -2,7 +2,7 @@ import { Injectable, Inject, Optional } from '@nestjs/common';
 import { InvoiceRepository, ListByBusinessResult } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { Invoice, CreateInvoiceInput, InvoiceStatus, UpdateInvoiceInput } from '../models/Invoice';
-import { PaymentGatewayManager } from '@/domains/payments/gateways/PaymentGatewayManager';
+import { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
 import { WebhookService } from '@/domains/webhooks/WebhookService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { AccessService } from '@/domains/access/AccessService';
@@ -24,7 +24,7 @@ export class InvoiceService {
   constructor(
     private readonly invoiceRepository: InvoiceRepository,
     private readonly customerRepository: CustomerRepository,
-    private readonly paymentGatewayManager: PaymentGatewayManager,
+    private readonly paymentsClient: PaymentsClient,
     private readonly webhookService: WebhookService,
     private readonly businessRepository: BusinessRepository,
     private readonly accessService: AccessService,
@@ -404,16 +404,16 @@ export class InvoiceService {
       }
     }
 
-    const response = await this.paymentGatewayManager.createPaymentIntent({
-      businessId: invoice.businessId,
-      invoiceId: invoice.id,
+    const response = await this.paymentsClient.createIntent({
       amount,
       currency: invoice.currency,
-      countryCode: business?.countryCode,
-      customerId: invoice.customerId,
+      country: business?.countryCode,
       metadata: {
-        invoiceId: invoice.id,
+        appId: 'kaba',
+        referenceId: invoice.id,
+        customerId: invoice.customerId ?? undefined,
         businessId: invoice.businessId,
+        invoiceId: invoice.id,
       },
     });
 
@@ -448,7 +448,7 @@ export class InvoiceService {
         metadata: {
           amount,
           currency: invoice.currency,
-          gateway: response.gatewayTransactionId ? 'gateway' : 'unknown',
+          gateway: response.gatewayTransactionId ?? response.intentId ?? 'remote',
           gatewayTransactionId: response.gatewayTransactionId,
         },
       }).catch(() => {});

@@ -8,10 +8,12 @@ import { Duration } from 'aws-cdk-lib';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as lambdaEventSources from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as secretsmanager from 'aws-cdk-lib/aws-secretsmanager';
+import * as sns from 'aws-cdk-lib/aws-sns';
 import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
@@ -87,6 +89,9 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.ai?.provider === 'openrouter' && {
           OPENROUTER_API_KEY_SECRET_NAME: `kaba/${environment}/openrouter-api-key`,
         }),
+        ...(config.paymentsServiceUrl && {
+          PAYMENTS_SERVICE_URL: config.paymentsServiceUrl,
+        }),
       },
     });
 
@@ -113,6 +118,34 @@ export class KabaApiStack extends cdk.Stack {
       schedule: events.Schedule.cron({ minute: '0', hour: '6', day: '*', month: '*', year: '*' }),
       targets: [new targets.LambdaFunction(recurringInvoiceLambda)],
     });
+
+    // Payment event Lambda: triggered by SNS payment.completed events from TKH Payments service
+    if (config.paymentsSnsTopicArn) {
+      const paymentEventLambdaAsset = path.join(__dirname, '../../../dist/payment-event-lambda');
+      const paymentEventLambda = new lambda.Function(this, 'PaymentEventLambda', {
+        functionName: `${resourcePrefix}-payment-event`,
+        runtime: lambda.Runtime.NODEJS_20_X,
+        handler: 'handler.handler',
+        code: lambda.Code.fromAsset(paymentEventLambdaAsset),
+        timeout: Duration.seconds(30),
+        memorySize: 256,
+        environment: {
+          DYNAMODB_INVOICES_TABLE: invoicesTable.tableName,
+          DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        },
+      });
+      invoicesTable.grantReadWriteData(paymentEventLambda);
+      ledgerTable.grantReadWriteData(paymentEventLambda);
+
+      const paymentsTopic = sns.Topic.fromTopicArn(
+        this,
+        'PaymentsTopic',
+        config.paymentsSnsTopicArn,
+      );
+      paymentEventLambda.addEventSource(
+        new lambdaEventSources.SnsEventSource(paymentsTopic),
+      );
+    }
 
     // OpenRouter API key for AI (when provider=openrouter). Create secret before deploy.
     if (config.ai?.provider === 'openrouter') {
