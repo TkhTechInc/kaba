@@ -96,10 +96,10 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     paymentsSnsTopicArn: 'arn:aws:sns:ca-central-1:497172038983:tkhtech-payment-events-dev',
     ai: {
       provider: 'openrouter',
-      model: 'deepseek/deepseek-chat-v3-0324:free',
+      model: 'deepseek/deepseek-chat-v3-0324',
       mobileMoneyParserProvider: 'llm',
       intentModel: 'mistralai/mistral-small-3.2-24b-instruct',
-      voiceModel: 'qwen/qwen3.5-flash',
+      voiceModel: 'qwen/qwen3.5-flash-02-23',
       loanModel: 'deepseek/deepseek-r1-0528',
       ledgerQaModel: 'meta-llama/llama-3.3-70b-instruct',
       visionModel: 'qwen/qwen3-vl-235b-a22b-instruct',
