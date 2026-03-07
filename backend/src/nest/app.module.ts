@@ -50,6 +50,8 @@ import { TrustModule } from '@/domains/trust/TrustModule';
 import { UssdModule } from '@/domains/ussd/UssdModule';
 import { PlanModule } from '@/domains/plans/PlanModule';
 import { IdempotencyModule } from '@/domains/idempotency/IdempotencyModule';
+import { RegulatoryModule } from '@/domains/regulatory/RegulatoryModule';
+import { ChatModule } from '@/domains/chat/ChatModule';
 import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
 
 @Module({
@@ -69,6 +71,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     ReconciliationModule,
     ReportModule,
     AIModule,
+    ChatModule,
     TaxModule,
     AdminModule,
     WebhookModule,
@@ -83,6 +86,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     UssdModule,
     PlanModule,
     IdempotencyModule,
+    RegulatoryModule,
   ],
   controllers: [HealthController],
   providers: [

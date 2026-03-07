@@ -9,6 +9,8 @@ const rootDir = path.join(__dirname, '..');
 const apiLambdaDir = path.join(rootDir, 'dist/api-lambda');
 const recurringLambdaDir = path.join(rootDir, 'dist/recurring-invoice-lambda');
 const paymentEventLambdaDir = path.join(rootDir, 'dist/payment-event-lambda');
+const whatsappWebhookDir = path.join(rootDir, 'dist/lambda/whatsapp-webhook');
+const telegramWebhookDir = path.join(rootDir, 'dist/lambda/telegram-webhook');
 if (!fs.existsSync(apiLambdaDir)) {
   fs.mkdirSync(apiLambdaDir, { recursive: true });
 }
@@ -17,6 +19,12 @@ if (!fs.existsSync(recurringLambdaDir)) {
 }
 if (!fs.existsSync(paymentEventLambdaDir)) {
   fs.mkdirSync(paymentEventLambdaDir, { recursive: true });
+}
+if (!fs.existsSync(whatsappWebhookDir)) {
+  fs.mkdirSync(whatsappWebhookDir, { recursive: true });
+}
+if (!fs.existsSync(telegramWebhookDir)) {
+  fs.mkdirSync(telegramWebhookDir, { recursive: true });
 }
 
 // Remove leftover trace files from previous debug builds
@@ -94,6 +102,46 @@ esbuild
   })
   .then(() => {
     console.log('Payment event Lambda bundled: dist/payment-event-lambda/handler.js');
+    return esbuild.build({
+      entryPoints: [
+        path.join(rootDir, 'src/infrastructure/handlers/whatsapp-webhook.ts'),
+      ],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/lambda/whatsapp-webhook/handler.js'),
+      external: externals,
+      plugins: [
+        esbuildDecorators({
+          tsconfig: path.join(rootDir, 'tsconfig.json'),
+          cwd: rootDir,
+        }),
+      ],
+    });
+  })
+  .then(() => {
+    console.log('WhatsApp webhook Lambda bundled: dist/lambda/whatsapp-webhook/handler.js');
+    return esbuild.build({
+      entryPoints: [
+        path.join(rootDir, 'src/infrastructure/handlers/telegram-webhook.ts'),
+      ],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/lambda/telegram-webhook/handler.js'),
+      external: externals,
+      plugins: [
+        esbuildDecorators({
+          tsconfig: path.join(rootDir, 'tsconfig.json'),
+          cwd: rootDir,
+        }),
+      ],
+    });
+  })
+  .then(() => {
+    console.log('Telegram webhook Lambda bundled: dist/lambda/telegram-webhook/handler.js');
   })
   .catch((err) => {
     console.error('Bundle failed:', err.message);

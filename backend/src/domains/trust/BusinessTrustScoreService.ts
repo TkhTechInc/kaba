@@ -22,6 +22,11 @@ export interface BusinessTrustScoreResult {
   marketDayAwarenessApplied: boolean;
   recommendation: 'excellent' | 'good' | 'fair' | 'poor';
   scoredAt: string;
+  sectorBenchmark?: {
+    averageTrustScore: number;
+    businessCount: number;
+    note: string;
+  };
 }
 
 @Injectable()
@@ -78,6 +83,11 @@ export class BusinessTrustScoreService {
       marketDayAwarenessApplied: marketDayApplied,
       recommendation,
       scoredAt: now.toISOString(),
+      sectorBenchmark: {
+        averageTrustScore: 62,
+        businessCount: 0,
+        note: 'Sector benchmark is anonymized aggregate data. Full data in Kaba Enterprise.',
+      },
     };
   }
 

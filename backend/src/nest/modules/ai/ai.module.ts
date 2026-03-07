@@ -115,6 +115,7 @@ function createLLMProvider(config: ConfigService): ILLMProvider {
     AI_LLM_PROVIDER,
     AI_RECEIPT_EXTRACTOR,
     AI_SPEECH_TO_TEXT,
+    VoiceToTransactionService,
   ],
 })
 export class AIModule {}
