@@ -48,11 +48,8 @@ export function useOnboarding(businessId: string | null) {
   const [loading, setLoading] = useState(() => !!businessId?.trim());
   const [error, setError] = useState<Error | null>(null);
 
-  const opts = useMemo(
-    () => ({ token: token ?? undefined }),
-    [token]
-  );
-
+  // Use primitives directly in deps — avoids creating a new opts object every render
+  // which was causing fetchProgress to get a new reference → infinite useEffect loop.
   const fetchProgress = useCallback(async () => {
     if (!businessId?.trim()) {
       setData(null);
@@ -63,7 +60,7 @@ export function useOnboarding(businessId: string | null) {
     try {
       const res = await apiGet<OnboardingResponse>(
         `/api/v1/onboarding?businessId=${encodeURIComponent(businessId)}`,
-        opts
+        { token: token ?? undefined }
       );
       if (res.success && res.data) {
         setData(res.data);
@@ -76,7 +73,7 @@ export function useOnboarding(businessId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [businessId, opts]);
+  }, [businessId, token]); // primitives only — stable references
 
   useEffect(() => {
     fetchProgress();
@@ -93,7 +90,7 @@ export function useOnboarding(businessId: string | null) {
         const res = await apiPatch<OnboardingResponse>(
           `/api/v1/onboarding?businessId=${encodeURIComponent(businessId)}`,
           answers,
-          opts
+          { token: token ?? undefined }
         );
         if (res.success && res.data) {
           setData(res.data);
@@ -108,7 +105,7 @@ export function useOnboarding(businessId: string | null) {
         setLoading(false);
       }
     },
-    [businessId, opts]
+    [businessId, token]
   );
 
   const complete = useCallback(async () => {
@@ -119,7 +116,7 @@ export function useOnboarding(businessId: string | null) {
       const res = await apiPost<OnboardingResponse>(
         `/api/v1/onboarding/complete?businessId=${encodeURIComponent(businessId)}`,
         {},
-        opts
+        { token: token ?? undefined }
       );
       if (res.success && res.data) {
         setData(res.data);
@@ -133,7 +130,7 @@ export function useOnboarding(businessId: string | null) {
     } finally {
       setLoading(false);
     }
-  }, [businessId, opts]);
+  }, [businessId, token]);
 
   return useMemo(
     () => ({
