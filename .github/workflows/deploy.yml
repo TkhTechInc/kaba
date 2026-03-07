@@ -17,7 +17,7 @@ env:
 jobs:
   deploy-dev:
     name: Deploy → Dev
-    if: github.ref == 'refs/heads/main'
+    if: ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}
     runs-on: ubuntu-latest
     environment: dev
     permissions:
@@ -51,24 +51,19 @@ jobs:
         run: npm run cdk:deploy
         working-directory: backend
 
-      - name: Notify Slack #aws-deployments
+      - name: Notify Slack
         if: always()
         run: |
           STATUS="${{ job.status }}"
-          EMOJI="✅"
-          [ "$STATUS" != "success" ] && EMOJI="❌"
+          EMOJI="SUCCESS" ; [ "$STATUS" != "success" ] && EMOJI="FAILED"
           aws sns publish \
             --topic-arn "$SNS_DEPLOY_ARN" \
-            --subject "Kaba Deploy — Dev — ${STATUS}" \
-            --message "${EMOJI} *Kaba* deploy to *dev* ${STATUS}
-Commit: ${{ github.sha }}
-Branch: ${{ github.ref_name }}
-By: ${{ github.actor }}
-Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --subject "Kaba Deploy - Dev - ${STATUS}" \
+            --message "${EMOJI}: Kaba deploy to dev ${STATUS}. Commit: ${{ github.sha }} Branch: ${{ github.ref_name }} By: ${{ github.actor }} Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
   deploy-prod:
     name: Deploy → Prod
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: ${{ github.ref_type == 'tag' }}
     runs-on: ubuntu-latest
     environment: prod
     permissions:
@@ -102,17 +97,12 @@ Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.r
         run: npm run cdk:deploy:prod
         working-directory: backend
 
-      - name: Notify Slack #aws-deployments
+      - name: Notify Slack
         if: always()
         run: |
           STATUS="${{ job.status }}"
-          EMOJI="✅"
-          [ "$STATUS" != "success" ] && EMOJI="❌"
+          EMOJI="SUCCESS" ; [ "$STATUS" != "success" ] && EMOJI="FAILED"
           aws sns publish \
             --topic-arn "$SNS_DEPLOY_ARN" \
-            --subject "Kaba Deploy — Prod — ${STATUS}" \
-            --message "${EMOJI} *Kaba* deploy to *prod* ${STATUS}
-Tag: ${{ github.ref_name }}
-Commit: ${{ github.sha }}
-By: ${{ github.actor }}
-Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --subject "Kaba Deploy - Prod - ${STATUS}" \
+            --message "${EMOJI}: Kaba deploy to prod ${STATUS}. Tag: ${{ github.ref_name }} Commit: ${{ github.sha }} By: ${{ github.actor }} Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
