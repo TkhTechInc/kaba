@@ -16,6 +16,7 @@ import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { CurrentUser } from '@/nest/common/decorators/current-user.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
+import { SkipThrottle } from '@nestjs/throttler';
 import type { OnboardingAnswers } from './models/OnboardingState';
 
 @Controller('api/v1/onboarding')
@@ -28,6 +29,7 @@ export class OnboardingController {
   ) {}
 
   @Get()
+  @SkipThrottle()
   @RequirePermission('business:settings')
   async getProgress(
     @Query('businessId') businessId: string,

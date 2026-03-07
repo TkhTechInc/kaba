@@ -1,9 +1,11 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { DashboardService } from './DashboardService';
 
+@SkipThrottle()
 @Controller('api/v1/dashboard')
 @Auth()
 @UseGuards(PermissionGuard)
