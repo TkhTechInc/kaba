@@ -11,6 +11,8 @@ export interface EnvironmentConfig {
   name: string;
   stage: string;
   region: string;
+  /** AWS account ID for this environment. CDK deploys into this account. */
+  awsAccountId?: string;
   apiVersion: string;
   scaling: {
     minCapacity: number;
@@ -54,6 +56,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     name: 'Development',
     stage: 'dev',
     region: 'ca-central-1',
+    awsAccountId: '110044886269',
     apiVersion: 'v1',
     scaling: {
       minCapacity: 1,

@@ -15,7 +15,10 @@ import { getEnvironmentConfig, validateEnvironmentConfig } from './config/enviro
 const app = new cdk.App();
 
 const environment = app.node.tryGetContext('environment') || 'dev';
-const account = app.node.tryGetContext('account') || process.env['CDK_DEFAULT_ACCOUNT'];
+const account =
+  app.node.tryGetContext('account') ||
+  process.env['CDK_DEPLOY_ACCOUNT'] ||
+  process.env['CDK_DEFAULT_ACCOUNT'];
 const frontendUrlFromContext = app.node.tryGetContext('frontendUrl') as string | undefined;
 const googleClientId = app.node.tryGetContext('googleClientId') as string | undefined;
 const googleClientSecret = app.node.tryGetContext('googleClientSecret') as string | undefined;
@@ -44,7 +47,7 @@ console.log(`📍 Region: ${envConfig.region}`);
 
 const commonProps: cdk.StackProps = {
   env: {
-    account,
+    account: envConfig.awsAccountId || account,
     region: envConfig.region,
   },
 };
