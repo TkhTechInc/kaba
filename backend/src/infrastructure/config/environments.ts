@@ -74,6 +74,11 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     },
     paymentsServiceUrl: 'https://hfy53j9rjc.execute-api.ca-central-1.amazonaws.com/dev/api/v1',
     paymentsSnsTopicArn: 'arn:aws:sns:ca-central-1:497172038983:tkhtech-payment-events-dev',
+    ai: {
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-chat-v3-0324:free',
+      mobileMoneyParserProvider: 'llm',
+    },
   },
   staging: {
     name: 'Staging',
