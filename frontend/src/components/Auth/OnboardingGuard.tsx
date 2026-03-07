@@ -34,12 +34,13 @@ export function OnboardingGuard({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
-  // Show spinner until we know onboarding status - avoids dashboard flash before redirect
-  // Also show when hasBusinesses but businessId not yet set (auth still hydrating)
-  const needsOnboarding =
-    (hasBusinesses && !businessId) ||
-    (hasBusinesses && businessId && (!data?.isComplete || loading));
-  if (needsOnboarding) {
+  // If user has businesses but we don't have their onboarding status yet, show
+  // a spinner to avoid a flash of dashboard content before a potential redirect.
+  // Key: once data resolves (loading=false), we ALWAYS render — the useEffect
+  // above handles the redirect. Never block render based on isComplete value,
+  // only block while the initial fetch is in flight.
+  const isStillLoading = hasBusinesses && businessId && loading && data === null;
+  if (isStillLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-2 dark:bg-[#020d1a]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

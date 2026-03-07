@@ -34,7 +34,9 @@ export default function OnboardingPage() {
     if (!isLoading && businessId && isComplete) {
       router.replace("/");
     }
-  }, [isLoading, businessId, isComplete, router]);
+  // router excluded — not stable in Next.js App Router
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, businessId, isComplete]);
 
   const handleApplySuggestion = (s: Partial<{
     businessName?: string;
@@ -66,7 +68,7 @@ export default function OnboardingPage() {
   }
 
   if (!businessId || businesses.length === 0) {
-    router.replace("/");
+    // Don't call router.replace during render — use useEffect
     return null;
   }
 
