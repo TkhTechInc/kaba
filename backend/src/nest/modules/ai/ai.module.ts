@@ -138,11 +138,11 @@ function createTaskProvider(
     },
     { provide: AI_PROVIDER, useExisting: AI_LLM_PROVIDER },
 
-    // ── Intent parsing: Mistral Small 3.2 24B — fast, cheap, chat-optimised ─
+    // ── Intent parsing: Gemma 3 27B — 6/7 West African language benchmark ($0.04/1M) ─
     {
       provide: AI_INTENT_PARSER_PROVIDER,
       useFactory: (_config: ConfigService, base: ILLMProvider): ILLMProvider =>
-        createTaskProvider('AI_INTENT_MODEL', 'mistralai/mistral-small-3.2-24b-instruct', base),
+        createTaskProvider('AI_INTENT_MODEL', 'google/gemma-3-27b-it', base),
       inject: [ConfigService, AI_LLM_PROVIDER],
     },
 

@@ -45,7 +45,7 @@ export interface EnvironmentConfig {
     /** Default/fallback model when no task-specific model is set */
     model?: string;
     mobileMoneyParserProvider?: 'mock' | 'llm';
-    /** Fast chat-intent classification — default: Mistral Small 3.2 24B */
+      /** Fast chat-intent classification — default: Gemma 3 27B (6/7 West African language benchmark) */
     intentModel?: string;
     /** Multilingual voice-to-transaction extraction — default: Qwen3.5-Flash */
     voiceModel?: string;
@@ -98,7 +98,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       provider: 'openrouter',
       model: 'deepseek/deepseek-chat-v3-0324',
       mobileMoneyParserProvider: 'llm',
-      intentModel: 'mistralai/mistral-small-3.2-24b-instruct',
+      intentModel: 'google/gemma-3-27b-it',
       voiceModel: 'qwen/qwen3.5-flash-02-23',
       loanModel: 'deepseek/deepseek-r1-0528',
       ledgerQaModel: 'meta-llama/llama-3.3-70b-instruct',
