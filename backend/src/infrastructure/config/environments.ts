@@ -97,6 +97,9 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       useOnDemand: true,
       enablePITR: true,
     },
+    // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
+    paymentsServiceUrl: undefined,
+    paymentsSnsTopicArn: undefined,
   },
   prod: {
     name: 'Production',
@@ -120,17 +123,26 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       useOnDemand: true,
       enablePITR: true,
     },
+    // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
+    paymentsServiceUrl: undefined,
+    paymentsSnsTopicArn: undefined,
   },
 };
 
-export function getEnvironmentConfig(environment: string): EnvironmentConfig {
+export function getEnvironmentConfig(environment: string, contextOverrides?: Record<string, string>): EnvironmentConfig {
   const config = ENVIRONMENTS[environment];
   if (!config) {
     throw new Error(
       `Unknown environment: ${environment}. Valid options: ${Object.keys(ENVIRONMENTS).join(', ')}`
     );
   }
-  return config;
+  // Allow CDK context to override payments URLs at deploy time:
+  // cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
+  return {
+    ...config,
+    paymentsServiceUrl: contextOverrides?.['paymentsServiceUrl'] ?? config.paymentsServiceUrl,
+    paymentsSnsTopicArn: contextOverrides?.['paymentsSnsTopicArn'] ?? config.paymentsSnsTopicArn,
+  };
 }
 
 export function validateEnvironmentConfig(config: EnvironmentConfig): void {

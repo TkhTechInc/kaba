@@ -39,7 +39,7 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
 
@@ -47,16 +47,30 @@ jobs:
         run: npm run bundle
         working-directory: backend
 
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
+          NEXT_PUBLIC_KKIAPAY_SANDBOX: "true"
+
       - name: Deploy to dev
         run: npm run cdk:deploy
         working-directory: backend
 
       - name: Notify Slack
         if: always()
+        continue-on-error: true
         run: |
           STATUS="${{ job.status }}"
           EMOJI="SUCCESS" ; [ "$STATUS" != "success" ] && EMOJI="FAILED"
           aws sns publish \
+            --region ca-central-1 \
             --topic-arn "$SNS_DEPLOY_ARN" \
             --subject "Kaba Deploy - Dev - ${STATUS}" \
             --message "${EMOJI}: Kaba deploy to dev ${STATUS}. Commit: ${{ github.sha }} Branch: ${{ github.ref_name }} By: ${{ github.actor }} Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
@@ -85,7 +99,7 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
 
@@ -93,16 +107,30 @@ jobs:
         run: npm run bundle
         working-directory: backend
 
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+          NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
+          NEXT_PUBLIC_KKIAPAY_SANDBOX: "false"
+
       - name: Deploy to prod
         run: npm run cdk:deploy:prod
         working-directory: backend
 
       - name: Notify Slack
         if: always()
+        continue-on-error: true
         run: |
           STATUS="${{ job.status }}"
           EMOJI="SUCCESS" ; [ "$STATUS" != "success" ] && EMOJI="FAILED"
           aws sns publish \
+            --region ca-central-1 \
             --topic-arn "$SNS_DEPLOY_ARN" \
             --subject "Kaba Deploy - Prod - ${STATUS}" \
             --message "${EMOJI}: Kaba deploy to prod ${STATUS}. Tag: ${{ github.ref_name }} Commit: ${{ github.sha }} By: ${{ github.actor }} Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
