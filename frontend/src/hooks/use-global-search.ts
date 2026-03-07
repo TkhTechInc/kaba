@@ -162,10 +162,10 @@ export function useGlobalSearch(token: string | null, businessId: string | null)
         }));
 
       const newGroups: SearchGroup[] = [
-        { kind: "invoice", label: "Invoices", results: invoiceMatches },
-        { kind: "customer", label: "Customers", results: customerMatches },
-        { kind: "product", label: "Products", results: productMatches },
-        { kind: "debt", label: "Debts", results: debtMatches },
+        { kind: "invoice" as const, label: "Invoices", results: invoiceMatches },
+        { kind: "customer" as const, label: "Customers", results: customerMatches },
+        { kind: "product" as const, label: "Products", results: productMatches },
+        { kind: "debt" as const, label: "Debts", results: debtMatches },
       ].filter((g) => g.results.length > 0);
 
       setGroups(newGroups);
