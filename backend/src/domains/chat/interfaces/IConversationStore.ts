@@ -15,6 +15,7 @@ export interface ChatSession {
   channelUserId: string;
   history: ChatMessage[];
   pendingIntent?: ParsedIntent;
+  linked: boolean;         // true once businessId is resolved to a real Kaba account
   updatedAt: string;
 }
 

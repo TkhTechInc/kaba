@@ -3,14 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBModule, DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
 import { AIModule } from '@/nest/modules/ai/ai.module';
+import { AccessModule } from '@/domains/access/AccessModule';
 import { LedgerModule } from '@/domains/ledger/LedgerModule';
 import { InvoiceModule } from '@/domains/invoicing/InvoiceModule';
 import { DebtModule } from '@/domains/debts/DebtModule';
 import { TrustModule } from '@/domains/trust/TrustModule';
 import { ReportModule } from '@/domains/reports/ReportModule';
+import { UserRepository } from '@/nest/modules/auth/repositories/UserRepository';
+import { AccessService } from '@/domains/access/AccessService';
 import { IntentParserService } from './services/IntentParserService';
 import { DynamoConversationStore } from './services/DynamoConversationStore';
 import { ChatOrchestrator } from './services/ChatOrchestrator';
+import { ChatUserResolver } from './services/ChatUserResolver';
 import { MockChannel } from './providers/MockChannel';
 import { WhatsAppChannel } from './providers/WhatsAppChannel';
 import { TelegramChannel } from './providers/TelegramChannel';
@@ -23,6 +27,7 @@ export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
   imports: [
     DynamoDBModule,
     forwardRef(() => AIModule),
+    AccessModule,
     LedgerModule,
     InvoiceModule,
     DebtModule,
@@ -44,9 +49,20 @@ export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
     TelegramChannel,
     {
       provide: MESSAGING_CHANNELS,
-      useFactory: (mock: MockChannel, wa: WhatsAppChannel, tg: TelegramChannel) => [mock, wa, tg],
-      inject: [MockChannel, WhatsAppChannel, TelegramChannel],
+      useFactory: (wa: WhatsAppChannel, tg: TelegramChannel) => [wa, tg],
+      inject: [WhatsAppChannel, TelegramChannel],
     },
+    // Provision UserRepository the same way UssdModule does — via useFactory with the users table
+    {
+      provide: UserRepository,
+      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
+        const tableName =
+          config.get<string>('dynamodb.usersTable') ?? 'Kaba-UsersService-dev-users';
+        return new UserRepository(docClient, tableName);
+      },
+      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
+    },
+    ChatUserResolver,
     ChatOrchestrator,
   ],
   exports: [
@@ -56,6 +72,7 @@ export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
     IntentParserService,
     DynamoConversationStore,
     ChatOrchestrator,
+    ChatUserResolver,
     WhatsAppChannel,
     TelegramChannel,
   ],

@@ -5,6 +5,7 @@ import { DebtService } from '../../debts/services/DebtService';
 import { BusinessTrustScoreService } from '../../trust/BusinessTrustScoreService';
 import { VoiceToTransactionService } from '../../ai/VoiceToTransactionService';
 import { ReportService } from '../../reports/ReportService';
+import { ChatUserResolver } from './ChatUserResolver';
 import type { IMessagingChannel, IncomingMessage, OutgoingMessage } from '../interfaces/IMessagingChannel';
 import type { IIntentParser, ParsedIntent } from '../interfaces/IIntentParser';
 import type { IConversationStore, ChatSession } from '../interfaces/IConversationStore';
@@ -12,6 +13,15 @@ import type { IConversationStore, ChatSession } from '../interfaces/IConversatio
 export const CONVERSATION_STORE = 'IConversationStore';
 export const INTENT_PARSER = 'IIntentParser';
 export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
+
+const REGISTRATION_PROMPT =
+  `Welcome to Kaba! Your account is not linked to this chat.\n\n` +
+  `To get started:\n` +
+  `1. Create an account at app.sika.app\n` +
+  `2. Reply: LINK <your email>\n\n` +
+  `Example: LINK amara@gmail.com`;
+
+const LINK_COMMAND = /^link\s+(\S+@\S+\.\S+)$/i;
 
 @Injectable()
 export class ChatOrchestrator {
@@ -21,6 +31,7 @@ export class ChatOrchestrator {
     @Inject(CONVERSATION_STORE) private readonly store: IConversationStore,
     @Inject(INTENT_PARSER) private readonly intentParser: IIntentParser,
     @Inject(MESSAGING_CHANNELS) private readonly channels: IMessagingChannel[],
+    private readonly userResolver: ChatUserResolver,
     private readonly ledgerService: LedgerService,
     private readonly invoiceService: InvoiceService,
     private readonly debtService: DebtService,
@@ -38,18 +49,30 @@ export class ChatOrchestrator {
     }
 
     let session = await this.store.get(sessionId);
+
     if (!session) {
-      // New session — in production, businessId is resolved from a channel-user registry.
-      // Until that registration flow exists, channelUserId acts as a placeholder businessId.
+      // First message — attempt auto-resolution (works for WhatsApp phone numbers).
+      const resolved = await this.userResolver.resolveByChannelUserId(
+        incoming.channelUserId,
+        incoming.channel,
+      );
       session = {
         id: sessionId,
-        businessId: incoming.channelUserId,
-        userId: incoming.channelUserId,
+        businessId: resolved?.businessId ?? '',
+        userId: resolved?.userId ?? '',
         channel: incoming.channel,
         channelUserId: incoming.channelUserId,
         history: [],
+        linked: !!resolved,
         updatedAt: new Date().toISOString(),
       };
+    }
+
+    // Gate all intents behind account linking.
+    if (!session.linked) {
+      const reply = await this.handleUnlinkedSession(session, incoming);
+      await this.persistAndSend(session, incoming.text ?? '', reply, channel, incoming.channelUserId);
+      return;
     }
 
     const text = incoming.text ?? '';
@@ -65,15 +88,66 @@ export class ChatOrchestrator {
       reply = 'Sorry, something went wrong. Please try again.';
     }
 
-    // Persist history, keeping last 20 messages
-    session.history.push({ role: 'user', text, ts: new Date().toISOString() });
+    await this.persistAndSend(session, text, reply, channel, incoming.channelUserId);
+  }
+
+  /**
+   * Handle messages from users who are not yet linked to a Kaba account.
+   * Supports the LINK <email> command to connect a channel user to their account.
+   */
+  private async handleUnlinkedSession(
+    session: ChatSession,
+    incoming: IncomingMessage,
+  ): Promise<string> {
+    const text = (incoming.text ?? '').trim();
+    const match = text.match(LINK_COMMAND);
+
+    if (!match) {
+      return REGISTRATION_PROMPT;
+    }
+
+    const email = match[1];
+    this.logger.log(`LINK attempt for session ${session.id} with email ${email}`);
+
+    const resolved = await this.userResolver.resolveByEmail(email);
+    if (!resolved) {
+      return (
+        `No Kaba account found for ${email}.\n\n` +
+        `Sign up at app.sika.app, then try: LINK ${email}`
+      );
+    }
+
+    // Link the session to the real Kaba account.
+    session.businessId = resolved.businessId;
+    session.userId = resolved.userId;
+    session.linked = true;
+
+    return (
+      `Linked! Your Kaba account is now connected.\n\n` +
+      `You can now ask me:\n` +
+      `• "Check my balance"\n` +
+      `• "I sold [item] for [amount]"\n` +
+      `• "List unpaid invoices"\n` +
+      `• "My trust score"\n` +
+      `• "Monthly report"`
+    );
+  }
+
+  private async persistAndSend(
+    session: ChatSession,
+    userText: string,
+    reply: string,
+    channel: IMessagingChannel,
+    channelUserId: string,
+  ): Promise<void> {
+    session.history.push({ role: 'user', text: userText, ts: new Date().toISOString() });
     session.history.push({ role: 'bot', text: reply, ts: new Date().toISOString() });
     if (session.history.length > 20) session.history = session.history.slice(-20);
     session.updatedAt = new Date().toISOString();
     session.pendingIntent = undefined;
     await this.store.save(session);
 
-    const outgoing: OutgoingMessage = { channelUserId: incoming.channelUserId, text: reply };
+    const outgoing: OutgoingMessage = { channelUserId, text: reply };
     await channel.send(outgoing);
   }
 
@@ -157,8 +231,6 @@ export class ChatOrchestrator {
         );
       }
 
-      // generate_invoice and send_invoice require a full conversation flow
-      // (customer lookup, line-item collection) — stub response for now.
       case 'generate_invoice':
         return 'Invoice creation via chat is coming soon. Use the Kaba app to create invoices for now.';
 

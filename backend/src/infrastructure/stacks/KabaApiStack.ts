@@ -147,6 +147,66 @@ export class KabaApiStack extends cdk.Stack {
       );
     }
 
+    // WhatsApp webhook Lambda: handles Meta verification + incoming messages
+    const whatsappWebhookAsset = path.join(__dirname, '../../../dist/lambda/whatsapp-webhook');
+    const whatsappWebhookLambda = new lambda.Function(this, 'WhatsAppWebhookLambda', {
+      functionName: `${resourcePrefix}-whatsapp-webhook`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(whatsappWebhookAsset),
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
+      environment: {
+        NODE_ENV: environment === 'prod' ? 'production' : 'development',
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+        DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        DYNAMODB_INVOICES_TABLE: invoicesTable.tableName,
+        DYNAMODB_INVENTORY_TABLE: inventoryTable.tableName,
+        DYNAMODB_AUDIT_LOGS_TABLE: auditLogsTable.tableName,
+        DYNAMODB_USERS_TABLE: usersTable.tableName,
+        DYNAMODB_IDEMPOTENCY_TABLE: idempotencyTable.tableName,
+        WHATSAPP_TOKEN: process.env['WHATSAPP_TOKEN'] ?? '',
+        WHATSAPP_PHONE_NUMBER_ID: process.env['WHATSAPP_PHONE_NUMBER_ID'] ?? '',
+        WHATSAPP_APP_SECRET: process.env['WHATSAPP_APP_SECRET'] ?? '',
+        WHATSAPP_VERIFY_TOKEN: process.env['WHATSAPP_VERIFY_TOKEN'] ?? '',
+      },
+    });
+    ledgerTable.grantReadWriteData(whatsappWebhookLambda);
+    invoicesTable.grantReadWriteData(whatsappWebhookLambda);
+    inventoryTable.grantReadWriteData(whatsappWebhookLambda);
+    auditLogsTable.grantReadWriteData(whatsappWebhookLambda);
+    usersTable.grantReadWriteData(whatsappWebhookLambda);
+    idempotencyTable.grantReadWriteData(whatsappWebhookLambda);
+
+    // Telegram webhook Lambda: handles incoming Telegram updates
+    const telegramWebhookAsset = path.join(__dirname, '../../../dist/lambda/telegram-webhook');
+    const telegramWebhookLambda = new lambda.Function(this, 'TelegramWebhookLambda', {
+      functionName: `${resourcePrefix}-telegram-webhook`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(telegramWebhookAsset),
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 512,
+      environment: {
+        NODE_ENV: environment === 'prod' ? 'production' : 'development',
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: '1',
+        DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        DYNAMODB_INVOICES_TABLE: invoicesTable.tableName,
+        DYNAMODB_INVENTORY_TABLE: inventoryTable.tableName,
+        DYNAMODB_AUDIT_LOGS_TABLE: auditLogsTable.tableName,
+        DYNAMODB_USERS_TABLE: usersTable.tableName,
+        DYNAMODB_IDEMPOTENCY_TABLE: idempotencyTable.tableName,
+        TELEGRAM_BOT_TOKEN: process.env['TELEGRAM_BOT_TOKEN'] ?? '',
+        TELEGRAM_WEBHOOK_SECRET: process.env['TELEGRAM_WEBHOOK_SECRET'] ?? '',
+      },
+    });
+    ledgerTable.grantReadWriteData(telegramWebhookLambda);
+    invoicesTable.grantReadWriteData(telegramWebhookLambda);
+    inventoryTable.grantReadWriteData(telegramWebhookLambda);
+    auditLogsTable.grantReadWriteData(telegramWebhookLambda);
+    usersTable.grantReadWriteData(telegramWebhookLambda);
+    idempotencyTable.grantReadWriteData(telegramWebhookLambda);
+
     // OpenRouter API key for AI (when provider=openrouter). Create secret before deploy.
     if (config.ai?.provider === 'openrouter') {
       const openRouterSecretName = `kaba/${environment}/openrouter-api-key`;
@@ -241,6 +301,24 @@ export class KabaApiStack extends cdk.Stack {
       requestParameters: {
         'method.request.path.proxy': true,
       },
+    });
+
+    // Webhook routes: /webhooks/whatsapp (GET + POST) and /webhooks/telegram (POST)
+    const webhooksResource = restApi.root.addResource('webhooks');
+
+    const whatsappWebhookResource = webhooksResource.addResource('whatsapp');
+    const whatsappIntegration = new apigateway.LambdaIntegration(whatsappWebhookLambda, { proxy: true });
+    whatsappWebhookResource.addMethod('GET', whatsappIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    whatsappWebhookResource.addMethod('POST', whatsappIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    const telegramWebhookResource = webhooksResource.addResource('telegram');
+    const telegramIntegration = new apigateway.LambdaIntegration(telegramWebhookLambda, { proxy: true });
+    telegramWebhookResource.addMethod('POST', telegramIntegration, {
+      authorizationType: apigateway.AuthorizationType.NONE,
     });
 
     // OAuth callback URL for Lambda (must match Google Console authorized redirect URIs)
