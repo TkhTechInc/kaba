@@ -95,6 +95,10 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.ai?.provider === 'openrouter' && {
           OPENROUTER_API_KEY_SECRET_NAME: `kaba/${environment}/openrouter-api-key`,
         }),
+        // Whisper STT — optional, enables audio upload path
+        ...(config.ai?.whisperEnabled && {
+          OPENAI_API_KEY_SECRET_NAME: `kaba/${environment}/openai-api-key`,
+        }),
         ...(config.paymentsServiceUrl && {
           PAYMENTS_SERVICE_URL: config.paymentsServiceUrl,
         }),

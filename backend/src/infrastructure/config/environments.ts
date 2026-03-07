@@ -57,6 +57,8 @@ export interface EnvironmentConfig {
     visionModel?: string;
     /** Embeddings — default: Qwen3 Embedding 8B */
     embeddingModel?: string;
+    /** Enable Whisper STT via OpenAI API (requires OPENAI_API_KEY secret in Secrets Manager) */
+    whisperEnabled?: boolean;
   };
   database?: {
     useOnDemand: boolean;

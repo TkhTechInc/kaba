@@ -13,6 +13,7 @@ import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filt
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
+import { VoiceEntryButton } from "@/components/ui/VoiceEntryButton";
 
 export default function LedgerPage() {
   const { t } = useLocale();
@@ -35,6 +36,7 @@ export default function LedgerPage() {
     "all"
   );
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
   const api = createLedgerApi(token);
 
@@ -97,6 +99,12 @@ export default function LedgerPage() {
     <>
       <Breadcrumb pageName={t("ledger.title")} />
 
+      {voiceError && (
+        <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">
+          {voiceError}
+        </div>
+      )}
+
       {error && (
         <div className="mb-4 rounded bg-red/10 p-3 text-sm text-red">
           {error}
@@ -143,12 +151,29 @@ export default function LedgerPage() {
               onClear={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
             />
             {canWrite && (
-              <Link
-                href="/ledger/entries/new"
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
-              >
-                {t("ledger.entries.newEntry")}
-              </Link>
+              <>
+                <VoiceEntryButton
+                  token={token}
+                  businessId={businessId}
+                  onSuccess={() => {
+                    // Refresh list and balance after voice entry is saved
+                    setPage(1);
+                    setVoiceError(null);
+                    api.listEntries(businessId, 1, limit, typeFilter).then((r) => {
+                      setEntries(r.data.items);
+                      setTotal(r.data.total);
+                    }).catch(() => null);
+                    api.getBalance(businessId).then((r) => setBalance(r.data)).catch(() => null);
+                  }}
+                  onError={(msg) => setVoiceError(msg)}
+                />
+                <Link
+                  href="/ledger/entries/new"
+                  className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90"
+                >
+                  {t("ledger.entries.newEntry")}
+                </Link>
+              </>
             )}
           </div>
         </div>

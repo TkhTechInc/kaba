@@ -6,6 +6,7 @@ import type { ISpeechToText } from '@/domains/ai/ISpeechToText';
 import { MockLLMProvider } from '@/domains/ai/MockLLMProvider';
 import { MockReceiptExtractor } from '@/domains/ai/MockReceiptExtractor';
 import { MockSpeechToText } from '@/domains/ai/MockSpeechToText';
+import { WhisperSpeechToText } from '@/domains/ai/providers/WhisperSpeechToText';
 import { LLMReceiptExtractor } from '@/domains/ai/LLMReceiptExtractor';
 import { ClaudeProvider } from '@/domains/ai/providers/ClaudeProvider';
 import { OpenAIProvider } from '@/domains/ai/providers/OpenAIProvider';
@@ -197,10 +198,12 @@ function createTaskProvider(
       inject: [ConfigService, AI_VISION_PROVIDER],
     },
 
-    // ── Speech-to-text: always mock (Whisper / AWS Transcribe when ready) ───
+    // ── Speech-to-text: Whisper when OPENAI_API_KEY is set, mock otherwise ──
     {
       provide: AI_SPEECH_TO_TEXT,
       useFactory: (_config: ConfigService): ISpeechToText => {
+        const key = process.env['OPENAI_API_KEY'] || '';
+        if (key) return new WhisperSpeechToText(key);
         return new MockSpeechToText();
       },
       inject: [ConfigService],
