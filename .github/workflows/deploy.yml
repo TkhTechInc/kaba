@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [master, main]
+    branches: [main]
     tags: ["v*"]
 
 concurrency:
@@ -17,7 +17,7 @@ env:
 jobs:
   deploy-dev:
     name: Deploy → Dev
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: dev
     permissions:
