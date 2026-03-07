@@ -14,6 +14,8 @@ import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
 import { VoiceEntryButton } from "@/components/ui/VoiceEntryButton";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 
 export default function LedgerPage() {
   const { t } = useLocale();
@@ -32,6 +34,7 @@ export default function LedgerPage() {
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [typeFilter, setTypeFilter] = useState<"all" | "sale" | "expense">(
     "all"
   );
@@ -50,7 +53,10 @@ export default function LedgerPage() {
         setEntries(r.data.items);
         setTotal(r.data.total);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load entries");
+      })
       .finally(() => setLoading(false));
   }, [businessId, page, limit, typeFilter, dateRange]);
 
@@ -91,6 +97,15 @@ export default function LedgerPage() {
       <>
         <Breadcrumb pageName={t("ledger.title")} />
         <UpgradePrompt feature="Ledger" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("ledger.title")} />
+        <PermissionDenied resource="Ledger" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

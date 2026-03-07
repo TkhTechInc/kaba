@@ -16,7 +16,8 @@
     "cdk:deploy:staging": "cdk deploy -c environment=staging --all --require-approval never",
     "cdk:deploy:prod": "cdk deploy -c environment=prod --all --require-approval broadening",
     "bundle": "node scripts/bundle-lambda.js",
-    "seed": "ts-node -r tsconfig-paths/register scripts/seed.ts"
+    "seed": "ts-node -r tsconfig-paths/register scripts/seed.ts",
+    "fix-dev": "ts-node -r tsconfig-paths/register scripts/fix-dev-user.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.882.0",

@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
 import { Price } from "@/components/ui/Price";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 export default function PendingApprovalsPage() {
@@ -14,6 +16,7 @@ export default function PendingApprovalsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const api = createInvoicesApi(token);
@@ -24,7 +27,10 @@ export default function PendingApprovalsPage() {
     api
       .listPendingApproval(businessId)
       .then((r) => setInvoices(r.data.items))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load pending approvals");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -44,6 +50,15 @@ export default function PendingApprovalsPage() {
       setApprovingId(null);
     }
   };
+
+  if (forbidden) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("invoices.status.pendingApproval")} />
+        <PermissionDenied resource="Pending Approvals" backHref="/invoices" backLabel="Back to Invoices" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">

@@ -57,7 +57,21 @@ export class OnboardingAIService {
 
     const prompt = `The user is setting up their business in West Africa. They said: "${message}"
 
-Extract any business name, business type, country, currency, or tax regime from their message. Use West African country codes (NG, GH, BJ, SN, CI, TG, etc.) and currencies (NGN, GHS, XOF, etc.). If unclear, omit the field.`;
+Extract any business name, business type, country, currency, or tax regime from their message.
+
+Country → Currency mapping (always infer currency when country is known):
+- NG (Nigeria) → NGN
+- GH (Ghana) → GHS
+- BJ (Benin) → XOF
+- SN (Senegal) → XOF
+- CI (Côte d'Ivoire) → XOF
+- TG (Togo) → XOF
+- ML (Mali) → XOF
+- NE (Niger) → XOF
+- BF (Burkina Faso) → XOF
+- CM (Cameroon) → XAF
+
+If the user mentions a country, ALWAYS include the corresponding currency. If unclear, omit the field.`;
 
     const result = await this.llm.generateStructured<OnboardingAISuggestion>({
       prompt,

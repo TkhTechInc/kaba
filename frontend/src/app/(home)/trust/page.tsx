@@ -7,6 +7,8 @@ import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { createTrustApi } from "@/services/trust.service";
 import type { TrustScoreResult } from "@/services/trust.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 export default function TrustPage() {
@@ -16,6 +18,7 @@ export default function TrustPage() {
   const [score, setScore] = useState<TrustScoreResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [sharing, setSharing] = useState(false);
 
@@ -28,7 +31,10 @@ export default function TrustPage() {
     api
       .getMyScore(businessId)
       .then((res) => setScore(res.data))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load trust score");
+      })
       .finally(() => setLoading(false));
   }, [businessId]);
 
@@ -75,6 +81,15 @@ export default function TrustPage() {
       <>
         <Breadcrumb pageName={t("trust.pageName")} />
         <UpgradePrompt feature="Trust score (Sika Trust)" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("trust.pageName")} />
+        <PermissionDenied resource="Trust Score" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

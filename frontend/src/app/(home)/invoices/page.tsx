@@ -10,6 +10,8 @@ import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -28,6 +30,7 @@ export default function InvoicesPage() {
   const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [paymentLinkId, setPaymentLinkId] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
@@ -45,7 +48,10 @@ export default function InvoicesPage() {
         setInvoices(r.data.items);
         setTotal(r.data.total);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load invoices");
+      })
       .finally(() => setLoading(false));
   }, [businessId, page, limit, statusFilter, dateRange]);
 
@@ -95,6 +101,15 @@ export default function InvoicesPage() {
       <>
         <Breadcrumb pageName={t("invoices.title")} />
         <UpgradePrompt feature="Invoicing" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("invoices.title")} />
+        <PermissionDenied resource="Invoices" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

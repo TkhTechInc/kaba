@@ -7,6 +7,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useLocale } from "@/contexts/locale-context";
 import { createWebhooksApi } from "@/services/webhooks.service";
 import type { Webhook } from "@/services/webhooks.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 
 export default function WebhooksPage() {
   const { token, businessId } = useAuth();
@@ -18,6 +20,7 @@ export default function WebhooksPage() {
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [unregistering, setUnregistering] = useState<string | null>(null);
 
   const api = createWebhooksApi(token);
@@ -29,7 +32,8 @@ export default function WebhooksPage() {
       const res = await api.list(businessId);
       setWebhooks((res as { success: boolean; data: Webhook[] }).data ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("webhooks.error.load"));
+      if (e instanceof ApiError && e.status === 403) setForbidden(true);
+      else setError(e instanceof Error ? e.message : t("webhooks.error.load"));
     } finally {
       setLoading(false);
     }
@@ -53,11 +57,14 @@ export default function WebhooksPage() {
     }
   };
 
-  if (!canRead) {
+  if (!canRead || forbidden) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-        {t("webhooks.noPermission")}
-      </div>
+      <PermissionDenied
+        resource="Webhooks"
+        hint={forbidden ? undefined : t("webhooks.noPermission")}
+        backHref="/settings"
+        backLabel="Back to Settings"
+      />
     );
   }
 

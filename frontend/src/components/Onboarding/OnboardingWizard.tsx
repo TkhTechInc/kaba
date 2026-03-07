@@ -34,6 +34,19 @@ const CURRENCIES = [
   { value: "XAF", label: "XAF (CFA Franc)" },
 ];
 
+const COUNTRY_DEFAULT_CURRENCY: Record<string, string> = {
+  NG: "NGN",
+  GH: "GHS",
+  BJ: "XOF",
+  SN: "XOF",
+  CI: "XOF",
+  TG: "XOF",
+  ML: "XOF",
+  NE: "XOF",
+  BF: "XOF",
+  CM: "XAF",
+};
+
 const TAX_REGIMES = [
   { value: "vat", label: "VAT registered" },
   { value: "simplified", label: "Simplified tax" },
@@ -118,23 +131,45 @@ export function OnboardingWizard({
   }, [data?.answers]);
 
   React.useEffect(() => {
-    if (appliedSuggestions) {
-      if (appliedSuggestions.businessName != null) setBusinessName(appliedSuggestions.businessName);
-      if (appliedSuggestions.businessType != null) setBusinessType(appliedSuggestions.businessType);
-      if (appliedSuggestions.country != null) setCountry(appliedSuggestions.country);
-      if (appliedSuggestions.currency != null) setCurrency(appliedSuggestions.currency);
-      if (appliedSuggestions.taxRegime != null) setTaxRegime(appliedSuggestions.taxRegime);
-      if (appliedSuggestions.businessAddress != null) setBusinessAddress(appliedSuggestions.businessAddress);
-      if (appliedSuggestions.businessPhone != null) setBusinessPhone(appliedSuggestions.businessPhone);
-      if (appliedSuggestions.fiscalYearStart != null) setFiscalYearStart(String(appliedSuggestions.fiscalYearStart));
+    if (!appliedSuggestions) return;
+    if (appliedSuggestions.businessName != null) setBusinessName(appliedSuggestions.businessName);
+    if (appliedSuggestions.businessType != null) setBusinessType(appliedSuggestions.businessType);
+    if (appliedSuggestions.country != null) {
+      setCountry(appliedSuggestions.country);
+      // Auto-fill currency from country if AI didn't suggest one
+      if (appliedSuggestions.currency == null) {
+        const defaultCurrency = COUNTRY_DEFAULT_CURRENCY[appliedSuggestions.country];
+        if (defaultCurrency) setCurrency(defaultCurrency);
+      }
     }
+    if (appliedSuggestions.currency != null) setCurrency(appliedSuggestions.currency);
+    if (appliedSuggestions.taxRegime != null) setTaxRegime(appliedSuggestions.taxRegime);
+    if (appliedSuggestions.businessAddress != null) setBusinessAddress(appliedSuggestions.businessAddress);
+    if (appliedSuggestions.businessPhone != null) setBusinessPhone(appliedSuggestions.businessPhone);
+    if (appliedSuggestions.fiscalYearStart != null) setFiscalYearStart(String(appliedSuggestions.fiscalYearStart));
+
+    // Jump to the step that contains the suggested field so the user sees it filled in
+    const hasStep1 = appliedSuggestions.businessName != null || appliedSuggestions.businessType != null;
+    const hasStep2 = appliedSuggestions.country != null || appliedSuggestions.currency != null;
+    const hasStep3 = appliedSuggestions.taxRegime != null;
+    const hasStep4 = appliedSuggestions.businessAddress != null || appliedSuggestions.businessPhone != null || appliedSuggestions.fiscalYearStart != null;
+
+    if (hasStep4) setStep(4);
+    else if (hasStep3) setStep(3);
+    else if (hasStep2) setStep(2);
+    else if (hasStep1) setStep(1);
   }, [appliedSuggestions]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name === "businessName") setBusinessName(value);
     if (name === "businessType") setBusinessType(value);
-    if (name === "country") setCountry(value);
+    if (name === "country") {
+      setCountry(value);
+      // Auto-fill currency when country is selected and currency not yet chosen
+      const defaultCurrency = COUNTRY_DEFAULT_CURRENCY[value];
+      if (defaultCurrency) setCurrency(defaultCurrency);
+    }
     if (name === "currency") setCurrency(value);
     if (name === "taxRegime") setTaxRegime(value);
     if (name === "businessAddress") setBusinessAddress(value);
@@ -372,7 +407,18 @@ export function OnboardingWizard({
         <p className="mt-4 text-body-sm text-red" role="alert">{error}</p>
       )}
 
-      <div className="mt-8 flex flex-wrap gap-3">
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        {step > 1 && (
+          <button
+            type="button"
+            onClick={() => setStep((s) => (s - 1) as WizardStep)}
+            disabled={loading}
+            className="flex items-center gap-1 rounded-lg border border-stroke px-6 py-3 font-medium text-dark transition hover:bg-gray-2 disabled:opacity-70 dark:border-dark-3 dark:text-white dark:hover:bg-dark-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark-2"
+            aria-label="Go back to previous step"
+          >
+            ← Back
+          </button>
+        )}
         <button
           type="button"
           onClick={saveAndNext}

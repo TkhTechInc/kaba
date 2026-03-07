@@ -496,6 +496,8 @@ export class AuthService {
       user = {
         id: userId,
         email: email?.toLowerCase().trim(),
+        name: name ?? undefined,
+        picture: picture ?? undefined,
         provider,
         providerId,
         role: this.resolveRole(email) ? 'admin' : 'user',
@@ -504,6 +506,19 @@ export class AuthService {
         updatedAt: now,
       };
       await this.userRepo.create(user);
+    } else {
+      // Refresh name/picture on every login so they stay in sync with the provider
+      const nameChanged = name && name !== user.name;
+      const pictureChanged = picture && picture !== user.picture;
+      if (nameChanged || pictureChanged) {
+        user = {
+          ...user,
+          ...(name && { name }),
+          ...(picture && { picture }),
+          updatedAt: new Date().toISOString(),
+        };
+        await this.userRepo.update(user);
+      }
     }
 
     await this.ensureDefaultBusiness(user.id);
@@ -516,26 +531,34 @@ export class AuthService {
 
     const role = user.role ?? (this.resolveRole(user.email) ? 'admin' : 'user');
     const emailVerified = user.emailVerified ?? true;
-    const payload = { sub: user.id, email: user.email, role, emailVerified, name: name ?? undefined, picture: picture ?? undefined };
+    const resolvedName = user.name ?? name ?? undefined;
+    const resolvedPicture = user.picture ?? picture ?? undefined;
+    const payload = { sub: user.id, email: user.email, role, emailVerified, name: resolvedName, picture: resolvedPicture };
     const accessToken = this.jwtService.sign(payload);
     return {
       accessToken,
-      user: { id: user.id, email: user.email, name: name ?? undefined, picture: picture ?? undefined, emailVerified, ...(role && { role }) },
+      user: { id: user.id, email: user.email, name: resolvedName, picture: resolvedPicture, emailVerified, ...(role && { role }) },
     };
   }
 
   private async ensureDefaultBusiness(userId: string): Promise<void> {
-    const businesses = await this.teamMemberRepo.listBusinessesForUser(userId);
-    if (businesses.length > 0) return;
+    try {
+      const businesses = await this.teamMemberRepo.listBusinessesForUser(userId);
+      if (businesses.length > 0) return;
 
-    const businessId = `biz_${uuidv4().slice(0, 8)}`;
-    await this.businessRepo.getOrCreate(businessId);
-    await this.teamMemberRepo.addBusinessMember({
-      userId,
-      businessId,
-      role: 'owner',
-      createdAt: new Date().toISOString(),
-    });
+      const businessId = `biz_${uuidv4().slice(0, 8)}`;
+      await this.businessRepo.getOrCreate(businessId);
+      await this.teamMemberRepo.addBusinessMember({
+        userId,
+        businessId,
+        role: 'owner',
+        createdAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      // Log prominently — a failure here means the user will see 403 on every request
+      console.error('[AuthService] ensureDefaultBusiness failed for userId=%s: %o', userId, e);
+      throw e;
+    }
   }
 
   private resolveRole(email?: string, phone?: string): 'admin' | null {

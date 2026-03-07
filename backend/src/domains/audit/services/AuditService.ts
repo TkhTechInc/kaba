@@ -1,7 +1,9 @@
+import { Injectable } from '@nestjs/common';
 import { IAuditLogger } from '../interfaces/IAuditLogger';
 import { AuditRepository } from '../repositories/AuditRepository';
 import type { AuditLog, LogAuditInput } from '../models/AuditLog';
 
+@Injectable()
 export class AuditService implements IAuditLogger {
   constructor(private readonly auditRepository: AuditRepository) {}
 

@@ -5,6 +5,17 @@
 
 import { getCached, setCached } from "@/lib/offline-cache";
 
+/** Typed error thrown for non-2xx responses. Check `status` to distinguish 403 from others. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
 const getBaseUrl = () =>
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -34,11 +45,7 @@ async function handleResponse<T>(
     localStorage.removeItem("qb_auth_user");
     localStorage.removeItem("qb_business_id");
     window.location.href = "/auth/sign-in";
-    throw new Error("Unauthorized");
-  }
-  if (res.status === 403 && typeof window !== "undefined") {
-    window.location.href = "/";
-    throw new Error("Forbidden");
+    throw new ApiError("Unauthorized", 401);
   }
 
   const contentType = res.headers.get("content-type");
@@ -64,7 +71,7 @@ async function handleResponse<T>(
     } catch {
       message = text || res.statusText;
     }
-    throw new Error(message || `Request failed: ${res.status}`);
+    throw new ApiError(message || `Request failed: ${res.status}`, res.status);
   }
 
   if (isJson && text) {

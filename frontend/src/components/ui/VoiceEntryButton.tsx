@@ -56,6 +56,10 @@ export function VoiceEntryButton({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  // Ref so the onend closure always sees the latest transcript, not the stale closure value
+  const transcriptRef = useRef("");
+  // Set to true by onerror so onend (which always fires after onerror) doesn't double-fire
+  const speechErroredRef = useRef(false);
 
   const api = createAiApi(token);
 
@@ -78,6 +82,7 @@ export function VoiceEntryButton({
 
       try {
         const res = await api.voiceToTransactionFromText(businessId, text, currency);
+        // api.post<T> returns ApiResponse<T> = { success, data: T }
         const result = res.data;
         if (result.success && result.entry) {
           setState("done");
@@ -150,8 +155,12 @@ export function VoiceEntryButton({
     const recognition = new SpeechRecognitionCtor();
     recognition.continuous = false;
     recognition.interimResults = true;
-    // No lang set — auto-detect. Users can speak Fon, Yoruba, French, English.
+    // Chrome requires an explicit lang — without it recognition silently returns empty.
+    // fr-FR gives best coverage for West African French/Fon/Yoruba code-switching.
+    recognition.lang = navigator.language || "fr-FR";
     recognition.maxAlternatives = 1;
+
+    speechErroredRef.current = false;
 
     recognition.onstart = () => {
       setState("listening");
@@ -166,18 +175,17 @@ export function VoiceEntryButton({
         if (r.isFinal) final += r[0].transcript;
         else interim += r[0].transcript;
       }
-      setTranscript(final || interim);
-    };
-
-    recognition.onend = () => {
-      const finalText = recognitionRef.current
-        ? transcript
-        : "";
-      recognitionRef.current = null;
-      sendText(finalText || transcript);
+      const text = final || interim;
+      transcriptRef.current = text;
+      setTranscript(text);
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      // Mark errored so onend (which always fires after onerror) skips sendText
+      speechErroredRef.current = true;
+      recognitionRef.current = null;
+      transcriptRef.current = "";
+
       if (event.error === "no-speech") {
         setState("error");
         setStatusMessage("No speech detected. Try again.");
@@ -197,10 +205,22 @@ export function VoiceEntryButton({
       }, 3000);
     };
 
+    recognition.onend = () => {
+      // onerror always triggers onend — skip if we already handled the error
+      if (speechErroredRef.current) {
+        speechErroredRef.current = false;
+        return;
+      }
+      const text = transcriptRef.current;
+      transcriptRef.current = "";
+      recognitionRef.current = null;
+      sendText(text);
+    };
+
     recognitionRef.current = recognition;
     recognition.start();
     return true;
-  }, [onError, sendText, transcript]);
+  }, [onError, sendText]);
 
   // ── MediaRecorder fallback path ───────────────────────────────────────────
 
@@ -252,6 +272,8 @@ export function VoiceEntryButton({
 
     setTranscript("");
     setStatusMessage("");
+    transcriptRef.current = "";
+    speechErroredRef.current = false;
 
     if (hasWebSpeech()) {
       startWebSpeech();

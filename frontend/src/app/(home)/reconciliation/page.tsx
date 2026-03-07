@@ -7,6 +7,8 @@ import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createReconciliationApi } from "@/services/reconciliation.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useState } from "react";
 import Link from "next/link";
 
@@ -17,6 +19,7 @@ export default function ReconciliationPage() {
   const [smsText, setSmsText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [result, setResult] = useState<import("@/services/reconciliation.service").MobileMoneyReconResult | null>(null);
 
   const api = createReconciliationApi(token);
@@ -33,7 +36,10 @@ export default function ReconciliationPage() {
         setResult(r);
         setSmsText("");
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to reconcile");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -64,6 +70,15 @@ export default function ReconciliationPage() {
       <>
         <Breadcrumb pageName={t("mobileMoney.pageName")} />
         <UpgradePrompt feature="Mobile money reconciliation" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("mobileMoney.pageName")} />
+        <PermissionDenied resource="Mobile Money Reconciliation" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

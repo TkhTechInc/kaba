@@ -115,12 +115,25 @@ export function OnboardingAIChat({
             )}
             {hasSuggestions && (
               <div className="mt-3">
-                <p className="mb-2 text-body-xs font-medium text-dark-6 dark:text-dark-6">
-                  Apply to form:
-                </p>
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-body-xs font-medium text-dark-6 dark:text-dark-6">
+                    Apply to form:
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const all: Partial<OnboardingAISuggestion> = {};
+                      DISPLAY_KEYS.forEach((k) => { if (lastSuggestion![k]) all[k] = lastSuggestion![k]; });
+                      onApplySuggestion(all);
+                    }}
+                    className="text-body-xs font-medium text-primary underline hover:text-primary/80"
+                  >
+                    Apply all
+                  </button>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {DISPLAY_KEYS.map((key) => {
-                    const val = lastSuggestion[key];
+                    const val = lastSuggestion![key];
                     if (!val) return null;
                     return (
                       <button

@@ -7,6 +7,8 @@ import { useLocale } from "@/contexts/locale-context";
 import { createReportsApi } from "@/services/reports.service";
 import { listOrganizations, type OrganizationAccess } from "@/services/access.service";
 import { Price } from "@/components/ui/Price";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useState, useEffect } from "react";
 
 export default function ConsolidatedReportPage() {
@@ -22,6 +24,7 @@ export default function ConsolidatedReportPage() {
   const [loading, setLoading] = useState(false);
   const [loadingOrgs, setLoadingOrgs] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [report, setReport] = useState<Awaited<ReturnType<ReturnType<typeof createReportsApi>["getConsolidatedPL"]>>["data"] | null>(null);
 
   const api = createReportsApi(token);
@@ -41,12 +44,24 @@ export default function ConsolidatedReportPage() {
     api
       .getConsolidatedPL(orgId.trim(), fromDate, toDate)
       .then((r) => setReport(r.data))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load consolidated report");
+      })
       .finally(() => setLoading(false));
   };
 
   const colorClass = (n: number) =>
     n >= 0 ? "text-green-600" : "text-red-600";
+
+  if (forbidden) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
+        <PermissionDenied resource="Consolidated Reports" backHref="/reports" backLabel="Back to Reports" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">

@@ -7,6 +7,8 @@ import { usePermissions } from "@/hooks/use-permissions";
 import { useLocale } from "@/contexts/locale-context";
 import { createApiKeysApi, API_KEY_SCOPES } from "@/services/api-keys.service";
 import type { ApiKey, CreateApiKeyResult } from "@/services/api-keys.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 
 export default function ApiKeysPage() {
   const { token, businessId } = useAuth();
@@ -18,6 +20,7 @@ export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [name, setName] = useState("");
   const [scopes, setScopes] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
@@ -31,12 +34,17 @@ export default function ApiKeysPage() {
   const load = useCallback(async () => {
     if (!businessId) return;
     setLoading(true);
+    setForbidden(false);
     try {
       const res = await api.list(businessId);
       const list = (res as { success?: boolean; data?: ApiKey[] }).data ?? [];
       setKeys(Array.isArray(list) ? list.filter((k): k is ApiKey => k != null && typeof k === "object") : []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("apiKeys.error.load"));
+      if (e instanceof ApiError && e.status === 403) {
+        setForbidden(true);
+      } else {
+        setError(e instanceof Error ? e.message : t("apiKeys.error.load"));
+      }
     } finally {
       setLoading(false);
     }
@@ -100,11 +108,18 @@ export default function ApiKeysPage() {
     }
   };
 
-  if (!canRead) {
+  if (!canRead || forbidden) {
     return (
-      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
-        {t("apiKeys.noPermission")}
-      </div>
+      <PermissionDenied
+        resource="API Keys"
+        hint={
+          forbidden
+            ? "Your current plan or role doesn't allow managing API keys. Upgrade your plan or ask your workspace owner for access."
+            : t("apiKeys.noPermission")
+        }
+        backHref="/settings"
+        backLabel="Back to Settings"
+      />
     );
   }
 

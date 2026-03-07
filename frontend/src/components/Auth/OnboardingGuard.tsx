@@ -16,7 +16,7 @@ export function OnboardingGuard({ children }: { children: ReactNode }) {
   const businessId = auth?.businessId ?? null;
   const authLoading = auth?.isLoading ?? true;
   const hasBusinesses = (auth?.businesses?.length ?? 0) > 0;
-  const { data, loading } = useOnboarding(businessId);
+  const { data, loading, error } = useOnboarding(businessId);
 
   const isOnboardingPage = pathname === "/onboarding";
 
@@ -25,21 +25,23 @@ export function OnboardingGuard({ children }: { children: ReactNode }) {
     if (authLoading) return;           // wait for auth to hydrate first
     if (!hasBusinesses || !businessId) return;
     if (loading) return;               // wait for onboarding fetch
-    if (data?.isComplete) return;      // already done — show dashboard
+    if (error) return;                 // fetch failed (e.g. 403) — don't redirect, stay on current page
+    if (data === null) return;         // no data yet — stay put
+    if (data.isComplete) return;       // already done — show dashboard
     router.replace("/onboarding");
   // router excluded — not stable in Next.js App Router
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOnboardingPage, authLoading, hasBusinesses, businessId, loading, data?.isComplete]);
+  }, [isOnboardingPage, authLoading, hasBusinesses, businessId, loading, error, data]);
 
   if (isOnboardingPage) {
     return <>{children}</>;
   }
 
   // Block rendering until auth has hydrated AND onboarding status is known.
-  // This prevents a flash of dashboard content before a redirect to /onboarding.
+  // On error, show content anyway — don't block the user indefinitely.
   const notReady =
     authLoading ||
-    (hasBusinesses && businessId && loading && data === null);
+    (hasBusinesses && businessId && loading && data === null && !error);
 
   if (notReady) {
     return (

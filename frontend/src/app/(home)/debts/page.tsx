@@ -9,6 +9,8 @@ import { Price } from "@/components/ui/Price";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -24,6 +26,7 @@ export default function DebtsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
@@ -41,7 +44,10 @@ export default function DebtsPage() {
         setDebts(r.data.items);
         setTotal(r.data.total);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load debts");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -103,6 +109,15 @@ export default function DebtsPage() {
       <>
         <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
         <UpgradePrompt feature="Debt tracker" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
+        <PermissionDenied resource="Debts" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

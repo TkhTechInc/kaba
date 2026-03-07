@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
 import { usePermissions } from "@/hooks/use-permissions";
 import { apiUrl } from "@/lib/api";
+import { ApiError } from "@/lib/api-client";
+import { PermissionDenied } from "@/components/ui/permission-denied";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -36,11 +38,13 @@ type AuditResponse = {
 
 async function fetchActivity(
   token: string,
+  businessId: string,
   from?: string,
   to?: string,
   lastKey?: Record<string, unknown>
 ): Promise<AuditResponse["data"]> {
   const params = new URLSearchParams();
+  params.set("businessId", businessId);
   if (from) params.set("from", from);
   if (to) params.set("to", to);
   if (lastKey) params.set("lastEvaluatedKey", encodeURIComponent(JSON.stringify(lastKey)));
@@ -49,7 +53,7 @@ async function fetchActivity(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string };
-    throw new Error(err.message ?? `Failed to load activity: ${res.status}`);
+    throw new ApiError(err.message ?? `Failed to load activity: ${res.status}`, res.status);
   }
   const json = await res.json() as AuditResponse;
   return json.data;
@@ -62,7 +66,7 @@ export default function ActivityLogPage() {
   const canView = hasPermission("audit:read" as import("@/types/permissions").Permission);
 
   const SETTINGS_NAV = [
-    { label: t("settings.nav.plans"), href: "/settings" },
+    { label: t("settings.nav.plans"), href: "/settings/plans"},
     { label: t("settings.nav.team"), href: "/settings/team" },
     { label: t("settings.nav.activityLog"), href: "/settings/activity" },
     { label: t("settings.nav.preferences"), href: "/settings/preferences" },
@@ -81,22 +85,24 @@ export default function ActivityLogPage() {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   const load = useCallback(async (append = false, key?: Record<string, unknown>) => {
-    if (!token || !canView) return;
+    if (!token || !businessId || !canView) return;
     append ? setLoadingMore(true) : setLoading(true);
     setError(null);
     try {
-      const data = await fetchActivity(token, from, to, key);
+      const data = await fetchActivity(token, businessId, from, to, key);
       setItems((prev) => (append ? [...prev, ...data.items] : data.items));
       setLastKey(data.lastEvaluatedKey);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("activity.loadError"));
+      if (e instanceof ApiError && e.status === 403) setForbidden(true);
+      else setError(e instanceof Error ? e.message : t("activity.loadError"));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [token, canView, from, to, t]);
+  }, [token, businessId, canView, from, to, t]);
 
   useEffect(() => {
     load();
@@ -122,6 +128,18 @@ export default function ActivityLogPage() {
     if (!action) return "—";
     return action.replace(/\./g, " › ").replace(/_/g, " ");
   };
+
+  if (forbidden) {
+    return (
+      <div>
+        <PermissionDenied
+          resource="Activity Log"
+          backHref="/settings"
+          backLabel="Back to Settings"
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

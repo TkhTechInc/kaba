@@ -9,6 +9,8 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createReportsApi } from "@/services/reports.service";
 import type { CashFlowSummary, PLReport } from "@/services/reports.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 const DEFAULT_DAYS = 30;
@@ -33,6 +35,7 @@ export default function ReportsPage() {
   const [cashFlow, setCashFlow] = useState<CashFlowSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [downloading, setDownloading] = useState<"pl" | "cash" | null>(null);
 
   const api = createReportsApi(token);
@@ -49,7 +52,10 @@ export default function ReportsPage() {
         setPl(plRes.data);
         setCashFlow(cfRes.data);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load reports");
+      })
       .finally(() => setLoading(false));
   }, [businessId, dates.fromDate, dates.toDate]);
 
@@ -98,6 +104,15 @@ export default function ReportsPage() {
       <>
         <Breadcrumb pageName={t("reports.title")} />
         <UpgradePrompt feature="Reports" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("reports.title")} />
+        <PermissionDenied resource="Reports" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

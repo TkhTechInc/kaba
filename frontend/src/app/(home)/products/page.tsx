@@ -12,6 +12,8 @@ import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-siz
 import { SearchIcon } from "@/assets/icons";
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 type StockoutForecast = {
@@ -43,6 +45,7 @@ export default function ProductsPage() {
   const [limit, setLimit] = useState(50);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [forecastModal, setForecastModal] = useState<StockoutForecast | null>(
     null
   );
@@ -61,7 +64,10 @@ export default function ProductsPage() {
         setProducts(r.data.items);
         setTotal(r.data.total);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load products");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -142,6 +148,15 @@ export default function ProductsPage() {
       <>
         <Breadcrumb pageName={t("products.title")} />
         <UpgradePrompt feature="Inventory" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("products.title")} />
+        <PermissionDenied resource="Products" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }

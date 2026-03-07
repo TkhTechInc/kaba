@@ -54,20 +54,20 @@ export class BusinessAuditController {
 
   /**
    * Activity feed for the caller's business.
-   * businessId is always read from the JWT — query-param businessId is IGNORED
-   * to prevent cross-tenant data access.
+   * businessId is read from query param (required for PermissionGuard + tenant isolation).
    */
   @Get('activity')
   @UseGuards(PermissionGuard)
   @RequirePermission('audit:read')
   async getActivity(
     @Request() req: { user: JwtPayload },
+    @Query('businessId') businessIdParam?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('limit') limitStr?: string,
     @Query('lastEvaluatedKey') lastEvaluatedKeyStr?: string,
   ) {
-    const businessId = this.extractBusinessId(req.user);
+    const businessId = businessIdParam?.trim() || this.extractBusinessId(req.user);
     const limit = parseLimit(limitStr, 50, 100);
     const lastEvaluatedKey = parseLastEvaluatedKey(lastEvaluatedKeyStr);
     const result = await this.auditService.queryByBusiness(
@@ -89,7 +89,8 @@ export class BusinessAuditController {
   @RequirePermission('audit:read')
   async getByUser(
     @Request() req: { user: JwtPayload },
-    @Query('userId') userId: string,
+    @Query('businessId') businessIdParam?: string,
+    @Query('userId') userId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('limit') limitStr?: string,
@@ -98,7 +99,7 @@ export class BusinessAuditController {
     if (!userId?.trim()) {
       throw new BadRequestException('userId is required');
     }
-    const businessId = this.extractBusinessId(req.user);
+    const businessId = businessIdParam?.trim() || this.extractBusinessId(req.user);
     const limit = parseLimit(limitStr, 50, 100);
     const lastEvaluatedKey = parseLastEvaluatedKey(lastEvaluatedKeyStr);
     const result = await this.auditService.queryByUserId(
@@ -121,7 +122,8 @@ export class BusinessAuditController {
   @RequirePermission('audit:read')
   async getByEntity(
     @Request() req: { user: JwtPayload },
-    @Query('entityId') entityId: string,
+    @Query('businessId') businessIdParam?: string,
+    @Query('entityId') entityId?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('limit') limitStr?: string,
@@ -130,7 +132,7 @@ export class BusinessAuditController {
     if (!entityId?.trim()) {
       throw new BadRequestException('entityId is required');
     }
-    const businessId = this.extractBusinessId(req.user);
+    const businessId = businessIdParam?.trim() || this.extractBusinessId(req.user);
     const limit = parseLimit(limitStr, 50, 100);
     const lastEvaluatedKey = parseLastEvaluatedKey(lastEvaluatedKeyStr);
     const result = await this.auditService.queryByEntityId(
@@ -153,10 +155,11 @@ export class BusinessAuditController {
   @RequirePermission('audit:read')
   async getAnomalySummary(
     @Request() req: { user: JwtPayload },
+    @Query('businessId') businessIdParam?: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
   ) {
-    const businessId = this.extractBusinessId(req.user);
+    const businessId = businessIdParam?.trim() || this.extractBusinessId(req.user);
     const range = defaultDateRange(from?.trim() || undefined, to?.trim() || undefined);
     const result = await this.auditAnomalyService.getAnomalySummary(
       businessId,

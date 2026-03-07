@@ -10,6 +10,8 @@ import {
   type TeamMember,
   type TeamMemberRole,
 } from "@/services/team.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
@@ -35,6 +37,7 @@ export default function TeamPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
@@ -51,7 +54,8 @@ export default function TeamPage() {
       const list = await listMembers(businessId, token);
       setMembers(list);
     } catch (e) {
-      setError(e instanceof Error ? e.message : t("team.loadError"));
+      if (e instanceof ApiError && e.status === 403) setForbidden(true);
+      else setError(e instanceof Error ? e.message : t("team.loadError"));
     } finally {
       setLoading(false);
     }
@@ -74,11 +78,23 @@ export default function TeamPage() {
     }
   };
 
+  if (forbidden) {
+    return (
+      <div>
+        <PermissionDenied
+          resource="Team Management"
+          backHref="/settings"
+          backLabel="Back to Settings"
+        />
+      </div>
+    );
+  }
+
   return (
     <div>
       <nav className="mb-6 flex flex-wrap gap-2" aria-label="Settings navigation">
         {[
-          { label: t("settings.nav.plans"), href: "/settings" },
+          { label: t("settings.nav.plans"), href: "/settings/plans"},
           { label: t("settings.nav.team"), href: "/settings/team" },
           { label: t("settings.nav.activityLog"), href: "/settings/activity" },
           { label: t("settings.nav.preferences"), href: "/settings/preferences" },

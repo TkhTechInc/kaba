@@ -9,6 +9,8 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createTaxApi } from "@/services/tax.service";
 import type { VATSummary } from "@/services/tax.service";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 
 const DEFAULT_DAYS = 30;
@@ -38,6 +40,7 @@ export default function TaxReportPage() {
   const [vat, setVat] = useState<VATSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
 
   const api = createTaxApi(token);
 
@@ -48,7 +51,10 @@ export default function TaxReportPage() {
     api
       .getVAT(businessId, dates.fromDate, dates.toDate, countryCode)
       .then((res) => setVat(res.data))
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load tax report");
+      })
       .finally(() => setLoading(false));
   }, [businessId, dates.fromDate, dates.toDate, countryCode]);
 
@@ -79,6 +85,15 @@ export default function TaxReportPage() {
       <>
         <Breadcrumb pageName={t("tax.pageName")} />
         <UpgradePrompt feature="Tax / VAT reports" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("tax.pageName")} />
+        <PermissionDenied resource="Tax Reports" backHref="/reports" backLabel="Back to Reports" />
       </>
     );
   }

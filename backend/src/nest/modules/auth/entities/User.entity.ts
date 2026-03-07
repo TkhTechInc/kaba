@@ -16,6 +16,7 @@ export interface User {
   provider: AuthProvider;
   providerId?: string;
   name?: string;
+  picture?: string;
   role?: 'admin' | 'user';
   /** Email verified via verification code (sign-up flow) */
   emailVerified?: boolean;

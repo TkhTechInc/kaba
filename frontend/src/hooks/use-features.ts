@@ -52,6 +52,9 @@ export function invalidateFeaturesCache(businessId: string) {
   deleteOfflineCached(featuresCacheKey(businessId));
 }
 
+/** businessIds that recently 403'd — skip auto-fetch until explicit refetch */
+const PERM_ERROR_CACHE = new Set<string>();
+
 export function useFeatures(businessId: string | null) {
   const auth = useAuthOptional();
   const accessToken = auth?.token ?? null;
@@ -66,6 +69,9 @@ export function useFeatures(businessId: string | null) {
       setData(null);
       return;
     }
+
+    // Clear permission error flag on explicit refetch so the user can retry
+    PERM_ERROR_CACHE.delete(businessId);
 
     const memCached = getMemCached(businessId);
     if (memCached) {
@@ -96,11 +102,16 @@ export function useFeatures(businessId: string | null) {
         setData(null);
       }
     } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      if (err.message === "Forbidden") {
+        // 403 — don't retry automatically, don't thrash the backend
+        PERM_ERROR_CACHE.add(businessId);
+      }
       const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
         featuresCacheKey(businessId)
       );
       setData(offlineCached ?? null);
-      setError(e instanceof Error ? e : new Error(String(e)));
+      setError(err);
     } finally {
       setLoading(false);
     }
@@ -114,6 +125,11 @@ export function useFeatures(businessId: string | null) {
           setData(null);
           setLoading(false);
         }
+        return;
+      }
+      // Skip auto-fetch if a recent 403 occurred — wait for explicit refetch
+      if (PERM_ERROR_CACHE.has(businessId)) {
+        if (!cancelled) setLoading(false);
         return;
       }
       const memCached = getMemCached(businessId);
@@ -152,12 +168,16 @@ export function useFeatures(businessId: string | null) {
           }
         }
       } catch (e) {
+        const err = e instanceof Error ? e : new Error(String(e));
+        if (err.message === "Forbidden") {
+          PERM_ERROR_CACHE.add(businessId);
+        }
         const offlineCached = await getOfflineCached<FeaturesResponse["data"]>(
           featuresCacheKey(businessId)
         );
         if (!cancelled) {
           setData(offlineCached ?? null);
-          setError(e instanceof Error ? e : new Error(String(e)));
+          setError(err);
         }
       } finally {
         if (!cancelled) setLoading(false);

@@ -13,6 +13,8 @@ import {
 import { createReportsApi } from "@/services/reports.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { PermissionDenied } from "@/components/ui/permission-denied";
+import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -36,6 +38,7 @@ export default function CustomersPage() {
   const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [forbidden, setForbidden] = useState(false);
   const [creditModal, setCreditModal] = useState<{ customerId: string; name: string } | null>(null);
   const [creditScore, setCreditScore] = useState<CreditScoreData | null>(null);
   const [creditLoading, setCreditLoading] = useState(false);
@@ -74,7 +77,10 @@ export default function CustomersPage() {
         setCustomers(r.data.items);
         setTotal(r.data.total);
       })
-      .catch((e) => setError(e.message))
+      .catch((e: unknown) => {
+        if (e instanceof ApiError && e.status === 403) setForbidden(true);
+        else setError(e instanceof Error ? e.message : "Failed to load customers");
+      })
       .finally(() => setLoading(false));
   };
 
@@ -109,6 +115,15 @@ export default function CustomersPage() {
       <>
         <Breadcrumb pageName={t("customers.title")} />
         <UpgradePrompt feature="Invoicing" />
+      </>
+    );
+  }
+
+  if (forbidden) {
+    return (
+      <>
+        <Breadcrumb pageName={t("customers.title")} />
+        <PermissionDenied resource="Customers" backHref="/" backLabel="Go to Dashboard" />
       </>
     );
   }
