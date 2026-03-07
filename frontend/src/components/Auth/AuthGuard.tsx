@@ -20,7 +20,9 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     if (!isPublic && !isAuthenticated) {
       router.replace("/auth/sign-in");
     }
-  }, [isAuthenticated, isLoading, isPublic, pathname, router]);
+  // router excluded — not stable in Next.js App Router
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, isLoading, isPublic, pathname]);
 
   if (isLoading) {
     return (

@@ -25,7 +25,10 @@ export function OnboardingGuard({ children }: { children: ReactNode }) {
     if (loading) return;
     if (data?.isComplete) return;
     router.replace("/onboarding");
-  }, [hasBusinesses, businessId, loading, data?.isComplete, isOnboardingPage, router]);
+  // router is intentionally excluded — it is not stable in Next.js App Router
+  // and would cause this effect to re-run on every render
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasBusinesses, businessId, loading, data?.isComplete, isOnboardingPage]);
 
   if (isOnboardingPage) {
     return <>{children}</>;

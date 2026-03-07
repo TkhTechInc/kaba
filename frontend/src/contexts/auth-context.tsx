@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
 import { api, apiPost, apiGetWithOfflineCache } from "@/lib/api-client";
 import { CACHE_KEYS } from "@/lib/offline-cache";
 
@@ -310,37 +310,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setIsLoading(false);
     }
-  }, [refreshBusinesses]);
+  // refreshBusinesses is stable (useCallback with no deps) — run only once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const isAdmin =
     user?.role === "admin" ||
     (token ? decodeJwtRole(token) === "admin" : false);
 
+  // Memoize the context value so consumers only re-render when something actually changes.
+  // Without this, a new object is created every render → every useAuthOptional() consumer
+  // re-renders → cascading infinite loops in hooks that have context values in their deps.
+  const contextValue = useMemo(
+    () => ({
+      token,
+      user,
+      businessId,
+      businesses,
+      isAdmin,
+      setToken,
+      setBusinessId,
+      sendOtp,
+      sendVoiceOtp,
+      login,
+      loginWithEmail,
+      signUp,
+      signUpRequest,
+      signUpVerify,
+      inviteRequestOtp,
+      inviteVerify,
+      completeOAuth,
+      logout,
+      refreshBusinesses,
+      isLoading,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [token, user, businessId, businesses, isAdmin, isLoading]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{
-        token,
-        user,
-        businessId,
-        businesses,
-        isAdmin,
-        setToken,
-        setBusinessId,
-        sendOtp,
-        sendVoiceOtp,
-        login,
-        loginWithEmail,
-        signUp,
-        signUpRequest,
-        signUpVerify,
-        inviteRequestOtp,
-        inviteVerify,
-        completeOAuth,
-        logout,
-        refreshBusinesses,
-        isLoading,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
