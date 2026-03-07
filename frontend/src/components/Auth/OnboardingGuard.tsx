@@ -14,33 +14,34 @@ export function OnboardingGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const businessId = auth?.businessId ?? null;
+  const authLoading = auth?.isLoading ?? true;
+  const hasBusinesses = (auth?.businesses?.length ?? 0) > 0;
   const { data, loading } = useOnboarding(businessId);
 
-  const hasBusinesses = (auth?.businesses?.length ?? 0) > 0;
   const isOnboardingPage = pathname === "/onboarding";
 
   useEffect(() => {
     if (isOnboardingPage) return;
+    if (authLoading) return;           // wait for auth to hydrate first
     if (!hasBusinesses || !businessId) return;
-    if (loading) return;
-    if (data?.isComplete) return;
+    if (loading) return;               // wait for onboarding fetch
+    if (data?.isComplete) return;      // already done — show dashboard
     router.replace("/onboarding");
-  // router is intentionally excluded — it is not stable in Next.js App Router
-  // and would cause this effect to re-run on every render
+  // router excluded — not stable in Next.js App Router
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasBusinesses, businessId, loading, data?.isComplete, isOnboardingPage]);
+  }, [isOnboardingPage, authLoading, hasBusinesses, businessId, loading, data?.isComplete]);
 
   if (isOnboardingPage) {
     return <>{children}</>;
   }
 
-  // If user has businesses but we don't have their onboarding status yet, show
-  // a spinner to avoid a flash of dashboard content before a potential redirect.
-  // Key: once data resolves (loading=false), we ALWAYS render — the useEffect
-  // above handles the redirect. Never block render based on isComplete value,
-  // only block while the initial fetch is in flight.
-  const isStillLoading = hasBusinesses && businessId && loading && data === null;
-  if (isStillLoading) {
+  // Block rendering until auth has hydrated AND onboarding status is known.
+  // This prevents a flash of dashboard content before a redirect to /onboarding.
+  const notReady =
+    authLoading ||
+    (hasBusinesses && businessId && loading && data === null);
+
+  if (notReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-2 dark:bg-[#020d1a]">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

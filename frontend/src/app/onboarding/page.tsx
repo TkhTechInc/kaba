@@ -31,12 +31,19 @@ export default function OnboardingPage() {
   };
 
   useEffect(() => {
-    if (!isLoading && businessId && isComplete) {
+    if (isLoading) return;
+    // Already complete — go to dashboard
+    if (businessId && isComplete) {
+      router.replace("/");
+      return;
+    }
+    // No business at all — go to dashboard (will hit AuthGuard/signup flow)
+    if (!businessId && businesses.length === 0) {
       router.replace("/");
     }
   // router excluded — not stable in Next.js App Router
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, businessId, isComplete]);
+  }, [isLoading, businessId, isComplete, businesses.length]);
 
   const handleApplySuggestion = (s: Partial<{
     businessName?: string;
@@ -67,9 +74,13 @@ export default function OnboardingPage() {
     );
   }
 
+  // Auth still hydrating — show spinner, useEffect will redirect when ready
   if (!businessId || businesses.length === 0) {
-    // Don't call router.replace during render — use useEffect
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gray-2 dark:bg-[#020d1a]">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   return (
