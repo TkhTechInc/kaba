@@ -301,6 +301,7 @@ describe('AIQueryService', () => {
     expect(callArgs.prompt).toContain('totalIncome');
     expect(result.answer).toBe('Vos ventes totales sont de 50 000 XOF');
     expect(result.data).toBeDefined();
+    expect(usageRepo.incrementAiQueries).toHaveBeenCalledWith('biz-001');
   });
 
   it('ask — throws ValidationError when usage limit is exceeded', async () => {
@@ -313,6 +314,7 @@ describe('AIQueryService', () => {
     ).rejects.toThrow(ValidationError);
 
     expect(llm.generateText).not.toHaveBeenCalled();
+    expect(usageRepo.incrementAiQueries).not.toHaveBeenCalled();
   });
 
   it('ask — returns chartData when query mentions "category"', async () => {

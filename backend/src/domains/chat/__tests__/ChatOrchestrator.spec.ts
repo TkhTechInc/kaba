@@ -58,6 +58,8 @@ function makeMockIntentParser(): IIntentParser & { parse: jest.Mock } {
   };
 }
 
+const FIXED_NOW = '2026-03-07T12:00:00.000Z';
+
 function makeIncoming(
   text: string,
   channelUserId = '+22890000001',
@@ -67,13 +69,13 @@ function makeIncoming(
     channelUserId,
     text,
     channel,
-    timestamp: new Date().toISOString(),
+    timestamp: FIXED_NOW,
   };
 }
 
-function makeMockLedgerService() {
+function makeMockLedgerService(balance = 125000) {
   return {
-    getBalance: jest.fn().mockResolvedValue({ businessId: 'biz-1', balance: 50000, currency: 'XOF' }),
+    getBalance: jest.fn().mockResolvedValue({ businessId: 'biz-1', balance, currency: 'XOF' }),
     createEntry: jest.fn(),
   } as unknown as LedgerService;
 }
@@ -111,7 +113,7 @@ function makeMockTrustService() {
 
 function makeMockVoiceService() {
   return {
-    processFromText: jest.fn().mockResolvedValue({ success: true, entry: { id: 'e1', type: 'sale', amount: 5000, description: 'Rice sale', category: 'sales' } }),
+    processFromText: jest.fn().mockResolvedValue({ success: true, entry: { id: 'e-1', type: 'sale', amount: 15000, description: 'Rice sale', category: 'Food' } }),
   } as unknown as VoiceToTransactionService;
 }
 
@@ -333,8 +335,11 @@ describe('ChatOrchestrator — Intent dispatch (linked sessions)', () => {
 
     expect(ledgerService.getBalance).toHaveBeenCalledWith('biz-1');
     const text = getSentText(channel);
-    expect(text).toContain('50');
+    // ledgerService returns balance: 125000 → formatted as "125,000" by toLocaleString
+    expect(text).toMatch(/125[,.]?000|125000/);
     expect(text).toContain('XOF');
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain('Error');
   });
 
   it('7. Linked user sends record_sale intent → VoiceToTransactionService.processFromText called, confirmation returned', async () => {
@@ -352,7 +357,11 @@ describe('ChatOrchestrator — Intent dispatch (linked sessions)', () => {
 
     expect(voiceService.processFromText).toHaveBeenCalledWith('I sold rice for 5000', 'biz-1', 'XOF');
     const text = getSentText(channel);
+    // voiceService returns amount: 15000 → formatted as "15,000" by toLocaleString
     expect(text).toContain('Recorded sale');
+    expect(text).toMatch(/15[,.]?000|15000/);
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain('Error');
   });
 
   it('8. Linked user sends list_unpaid_invoices intent → InvoiceService.listUnpaid called', async () => {
@@ -366,6 +375,8 @@ describe('ChatOrchestrator — Intent dispatch (linked sessions)', () => {
     expect(invoiceService.listUnpaid).toHaveBeenCalledWith('biz-1');
     const text = getSentText(channel);
     expect(text).toContain('unpaid');
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain('Error');
   });
 
   it('9. Linked user sends get_trust_score intent → BusinessTrustScoreService.calculate called', async () => {
@@ -378,7 +389,11 @@ describe('ChatOrchestrator — Intent dispatch (linked sessions)', () => {
 
     expect(trustService.calculate).toHaveBeenCalledWith('biz-1');
     const text = getSentText(channel);
+    // trustService returns trustScore: 72
     expect(text).toContain('72');
+    expect(text).toMatch(/Trust Score|trust score/i);
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain('Error');
   });
 
   it('10. Linked user sends unknown intent → returns help text without crashing', async () => {
@@ -390,6 +405,8 @@ describe('ChatOrchestrator — Intent dispatch (linked sessions)', () => {
     await expect(orchestrator.handle(makeIncoming('blah blah'))).resolves.not.toThrow();
     const text = getSentText(channel);
     expect(text).toContain("I didn't understand");
+    expect(text.length).toBeGreaterThan(0);
+    expect(text).not.toContain('Error');
   });
 });
 

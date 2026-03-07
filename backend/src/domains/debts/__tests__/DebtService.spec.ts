@@ -319,19 +319,28 @@ describe('DebtService', () => {
   });
 
   describe('overdue detection (via repository status logic)', () => {
-    it('newly created debt with past dueDate gets status overdue', async () => {
+    // DebtService.create delegates status determination to the repository.
+    // It does not compute overdue status itself — it simply passes the input and returns
+    // whatever the repo returned. These tests verify that the service surfaces the
+    // repo-computed status correctly, and that markPaid can transition any status to paid.
+
+    it('surfaces overdue status returned by repository for a past dueDate', async () => {
       const { service, debtRepo } = makeMocks('starter');
-      // Simulate what the repository does: past due date → overdue
+      // The repo is responsible for computing overdue; the service just passes through.
       const overdueDebt = makeDebt({ dueDate: '2025-01-01', status: 'overdue' });
       (debtRepo.create as jest.Mock).mockResolvedValue(overdueDebt);
 
       const input = makeCreateInput({ dueDate: '2025-01-01' });
       const result = await service.create(input);
 
+      // Service must not flip the status — repo returned 'overdue', service returns 'overdue'
       expect(result.status).toBe('overdue');
+      // Verify the service passed the input through unchanged (dueDate is preserved)
+      const callArg = (debtRepo.create as jest.Mock).mock.calls[0][0] as CreateDebtInput;
+      expect(callArg.dueDate).toBe('2025-01-01');
     });
 
-    it('newly created debt with future dueDate gets status pending', async () => {
+    it('surfaces pending status returned by repository for a future dueDate', async () => {
       const { service, debtRepo } = makeMocks('starter');
       const pendingDebt = makeDebt({ dueDate: '2027-12-31', status: 'pending' });
       (debtRepo.create as jest.Mock).mockResolvedValue(pendingDebt);
@@ -340,6 +349,8 @@ describe('DebtService', () => {
       const result = await service.create(input);
 
       expect(result.status).toBe('pending');
+      const callArg = (debtRepo.create as jest.Mock).mock.calls[0][0] as CreateDebtInput;
+      expect(callArg.dueDate).toBe('2027-12-31');
     });
 
     it('markPaid transitions an overdue debt to paid', async () => {
@@ -348,6 +359,7 @@ describe('DebtService', () => {
       (debtRepo.updateStatus as jest.Mock).mockResolvedValue(paidDebt);
 
       const result = await service.markPaid('biz-lagos-001', 'debt-001');
+      expect(debtRepo.updateStatus).toHaveBeenCalledWith('biz-lagos-001', 'debt-001', 'paid');
       expect(result!.status).toBe('paid');
     });
   });

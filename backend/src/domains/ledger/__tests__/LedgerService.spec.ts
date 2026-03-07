@@ -214,6 +214,43 @@ describe('LedgerService', () => {
       expect(result.id).toBe('entry-001');
     });
 
+    it('creates sale entry and decrements product stock', async () => {
+      const { service, ledgerRepository, productRepository } = makeMocks();
+
+      const product = {
+        id: 'prod-001',
+        businessId: 'biz-cotonou-001',
+        name: 'Tissu Wax',
+        unitPrice: 5000,
+        quantityInStock: 10,
+      };
+      (productRepository.getById as jest.Mock).mockResolvedValue(product);
+      (productRepository.decrementStock as jest.Mock).mockResolvedValue({
+        ...product,
+        quantityInStock: 8,
+      });
+
+      // Required: limit check reads countByBusinessInDateRange
+      (ledgerRepository.countByBusinessInDateRange as jest.Mock).mockResolvedValue(0);
+
+      const createdEntry = makeLedgerEntry({
+        type: 'sale',
+        amount: 10000,
+        description: 'Tissu Wax x 2',
+        productId: 'prod-001',
+        quantitySold: 2,
+      });
+      (ledgerRepository.create as jest.Mock).mockResolvedValue(createdEntry);
+
+      const result = await service.createEntry(
+        makeCreateInput({ type: 'sale', productId: 'prod-001', quantitySold: 2 }),
+      );
+
+      expect(productRepository.decrementStock).toHaveBeenCalledWith('biz-cotonou-001', 'prod-001', 2);
+      expect(result.productId).toBe('prod-001');
+      expect(result.quantitySold).toBe(2);
+    });
+
     it('throws ValidationError for productId+quantitySold on an expense entry', async () => {
       const { service } = makeMocks();
       await expect(

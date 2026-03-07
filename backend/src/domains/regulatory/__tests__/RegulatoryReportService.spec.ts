@@ -2,6 +2,7 @@ import { RegulatoryReportService } from '../services/RegulatoryReportService';
 
 const BUSINESS_ID = 'biz_abidjan_civ_001';
 const PERIOD = { from: '2026-01-01', to: '2026-03-31' };
+const FIXED_NOW = '2026-03-07T12:00:00.000Z';
 
 function makePL(overrides: Partial<{ totalIncome: number; totalExpenses: number; netProfit: number }> = {}) {
   return {
@@ -26,7 +27,7 @@ function makeTrustResult(score = 72) {
     },
     marketDayAwarenessApplied: false,
     recommendation: 'good' as const,
-    scoredAt: new Date().toISOString(),
+    scoredAt: FIXED_NOW,
     sectorBenchmark: {
       averageTrustScore: 62,
       businessCount: 0,
@@ -35,9 +36,13 @@ function makeTrustResult(score = 72) {
   };
 }
 
-function makeInvoice(status: 'paid' | 'sent' | 'overdue' | 'draft', amount: number) {
+let invoiceCounter = 0;
+function resetInvoiceCounter() { invoiceCounter = 0; }
+
+function makeInvoice(status: 'paid' | 'sent' | 'overdue' | 'draft', amount: number, id?: string) {
+  invoiceCounter += 1;
   return {
-    id: `inv-${Math.random().toString(36).slice(2, 8)}`,
+    id: id ?? `inv-${String(invoiceCounter).padStart(3, '0')}`,
     businessId: BUSINESS_ID,
     customerId: 'cust-001',
     amount,
@@ -49,7 +54,7 @@ function makeInvoice(status: 'paid' | 'sent' | 'overdue' | 'draft', amount: numb
   };
 }
 
-function makeBusiness(overrides: Partial<{ taxRegime: string; countryCode: string }> = {}) {
+function makeBusiness(overrides: Partial<{ taxRegime: string; countryCode: string; vatRegistered?: boolean }> = {}) {
   return {
     businessId: BUSINESS_ID,
     name: 'Commerce Kouassi',
@@ -71,11 +76,11 @@ function buildService(overrides: {
     pl = makePL(),
     trustResult = makeTrustResult(),
     invoices = [
-      makeInvoice('paid', 500_000),
-      makeInvoice('paid', 750_000),
-      makeInvoice('sent', 250_000),
+      makeInvoice('paid', 500_000, 'inv-001'),
+      makeInvoice('paid', 750_000, 'inv-002'),
+      makeInvoice('sent', 250_000, 'inv-003'),
     ],
-    unpaidInvoices = [makeInvoice('sent', 250_000)],
+    unpaidInvoices = [makeInvoice('sent', 250_000, 'inv-003')],
     business = makeBusiness(),
   } = overrides;
 
@@ -98,18 +103,28 @@ function buildService(overrides: {
     getById: jest.fn().mockResolvedValue(business),
   } as any;
 
-  return new RegulatoryReportService(
+  return {
+    service: new RegulatoryReportService(
+      reportService,
+      trustScoreService,
+      invoiceService,
+      businessRepository,
+    ),
     reportService,
     trustScoreService,
     invoiceService,
     businessRepository,
-  );
+  };
 }
 
 describe('RegulatoryReportService', () => {
+  beforeEach(() => {
+    resetInvoiceCounter();
+  });
+
   describe('generateReport', () => {
     it('returns a report with all required BCEAO fields', async () => {
-      const service = buildService();
+      const { service } = buildService();
       const report = await service.generateReport(BUSINESS_ID, PERIOD);
 
       expect(report).toHaveProperty('businessId', BUSINESS_ID);
@@ -134,7 +149,7 @@ describe('RegulatoryReportService', () => {
 
     it('financialSummary.revenue equals total income from P&L', async () => {
       const pl = makePL({ totalIncome: 2_000_000, totalExpenses: 900_000, netProfit: 1_100_000 });
-      const service = buildService({ pl });
+      const { service } = buildService({ pl });
 
       const report = await service.generateReport(BUSINESS_ID, PERIOD);
 
@@ -146,11 +161,11 @@ describe('RegulatoryReportService', () => {
 
     it('invoicingActivity.totalInvoiced is a number equal to sum of invoice amounts', async () => {
       const invoices = [
-        makeInvoice('paid', 300_000),
-        makeInvoice('paid', 450_000),
-        makeInvoice('sent', 150_000),
+        makeInvoice('paid', 300_000, 'inv-001'),
+        makeInvoice('paid', 450_000, 'inv-002'),
+        makeInvoice('sent', 150_000, 'inv-003'),
       ];
-      const service = buildService({ invoices, unpaidInvoices: [invoices[2]] });
+      const { service } = buildService({ invoices, unpaidInvoices: [invoices[2]] });
 
       const report = await service.generateReport(BUSINESS_ID, PERIOD);
 
@@ -162,7 +177,7 @@ describe('RegulatoryReportService', () => {
 
     it('period dates are passed through correctly to the report', async () => {
       const customPeriod = { from: '2025-07-01', to: '2025-09-30' };
-      const service = buildService();
+      const { service } = buildService();
 
       const report = await service.generateReport(BUSINESS_ID, customPeriod);
 
@@ -171,9 +186,9 @@ describe('RegulatoryReportService', () => {
     });
 
     it('handles zero data without throwing', async () => {
-      const service = buildService({
+      const { service } = buildService({
         pl: makePL({ totalIncome: 0, totalExpenses: 0, netProfit: 0 }),
-        trustResult: null, // trust calculation throws, should be caught
+        trustResult: null,
         invoices: [],
         unpaidInvoices: [],
         business: makeBusiness(),
@@ -186,8 +201,62 @@ describe('RegulatoryReportService', () => {
       expect(report.invoicingActivity.totalInvoiced).toBe(0);
       expect(report.invoicingActivity.paidCount).toBe(0);
       expect(report.invoicingActivity.unpaidCount).toBe(0);
-      // trustScore should be null when calculation fails
       expect(report.trustScore).toBeNull();
+    });
+
+    it('taxCompliance fields reflect business taxRegime and vatRegistered', async () => {
+      const business = makeBusiness({ taxRegime: 'flat_tax', countryCode: 'CI' });
+      const { service } = buildService({ business });
+
+      const report = await service.generateReport(BUSINESS_ID, PERIOD);
+
+      // Implementation: vatRegistered = taxRegime === 'vat'
+      expect(report.taxCompliance.taxRegime).toBe('flat_tax');
+      expect(report.taxCompliance.vatRegistered).toBe(false);
+      expect(report.taxCompliance.country).toBe('CI');
+    });
+
+    it('taxCompliance.vatRegistered is true when taxRegime is vat', async () => {
+      const business = makeBusiness({ taxRegime: 'vat', countryCode: 'GH' });
+      const { service } = buildService({ business });
+
+      const report = await service.generateReport(BUSINESS_ID, PERIOD);
+
+      expect(report.taxCompliance.taxRegime).toBe('vat');
+      expect(report.taxCompliance.vatRegistered).toBe(true);
+      expect(report.taxCompliance.country).toBe('GH');
+    });
+
+    it('reports negative net income accurately', async () => {
+      const pl = makePL({ totalIncome: 500_000, totalExpenses: 800_000, netProfit: -300_000 });
+      const { service } = buildService({ pl });
+
+      const report = await service.generateReport(BUSINESS_ID, PERIOD);
+
+      expect(report.financialSummary.netIncome).toBe(-300_000);
+      expect(report.financialSummary.totalRevenue).toBe(500_000);
+      expect(report.financialSummary.totalExpenses).toBe(800_000);
+    });
+
+    it('period validation — from date and to date match input exactly', async () => {
+      const { service } = buildService();
+
+      const report = await service.generateReport(BUSINESS_ID, PERIOD);
+
+      expect(report.period.from).toBe('2026-01-01');
+      expect(report.period.to).toBe('2026-03-31');
+    });
+
+    it('handles missing business gracefully — taxCompliance fields are undefined', async () => {
+      const { service } = buildService({ business: null });
+
+      const report = await service.generateReport(BUSINESS_ID, PERIOD);
+
+      // Implementation: taxRegime = business?.taxRegime → undefined when business is null
+      // vatRegistered = taxRegime === 'vat' → false (undefined === 'vat' is false)
+      expect(report.taxCompliance.vatRegistered).toBe(false);
+      expect(report.taxCompliance.taxRegime).toBeUndefined();
+      expect(report.taxCompliance.country).toBeUndefined();
     });
   });
 });

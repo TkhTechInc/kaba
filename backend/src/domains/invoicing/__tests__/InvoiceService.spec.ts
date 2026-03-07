@@ -3,6 +3,11 @@ import { Invoice, InvoiceStatus } from '../models/Invoice';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 
 // ---------------------------------------------------------------------------
+// Fixed date constant to avoid flaky time-dependent tests
+// ---------------------------------------------------------------------------
+const FIXED_NOW = '2026-03-07T12:00:00.000Z';
+
+// ---------------------------------------------------------------------------
 // Test data helpers
 // ---------------------------------------------------------------------------
 
@@ -18,7 +23,7 @@ function makeInvoice(overrides: Partial<Invoice> = {}): Invoice {
       { description: 'Consulting comptable', quantity: 1, unitPrice: 150000, amount: 150000 },
     ],
     dueDate: '2026-04-01',
-    createdAt: new Date().toISOString(),
+    createdAt: FIXED_NOW,
     ...overrides,
   };
 }
@@ -446,12 +451,15 @@ describe('InvoiceService', () => {
     it('applies early payment discount when within discount window', async () => {
       const { service, invoiceRepository, businessRepository, paymentsClient } = makeServiceWithMocks();
 
+      // Freeze time at FIXED_NOW so daysSinceCreation = 0 (within 7-day window)
+      jest.useFakeTimers({ now: new Date(FIXED_NOW) });
+
       const invoice = makeInvoice({
         status: 'draft',
         amount: 100000,
         earlyPaymentDiscountPercent: 5,
         earlyPaymentDiscountDays: 7,
-        createdAt: new Date().toISOString(),
+        createdAt: FIXED_NOW,
       });
 
       invoiceRepository.getById.mockResolvedValue(invoice);
@@ -463,9 +471,42 @@ describe('InvoiceService', () => {
 
       await service.generatePaymentLink('biz-sn-001', 'inv-abc-001');
 
+      jest.useRealTimers();
+
       const callArgs = paymentsClient.createIntent.mock.calls[0][0];
       // 5% off 100000 = 95000
       expect(callArgs.amount).toBe(95000);
+    });
+
+    it('does NOT apply early-payment discount when invoice is older than window', async () => {
+      const { service, invoiceRepository, businessRepository, paymentsClient } = makeServiceWithMocks();
+
+      // Freeze time at FIXED_NOW; createdAt is 30 days before → 30 days > 7-day window → no discount
+      jest.useFakeTimers({ now: new Date(FIXED_NOW) });
+
+      const THIRTY_DAYS_BEFORE = '2026-02-05T12:00:00.000Z';
+      const invoice = makeInvoice({
+        status: 'draft',
+        amount: 100000,
+        earlyPaymentDiscountPercent: 5,
+        earlyPaymentDiscountDays: 7,
+        createdAt: THIRTY_DAYS_BEFORE,
+      });
+
+      invoiceRepository.getById.mockResolvedValue(invoice);
+      businessRepository.getById.mockResolvedValue(makeBusiness());
+      paymentsClient.createIntent.mockResolvedValue({
+        success: true,
+        paymentUrl: 'https://pay.kaba.africa/no-discount',
+      });
+
+      await service.generatePaymentLink('biz-sn-001', 'inv-abc-001');
+
+      jest.useRealTimers();
+
+      const callArgs = paymentsClient.createIntent.mock.calls[0][0];
+      // Full amount — no discount because 30 days > 7-day window
+      expect(callArgs.amount).toBe(100000);
     });
   });
 
