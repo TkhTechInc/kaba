@@ -114,6 +114,8 @@ export class OnboardingService {
         address: mergedAnswers.businessAddress,
         phone: mergedAnswers.businessPhone,
         fiscalYearStart: mergedAnswers.fiscalYearStart,
+        slug: mergedAnswers.slug,
+        description: mergedAnswers.description,
         onboardingComplete: true,
       });
     }
@@ -158,7 +160,7 @@ export class OnboardingService {
     if (answers.businessType != null && !completedSteps.includes('businessType')) completedSteps.push('businessType');
     if (answers.country != null && !completedSteps.includes('country')) completedSteps.push('country');
     if (answers.currency != null && !completedSteps.includes('currency')) completedSteps.push('currency');
-    if (answers.taxRegime != null && !completedSteps.includes('taxRegime')) completedSteps.push('taxRegime');
+    if ((answers.taxRegime != null || answers.taxId != null) && !completedSteps.includes('taxRegime')) completedSteps.push('taxRegime');
     if (
       (answers.businessAddress != null || answers.businessPhone != null || answers.fiscalYearStart != null) &&
       !completedSteps.includes('details')
@@ -186,9 +188,12 @@ export class OnboardingService {
         currency: mergedAnswers.currency,
         businessType: mergedAnswers.businessType as BusinessType | undefined,
         taxRegime: mergedAnswers.taxRegime,
+        taxId: mergedAnswers.taxId,
         address: mergedAnswers.businessAddress,
         phone: mergedAnswers.businessPhone,
         fiscalYearStart: mergedAnswers.fiscalYearStart,
+        slug: mergedAnswers.slug,
+        description: mergedAnswers.description,
         onboardingComplete: true,
       });
     }
@@ -235,6 +240,8 @@ export class OnboardingService {
       address: state.answers.businessAddress,
       phone: state.answers.businessPhone,
       fiscalYearStart: state.answers.fiscalYearStart,
+      slug: state.answers.slug,
+      description: state.answers.description,
       onboardingComplete: true,
     });
 

@@ -2,7 +2,7 @@ import {
   api,
   apiGetWithOfflineCache,
 } from "@/lib/api-client";
-import { CACHE_KEYS, listCacheKey, getCached, setCached } from "@/lib/offline-cache";
+import { CACHE_KEYS, listCacheKey, getCached, setCached, deleteCachedByPrefix } from "@/lib/offline-cache";
 import type { ApiResponse } from "@/lib/api-client";
 import { offlineMutation } from "@/lib/offline-api";
 
@@ -62,6 +62,10 @@ export interface ListCustomersResult {
   total: number;
   page: number;
   limit: number;
+}
+
+function isInvoice(value: unknown): value is Invoice {
+  return !!value && typeof value === "object" && "id" in value;
 }
 
 async function patchInvoicesCache(
@@ -132,7 +136,7 @@ export function createInvoicesApi(token: string | null) {
         params: { businessId },
       }),
 
-    create: async (body: CreateInvoiceInput) => {
+    create: async (body: CreateInvoiceInput): Promise<Invoice> => {
       const optimistic: Invoice = {
         id: "pending-" + Date.now(),
         businessId: body.businessId,
@@ -144,21 +148,25 @@ export function createInvoicesApi(token: string | null) {
         status: body.status,
         createdAt: new Date().toISOString(),
       };
-      const result = await offlineMutation<Invoice>(
+      const result = await offlineMutation<Invoice | { success?: boolean; data?: Invoice }>(
         "/api/v1/invoices",
         "POST",
         body,
         token,
         optimistic
       );
-      const invoice = result.data;
-      if (invoice?.id) {
+      // Backend may return either Invoice or { success, data: Invoice }.
+      const invoice = isInvoice(result.data)
+        ? result.data
+        : result.data?.data;
+      const resolvedInvoice = invoice ?? optimistic;
+      if (resolvedInvoice.id && !resolvedInvoice.id.startsWith("pending-")) {
         await patchInvoicesCache(body.businessId, (cached) => ({
-          items: [invoice, ...cached.data.items],
+          items: [resolvedInvoice, ...cached.data.items],
           total: cached.data.total + 1,
         }));
       }
-      return result.data;
+      return resolvedInvoice;
     },
 
     update: async (invoiceId: string, businessId: string, body: Partial<CreateInvoiceInput>) => {
@@ -255,41 +263,12 @@ export function createInvoicesApi(token: string | null) {
       );
       const customer = result.data;
 
-      // Patch all cached customers lists so this customer persists
-      // even when lists are re-read from cache (e.g. on re-render while offline).
-      if (customer?.id) {
-        const cacheKeyVariants = [
-          listCacheKey(CACHE_KEYS.CUSTOMERS, body.businessId, {
-            businessId: body.businessId,
-            limit: "100",
-            page: "1",
-          }),
-          listCacheKey(CACHE_KEYS.CUSTOMERS, body.businessId, {
-            businessId: body.businessId,
-            limit: "20",
-            page: "1",
-          }),
-        ];
-        for (const cacheKey of cacheKeyVariants) {
-          try {
-            const cached = await getCached<ApiResponse<ListCustomersResult>>(cacheKey);
-            if (cached?.data) {
-              const alreadyIn = cached.data.items.some((c) => c.id === customer.id);
-              if (!alreadyIn) {
-                await setCached(cacheKey, {
-                  ...cached,
-                  data: {
-                    ...cached.data,
-                    items: [customer, ...cached.data.items],
-                    total: cached.data.total + 1,
-                  },
-                });
-              }
-            }
-          } catch {
-            // cache patch is best-effort
-          }
-        }
+      // Invalidate all customer list caches so the next load fetches fresh data.
+      // This ensures new customers appear even when date filters or other params were used.
+      try {
+        await deleteCachedByPrefix(`${CACHE_KEYS.CUSTOMERS}:${body.businessId}`);
+      } catch {
+        // best-effort
       }
 
       return customer;
@@ -345,6 +324,45 @@ export function createInvoicesApi(token: string | null) {
         listCacheKey(CACHE_KEYS.INVOICES, businessId, params),
         { token: token ?? undefined, params }
       );
+    },
+
+    /**
+     * Mark an invoice as paid via cash (POS in-store).
+     * No payment gateway — just transitions status to 'paid'.
+     */
+    markPaidCash: async (invoiceId: string, businessId: string) => {
+      const result = await api.post<ApiResponse<Invoice>>(
+        `/api/v1/invoices/${encodeURIComponent(invoiceId)}/mark-paid`,
+        { businessId },
+        { token: token ?? undefined }
+      );
+      await deleteCachedByPrefix(listCacheKey(CACHE_KEYS.INVOICES, businessId, {}));
+      return result.data;
+    },
+
+    /**
+     * Download invoice/receipt/thermal PDF.
+     * Opens the PDF in a new browser tab for printing or download.
+     * mode: 'invoice' | 'receipt' | 'thermal'
+     */
+    downloadPdf: (invoiceId: string, businessId: string, mode: 'invoice' | 'receipt' | 'thermal' = 'invoice') => {
+      const params = new URLSearchParams({ businessId, mode });
+      const url = `/api/v1/invoices/${encodeURIComponent(invoiceId)}/pdf?${params.toString()}`;
+      // Open via fetch so we can inject the auth header, then trigger browser download
+      return fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }).then(async (res) => {
+        if (!res.ok) throw new Error(`PDF download failed: ${res.status}`);
+        const blob = await res.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = objectUrl;
+        a.download = `${mode}-${invoiceId.slice(0, 12)}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+      });
     },
   };
 }

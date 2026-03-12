@@ -471,9 +471,11 @@ The following has been implemented:
    - Benin: [developper.impots.bj](https://developper.impots.bj) — get test JWT token
    - Côte d'Ivoire: [services.fne.dgi.gouv.ci](https://services.fne.dgi.gouv.ci) — get test API key
 
-2. **Clarify SFE approval requirement** — email DGI Benin and DGI CI to ask whether our SaaS needs to register as a certified SFE operator
+2. **Configure MECeF sandbox** — see [MECEF_SANDBOX_SETUP.md](./MECEF_SANDBOX_SETUP.md) for env vars and `npm run mecef:sandbox-test`
 
-3. **Prototype `BeninEmecefAdapter`** — use the sandbox; verify the 2-step confirm flow end-to-end
+3. **Clarify SFE approval requirement** — email DGI Benin and DGI CI to ask whether our SaaS needs to register as a certified SFE operator
+
+4. **Prototype `BeninEmecefAdapter`** — use the sandbox; verify the 2-step confirm flow end-to-end
 
 4. **Prototype `CoteDIvoireFneAdapter`** — submit a minimal invoice via FNE test environment, capture full response schema
 

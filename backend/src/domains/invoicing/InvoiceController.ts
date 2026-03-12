@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, NotFoundException, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { InvoiceService } from './services/InvoiceService';
 import { InvoiceShareService } from './services/InvoiceShareService';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
@@ -79,19 +80,40 @@ export class InvoiceController {
         customerName: raw.customer.name,
         invoiceNumber: raw.invoice.id.slice(0, 8),
         paymentUrl: raw.paymentUrl,
+        intentId: raw.intentId,
         useKkiaPayWidget: raw.useKkiaPayWidget,
+        useMomoRequest: raw.useMomoRequest,
       },
     };
   }
 
+  @Post('pay/request-momo')
+  @Public()
+  async requestMoMoPayment(@Body() body: { token: string; phone: string }) {
+    const { token, phone } = body;
+    if (!token?.trim() || !phone?.trim()) {
+      throw new NotFoundException('token and phone are required');
+    }
+    const result = await this.invoiceShareService.requestMoMoPayment(token.trim(), phone.trim());
+    if (!result.success) {
+      throw new NotFoundException(result.error ?? 'MoMo payment request failed');
+    }
+    return { success: true, message: 'Payment request sent to your phone. Please approve on your MoMo app.' };
+  }
+
   @Post('pay/confirm-kkiapay')
   @Public()
-  async confirmKkiaPay(@Body() body: { token: string; transactionId: string; redirectStatus?: string }) {
-    const { token, transactionId, redirectStatus } = body;
-    if (!token?.trim() || !transactionId?.trim()) {
-      throw new NotFoundException('token and transactionId are required');
+  async confirmKkiaPay(@Body() body: { token: string; transactionId: string; intentId: string; redirectStatus?: string }) {
+    const { token, transactionId, intentId, redirectStatus } = body;
+    if (!token?.trim() || !transactionId?.trim() || !intentId?.trim()) {
+      throw new NotFoundException('token, transactionId and intentId are required');
     }
-    const result = await this.invoiceShareService.confirmKkiaPayPayment(token.trim(), transactionId.trim(), redirectStatus?.trim());
+    const result = await this.invoiceShareService.confirmKkiaPayPayment(
+      token.trim(),
+      transactionId.trim(),
+      intentId.trim(),
+      redirectStatus?.trim(),
+    );
     if (!result.success) {
       throw new NotFoundException(result.error ?? 'Payment confirmation failed');
     }
@@ -100,7 +122,20 @@ export class InvoiceController {
 
   @Get()
   @RequirePermission('invoices:read')
-  async list(@Query() query: ListInvoicesQueryDto & { status?: string; fromDate?: string; toDate?: string }) {
+  async list(
+    @Query() query: ListInvoicesQueryDto & { status?: string; fromDate?: string; toDate?: string },
+    @Query('cursor') cursor?: string,
+  ) {
+    if (cursor !== undefined) {
+      const result = await this.invoiceService.listWithCursor(
+        query.businessId,
+        Number(query.limit) || 20,
+        cursor || undefined,
+        query.fromDate,
+        query.toDate,
+      );
+      return { success: true, data: result };
+    }
     if (query.status) {
       const result = await this.invoiceService.listByStatus(
         query.businessId,
@@ -232,5 +267,47 @@ export class InvoiceController {
   async sendWhatsApp(@Param('id') id: string, @Body() dto: SendInvoiceDto) {
     const result = await this.invoiceService.sendInvoiceViaWhatsApp(dto.businessId, id);
     return { success: result.success, messageId: result.messageId };
+  }
+
+  /**
+   * Download invoice/receipt/thermal PDF.
+   * GET /api/v1/invoices/:id/pdf?businessId=...&mode=invoice|receipt|thermal
+   */
+  @Get(':id/pdf')
+  @RequirePermission('invoices:read')
+  async downloadPdf(
+    @Param('id') id: string,
+    @Query('businessId') businessId: string,
+    @Query('mode') mode: string = 'invoice',
+    @Res() res: Response,
+  ) {
+    const validMode = ['invoice', 'receipt', 'thermal'].includes(mode) ? mode : 'invoice';
+    const buffer = await this.invoiceService.generatePdf(
+      businessId,
+      id,
+      validMode as import('./services/InvoicePdfService').PdfMode,
+    );
+    const filename = `${validMode}-${id.slice(0, 12)}.pdf`;
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
+  /**
+   * Mark invoice as paid via cash (POS in-store).
+   * POST /api/v1/invoices/:id/mark-paid
+   */
+  @Post(':id/mark-paid')
+  @RequirePermission('invoices:write')
+  async markPaidCash(
+    @Param('id') id: string,
+    @Body() dto: { businessId: string },
+    @AuditUserId() userId?: string,
+  ) {
+    const invoice = await this.invoiceService.markPaidCash(dto.businessId, id, userId);
+    return { success: true, data: invoice };
   }
 }

@@ -21,6 +21,7 @@ export type AuditAction =
   | 'payment.confirmed'
   | 'payment.failed'
   | 'payment.refunded'
+  | 'payment.cash'
   // Access / team lifecycle
   | 'access.invite'
   | 'access.accept'

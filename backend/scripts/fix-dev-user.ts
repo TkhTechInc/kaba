@@ -114,6 +114,7 @@ async function run() {
   }
 
   // ── 4. Upsert business META ────────────────────────────────────────────────
+  const SEED_IFU = process.env['SEED_IFU'] || '0202376693109';
   const existingMeta = await getBusinessMeta(targetBizId);
   await doc.send(new PutCommand({
     TableName: LEDGER_TABLE,
@@ -126,12 +127,14 @@ async function run() {
       countryCode:   existingMeta?.countryCode ?? 'BJ',
       businessType:  existingMeta?.businessType ?? 'retail',
       taxRegime:     existingMeta?.taxRegime    ?? 'simplified',
+      // IFU: Benin 13-char tax ID required for e-MECeF fiscal certification
+      taxId:         existingMeta?.taxId        ?? SEED_IFU,
       onboardingComplete: true,
       createdAt: existingMeta?.createdAt ?? NOW,
       updatedAt: NOW,
     },
   }));
-  console.log(`  ✅ Business META (pro, onboarding complete)`);
+  console.log(`  ✅ Business META (pro, onboarding complete, countryCode=BJ, taxId/IFU=${existingMeta?.taxId ?? SEED_IFU})`);
 
   // ── 5. Upsert onboarding record ────────────────────────────────────────────
   await doc.send(new PutCommand({
@@ -148,6 +151,7 @@ async function run() {
         country:       existingMeta?.countryCode  ?? 'BJ',
         currency:      existingMeta?.currency     ?? 'XOF',
         taxRegime:     existingMeta?.taxRegime    ?? 'simplified',
+        taxId:         existingMeta?.taxId        ?? SEED_IFU,
       },
       startedAt: NOW, completedAt: NOW,
     },

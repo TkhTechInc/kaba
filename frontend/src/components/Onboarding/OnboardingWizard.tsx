@@ -91,6 +91,7 @@ export function OnboardingWizard({
     country: string;
     currency: string;
     taxRegime: string;
+    taxId: string;
     businessAddress: string;
     businessPhone: string;
     fiscalYearStart: number;
@@ -100,9 +101,12 @@ export function OnboardingWizard({
   const [step, setStep] = useState<WizardStep>(1);
   const [businessName, setBusinessName] = useState(data?.answers.businessName ?? "");
   const [businessType, setBusinessType] = useState(data?.answers.businessType ?? "");
+  const [slug, setSlug] = useState(data?.answers.slug ?? "");
+  const [description, setDescription] = useState(data?.answers.description ?? "");
   const [country, setCountry] = useState(data?.answers.country ?? "");
   const [currency, setCurrency] = useState(data?.answers.currency ?? "");
   const [taxRegime, setTaxRegime] = useState(data?.answers.taxRegime ?? "");
+  const [taxId, setTaxId] = useState(data?.answers.taxId ?? "");
   const [businessAddress, setBusinessAddress] = useState(data?.answers.businessAddress ?? "");
   const [businessPhone, setBusinessPhone] = useState(data?.answers.businessPhone ?? "");
   const [fiscalYearStart, setFiscalYearStart] = useState(
@@ -110,6 +114,20 @@ export function OnboardingWizard({
   );
   const [error, setError] = useState<string | null>(null);
   const firstInputRef = useRef<HTMLInputElement | HTMLSelectElement>(null);
+
+  /** Countries where a government-issued tax ID (IFU/NCC) is required for e-invoicing */
+  const FISCAL_ID_COUNTRIES: Record<string, { label: string; placeholder: string; hint: string }> = {
+    BJ: {
+      label: "IFU (Identifiant Fiscal Unique)",
+      placeholder: "e.g. 0202376693109",
+      hint: "Your 13-digit Benin tax ID. Required for DGI e-MECeF invoice certification.",
+    },
+    CI: {
+      label: "NCC (Numéro de Compte Contribuable)",
+      placeholder: "e.g. 1234567A",
+      hint: "Your Côte d'Ivoire taxpayer account number. Required for FNE e-invoicing.",
+    },
+  };
 
   useEffect(() => {
     firstInputRef.current?.focus();
@@ -119,9 +137,12 @@ export function OnboardingWizard({
     if (data?.answers) {
       setBusinessName(data.answers.businessName ?? "");
       setBusinessType(data.answers.businessType ?? "");
+      setSlug(data.answers.slug ?? "");
+      setDescription(data.answers.description ?? "");
       setCountry(data.answers.country ?? "");
       setCurrency(data.answers.currency ?? "");
       setTaxRegime(data.answers.taxRegime ?? "");
+      setTaxId(data.answers.taxId ?? "");
       setBusinessAddress(data.answers.businessAddress ?? "");
       setBusinessPhone(data.answers.businessPhone ?? "");
       setFiscalYearStart(
@@ -144,6 +165,7 @@ export function OnboardingWizard({
     }
     if (appliedSuggestions.currency != null) setCurrency(appliedSuggestions.currency);
     if (appliedSuggestions.taxRegime != null) setTaxRegime(appliedSuggestions.taxRegime);
+    if (appliedSuggestions.taxId != null) setTaxId(appliedSuggestions.taxId);
     if (appliedSuggestions.businessAddress != null) setBusinessAddress(appliedSuggestions.businessAddress);
     if (appliedSuggestions.businessPhone != null) setBusinessPhone(appliedSuggestions.businessPhone);
     if (appliedSuggestions.fiscalYearStart != null) setFiscalYearStart(String(appliedSuggestions.fiscalYearStart));
@@ -160,9 +182,24 @@ export function OnboardingWizard({
     else if (hasStep1) setStep(1);
   }, [appliedSuggestions]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const toSlug = (name: string) =>
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    if (name === "businessName") setBusinessName(value);
+    if (name === "businessName") {
+      setBusinessName(value);
+      // Auto-suggest slug if user hasn't manually edited it
+      if (!slug || slug === toSlug(businessName)) {
+        setSlug(toSlug(value));
+      }
+    }
+    if (name === "slug") setSlug(value.toLowerCase().replace(/[^a-z0-9-]/g, ""));
+    if (name === "description") setDescription(value);
     if (name === "businessType") setBusinessType(value);
     if (name === "country") {
       setCountry(value);
@@ -172,6 +209,7 @@ export function OnboardingWizard({
     }
     if (name === "currency") setCurrency(value);
     if (name === "taxRegime") setTaxRegime(value);
+    if (name === "taxId") setTaxId(value.replace(/\s/g, ""));
     if (name === "businessAddress") setBusinessAddress(value);
     if (name === "businessPhone") setBusinessPhone(value);
     if (name === "fiscalYearStart") setFiscalYearStart(value);
@@ -181,13 +219,13 @@ export function OnboardingWizard({
     setError(null);
     try {
       if (step === 1) {
-        await update({ businessName, businessType });
+        await update({ businessName, businessType, slug: slug || undefined, description: description || undefined });
         setStep(2);
       } else if (step === 2) {
         await update({ country, currency });
         setStep(3);
       } else if (step === 3) {
-        await update({ taxRegime });
+        await update({ taxRegime, taxId: taxId || undefined });
         setStep(4);
       } else if (step === 4) {
         await update(
@@ -209,7 +247,7 @@ export function OnboardingWizard({
     setError(null);
     try {
       if (step === 3) {
-        await update({ taxRegime: taxRegime || undefined, onboardingComplete: true });
+        await update({ taxRegime: taxRegime || undefined, taxId: taxId || undefined, onboardingComplete: true });
         onComplete();
       }
       if (step === 4) {
@@ -284,6 +322,48 @@ export function OnboardingWizard({
               ))}
             </select>
           </div>
+          <div>
+            <label htmlFor="slug" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+              Store URL{" "}
+              <span className="font-normal text-dark-4">(optional)</span>
+            </label>
+            <div className="flex items-center rounded-lg border border-stroke transition focus-within:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus-within:border-primary">
+              <span className="whitespace-nowrap pl-4 text-sm text-dark-4 dark:text-dark-6">
+                kabasika.com/store/
+              </span>
+              <input
+                id="slug"
+                type="text"
+                name="slug"
+                value={slug}
+                onChange={handleChange}
+                placeholder="my-shop"
+                className="w-full bg-transparent py-3 pr-4 text-dark outline-none dark:text-white"
+                aria-label="Store URL slug"
+              />
+            </div>
+            {slug && (
+              <p className="mt-1 text-xs text-dark-4 dark:text-dark-6">
+                Your store: kabasika.com/store/{slug}
+              </p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="description" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+              Description{" "}
+              <span className="font-normal text-dark-4">(optional)</span>
+            </label>
+            <textarea
+              id="description"
+              name="description"
+              value={description}
+              onChange={handleChange}
+              placeholder="A short description of your business"
+              rows={3}
+              className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
+              aria-label="Business description (optional)"
+            />
+          </div>
         </div>
       )}
 
@@ -356,6 +436,30 @@ export function OnboardingWizard({
               ))}
             </select>
           </div>
+
+          {/* IFU / NCC — shown only for countries with mandatory e-invoicing tax IDs */}
+          {FISCAL_ID_COUNTRIES[country] && (
+            <div>
+              <label htmlFor="taxId" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+                {FISCAL_ID_COUNTRIES[country].label}
+              </label>
+              <input
+                id="taxId"
+                type="text"
+                name="taxId"
+                value={taxId}
+                onChange={handleChange}
+                placeholder={FISCAL_ID_COUNTRIES[country].placeholder}
+                className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 text-dark outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
+                aria-label={FISCAL_ID_COUNTRIES[country].label}
+                autoComplete="off"
+                inputMode="numeric"
+              />
+              <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
+                {FISCAL_ID_COUNTRIES[country].hint}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

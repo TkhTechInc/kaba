@@ -9,13 +9,17 @@ import type {
 
 /**
  * Real e-MECeF adapter for Benin DGI.
- * Calls the actual e-MECeF API at developper.impots.bj (test) or sygmef.impots.bj (prod).
+ *
+ * API spec: e-MCF API v1.0 (DGI Bénin)
+ * Sandbox: https://developper.impots.bj/sygmef-emcf/api
+ * Production: https://sygmef.impots.bj/emcf/api
  *
  * Flow:
- *  1. POST /invoice/ → DGI returns uid; 2-minute window starts
- *  2. PUT /invoice/{uid}/confirm → DGI returns QR + fiscal serial
+ *  1. POST /api/invoice  → DGI returns uid + computed totals (2-min window)
+ *  2. PUT  /api/invoice/{uid}/confirm → DGI returns qrCode + codeMECeFDGI + nim
  *
- * Requires MECEF_BENIN_JWT env var. Use StubMECeFProvider when JWT is not configured.
+ * Requires MECEF_BENIN_JWT env var (JWT from developper.impots.bj).
+ * Falls back to StubMECeFProvider when JWT is unset.
  */
 @Injectable()
 export class BeninEmecefAdapter implements IMECeFProvider {
@@ -38,9 +42,7 @@ export class BeninEmecefAdapter implements IMECeFProvider {
       throw new Error('MECEF_BENIN_JWT is not configured. Set env var or use StubMECeFProvider.');
     }
 
-    const pathPrefix = this.isProd ? '/emcf/api' : '/sygmef-emcf/api';
-    const url = `${this.baseUrl}${pathPrefix}/invoice/`;
-
+    const url = `${this.apiBase()}/invoice`;
     const body = this.mapToEmecefPayload(payload);
 
     const response = await fetch(url, {
@@ -53,15 +55,20 @@ export class BeninEmecefAdapter implements IMECeFProvider {
       body: JSON.stringify(body),
     });
 
+    const data = (await response.json()) as Record<string, unknown>;
+
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`e-MECeF registerInvoice failed: ${response.status} ${response.statusText} - ${text}`);
+      const errCode = data.errorCode ?? response.status;
+      const errDesc = data.errorDesc ?? response.statusText;
+      throw new Error(`e-MECeF registerInvoice failed [${errCode}]: ${errDesc}`);
     }
 
-    const data = (await response.json()) as Record<string, unknown>;
-    const uid = data.uid as string;
+    const uid = data.uid as string | undefined;
     if (!uid) {
-      throw new Error(`e-MECeF response missing uid: ${JSON.stringify(data)}`);
+      // DGI returns errorCode/errorDesc even on HTTP 200 for business errors
+      const errCode = data.errorCode ?? 'unknown';
+      const errDesc = data.errorDesc ?? JSON.stringify(data);
+      throw new Error(`e-MECeF registerInvoice error [${errCode}]: ${errDesc}`);
     }
 
     const expiresAt = new Date(Date.now() + 120_000).toISOString();
@@ -69,20 +76,29 @@ export class BeninEmecefAdapter implements IMECeFProvider {
       token: uid,
       expires_at: expiresAt,
       status: 'pending',
+      totals: {
+        ta: Number(data.ta ?? 0),
+        tb: Number(data.tb ?? 0),
+        taa: Number(data.taa ?? 0),
+        tab: Number(data.tab ?? 0),
+        hab: Number(data.hab ?? 0),
+        vab: Number(data.vab ?? 0),
+        aib: Number(data.aib ?? 0),
+        ts: Number(data.ts ?? 0),
+        total: Number(data.total ?? 0),
+      },
     };
   }
 
   async confirmInvoice(
     token: string,
-    decision: 'confirm' | 'reject'
+    decision: 'confirm' | 'cancel'
   ): Promise<MECeFConfirmResult | null> {
     if (!this.jwt) {
       throw new Error('MECEF_BENIN_JWT is not configured.');
     }
 
-    const action = decision === 'confirm' ? 'confirm' : 'cancel';
-    const pathPrefix = this.isProd ? '/emcf/api' : '/sygmef-emcf/api';
-    const url = `${this.baseUrl}${pathPrefix}/invoice/${token}/${action}`;
+    const url = `${this.apiBase()}/invoice/${token}/${decision}`;
 
     const response = await fetch(url, {
       method: 'PUT',
@@ -92,48 +108,88 @@ export class BeninEmecefAdapter implements IMECeFProvider {
       },
     });
 
+    const data = (await response.json()) as Record<string, unknown>;
+
     if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`e-MECeF confirmInvoice failed: ${response.status} ${response.statusText} - ${text}`);
+      const errCode = data.errorCode ?? response.status;
+      const errDesc = data.errorDesc ?? response.statusText;
+      throw new Error(`e-MECeF confirmInvoice failed [${errCode}]: ${errDesc}`);
     }
 
-    if (decision === 'reject') {
+    if (decision === 'cancel') {
       return null;
     }
 
-    const data = (await response.json()) as Record<string, unknown>;
-    const qrCode = (data.qrCode ?? data.qr_code ?? data.nim) as string | undefined;
-    const nimFacture = (data.nim ?? data.nimFacture ?? data.fiscalNumber ?? token) as string;
-    const certifiedAt = new Date().toISOString();
+    const qrCode = data.qrCode as string | undefined;
+    const codeMECeFDGI = data.codeMECeFDGI as string | undefined;
+    const nim = data.nim as string | undefined;
+
+    if (!qrCode && !codeMECeFDGI) {
+      const errCode = data.errorCode ?? 'unknown';
+      const errDesc = data.errorDesc ?? JSON.stringify(data);
+      throw new Error(`e-MECeF confirmInvoice returned no security elements [${errCode}]: ${errDesc}`);
+    }
 
     return {
-      qr_code: qrCode ?? `https://e-mecef.impots.bj/verify?nim=${nimFacture}`,
-      nim_facture: nimFacture,
-      signature: (data.signature as string) ?? `SIG-${nimFacture}`,
-      certified_at: (data.certifiedAt as string) ?? certifiedAt,
+      qr_code: qrCode ?? '',
+      codeMECeFDGI: codeMECeFDGI ?? '',
+      nim: nim ?? '',
+      counters: (data.counters as string) ?? '',
+      dateTime: (data.dateTime as string) ?? new Date().toLocaleString('fr-FR'),
     };
   }
 
+  /** Base API URL depending on environment. */
+  private apiBase(): string {
+    return this.isProd
+      ? `${this.baseUrl}/emcf/api`
+      : `${this.baseUrl}/sygmef-emcf/api`;
+  }
+
+  /** Map our internal payload to the DGI InvoiceRequestDataDto. */
   private mapToEmecefPayload(payload: MECeFInvoicePayload): Record<string, unknown> {
-    const items = payload.items.map((item) => ({
-      name: item.nom,
-      price: item.prix_unitaire_ht,
-      quantity: item.quantite,
-      taxGroup: 'A',
-    }));
+    const items = payload.items.map((item) => {
+      const mapped: Record<string, unknown> = {
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        taxGroup: item.taxGroup,
+      };
+      if (item.code !== undefined) mapped.code = item.code;
+      if (item.taxSpecific !== undefined) mapped.taxSpecific = item.taxSpecific;
+      if (item.originalPrice !== undefined) mapped.originalPrice = item.originalPrice;
+      if (item.priceModification !== undefined) mapped.priceModification = item.priceModification;
+      return mapped;
+    });
 
     const body: Record<string, unknown> = {
       ifu: payload.ifu,
       type: payload.type_facture,
-      client: {
-        name: 'Client',
-        ...(payload.client_ifu && { ifu: payload.client_ifu }),
-      },
-      operator: { id: 'OP1', name: 'System' },
       items,
-      payment: [{ name: 'ESPECES', amount: payload.montant_ttc }],
+      operator: {
+        ...(payload.operator.id !== undefined && { id: payload.operator.id }),
+        name: payload.operator.name,
+      },
     };
 
+    if (payload.client) {
+      const c: Record<string, unknown> = {};
+      if (payload.client.ifu) c.ifu = payload.client.ifu;
+      if (payload.client.name) c.name = payload.client.name;
+      if (payload.client.contact) c.contact = payload.client.contact;
+      if (payload.client.address) c.address = payload.client.address;
+      if (Object.keys(c).length > 0) body.client = c;
+    }
+
+    if (payload.payment && payload.payment.length > 0) {
+      body.payment = payload.payment.map((p) => ({ name: p.name, amount: p.amount }));
+    }
+
+    if (payload.aib) {
+      body.aib = payload.aib;
+    }
+
+    // Required for FA/EA credit notes
     if (payload.reference) {
       body.reference = payload.reference;
     }

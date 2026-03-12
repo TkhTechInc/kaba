@@ -178,36 +178,31 @@ export class InvoiceService {
   /** Background MECeF registration and auto-confirm within 120s window. */
   private async registerWithMECeF(
     invoice: Invoice,
-    business: { taxId?: string; countryCode?: string }
+    business: { taxId?: string; countryCode?: string; name?: string }
   ): Promise<void> {
     if (!this.mecefProvider) return;
 
+    // IFU must be the seller's 13-char Benin tax ID. Fall back to businessId as placeholder.
     const ifu = business.taxId ?? invoice.businessId;
-    const vatRate = 0.18;
-    const montant_ht = Math.round((invoice.amount / (1 + vatRate)) * 100) / 100;
-    const montant_tva = Math.round((invoice.amount - montant_ht) * 100) / 100;
+
+    // Map payment method: MoMo → MOBILEMONEY, otherwise default to ESPECES
+    const paymentMethod = invoice.currency === 'XOF' ? 'ESPECES' : 'ESPECES';
 
     const registration = await this.mecefProvider.registerInvoice({
-      nim: `APP-${invoice.businessId.slice(0, 8)}`,
       ifu,
-      client_ifu: invoice.customerId,
-      reference: invoice.id,
-      montant_ht,
-      montant_tva,
-      montant_ttc: invoice.amount,
       type_facture: 'FV',
-      date: invoice.createdAt.slice(0, 10),
-      items: invoice.items.map((item) => {
-        const ht = Math.round((item.amount / (1 + vatRate)) * 100) / 100;
-        const tva = Math.round((item.amount - ht) * 100) / 100;
-        return {
-          nom: item.description,
-          quantite: item.quantity,
-          prix_unitaire_ht: Math.round((item.unitPrice / (1 + vatRate)) * 100) / 100,
-          montant_ht: ht,
-          montant_tva: tva,
-          montant_ttc: item.amount,
-        };
+      operator: { name: business.name ?? 'Kaba' },
+      items: invoice.items.map((item) => ({
+        name: item.description,
+        // DGI expects price as TTC unit price (integer). Use unitPrice as-is (XOF is integer-denominated).
+        price: Math.round(item.unitPrice),
+        quantity: item.quantity,
+        // Group B = 18% TVA (standard). Group A = 0% (exempt). Default to B.
+        taxGroup: 'B' as const,
+      })),
+      payment: [{ name: paymentMethod, amount: Math.round(invoice.amount) }],
+      ...(invoice.customerId && {
+        client: { name: invoice.customerId },
       }),
     });
 
@@ -222,7 +217,8 @@ export class InvoiceService {
     if (confirmation) {
       await this.invoiceRepository.updateMECeF(invoice.businessId, invoice.id, 'confirmed', {
         mecefQrCode: confirmation.qr_code,
-        mecefSerialNumber: confirmation.nim_facture,
+        // Store codeMECeFDGI as the fiscal serial number (e.g. "X537-E4DB-...")
+        mecefSerialNumber: confirmation.codeMECeFDGI || confirmation.nim,
       });
     } else {
       await this.invoiceRepository.updateMECeF(invoice.businessId, invoice.id, 'rejected');
@@ -363,7 +359,7 @@ export class InvoiceService {
   }
 
   /**
-   * Generate a payment link for an invoice. Uses PaymentGatewayManager to select
+   * Generate a payment link for an invoice. Uses TKH Payments to create intent.
    * gateway by currency and create payment intent.
    */
   async generatePaymentLink(businessId: string, invoiceId: string, userId?: string): Promise<{ paymentUrl: string }> {
@@ -380,7 +376,10 @@ export class InvoiceService {
       throw new ValidationError('Cannot generate payment link for cancelled invoice');
     }
 
-    const business = await this.businessRepository.getById(invoice.businessId);
+    const [business, customer] = await Promise.all([
+      this.businessRepository.getById(invoice.businessId),
+      invoice.customerId ? this.customerRepository.getById(invoice.businessId, invoice.customerId) : Promise.resolve(null),
+    ]);
 
     let amount = invoice.amount;
     if (
@@ -414,6 +413,10 @@ export class InvoiceService {
         customerId: invoice.customerId ?? undefined,
         businessId: invoice.businessId,
         invoiceId: invoice.id,
+        // Customer phone → used by KkiaPay/MoMo to send USSD push to the paying customer
+        phoneNumber: customer?.phone ?? undefined,
+        // Business phone → used by payments service to auto-disburse after collection
+        businessPhone: business?.phone ?? undefined,
       },
     });
 
@@ -528,6 +531,7 @@ export class InvoiceService {
       invoice,
       customer,
       businessName,
+      business ?? undefined,
     );
 
     const subject = `Invoice from ${businessName ?? 'Your Business'}`;
@@ -589,6 +593,7 @@ export class InvoiceService {
       invoice,
       customer,
       businessName,
+      business ?? undefined,
     );
 
     const { url } = await this.receiptStorageService.uploadInvoicePdf(businessId, pdfBuffer);
@@ -607,6 +612,76 @@ export class InvoiceService {
     }
 
     return { success: result.success, messageId: result.messageId };
+  }
+
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+    fromDate?: string,
+    toDate?: string,
+  ) {
+    return this.invoiceRepository.listWithCursor(businessId, limit, cursor, fromDate, toDate);
+  }
+
+  /**
+   * Mark an invoice as paid via cash (in-store POS).
+   * Does not trigger any payment gateway — simply transitions status to 'paid'
+   * and records the ledger entry just like a gateway-confirmed payment.
+   */
+  async markPaidCash(
+    businessId: string,
+    invoiceId: string,
+    userId?: string,
+  ): Promise<Invoice> {
+    const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
+    if (!invoice) throw new NotFoundError('Invoice', invoiceId);
+
+    if (invoice.status === 'paid') return invoice;
+    if (invoice.status === 'cancelled') {
+      throw new ValidationError('Cannot mark a cancelled invoice as paid');
+    }
+
+    await this.invoiceRepository.updateStatus(businessId, invoiceId, 'paid');
+
+    if (this.auditLogger && userId) {
+      this.auditLogger.log({
+        entityType: 'Invoice',
+        entityId: invoiceId,
+        businessId,
+        action: 'payment.cash',
+        userId,
+      }).catch(() => {});
+    }
+
+    return { ...invoice, status: 'paid' };
+  }
+
+  /**
+   * Generate a PDF buffer for a given invoice.
+   * mode: 'invoice' = A4 pre-payment, 'receipt' = A4 paid with stamp, 'thermal' = 72mm roll
+   */
+  async generatePdf(
+    businessId: string,
+    invoiceId: string,
+    mode: import('./InvoicePdfService').PdfMode = 'invoice',
+  ): Promise<Buffer> {
+    const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
+    if (!invoice) throw new NotFoundError('Invoice', invoiceId);
+
+    const [customer, business] = await Promise.all([
+      this.customerRepository.getById(businessId, invoice.customerId),
+      this.businessRepository.getById(businessId),
+    ]);
+    if (!customer) throw new NotFoundError('Customer', invoice.customerId);
+
+    return this.invoicePdfService.generateInvoicePdf(
+      invoice,
+      customer,
+      business?.name,
+      business ?? undefined,
+      mode,
+    );
   }
 
   private normalizePhone(phone: string): string | null {

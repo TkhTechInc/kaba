@@ -21,6 +21,10 @@ export interface OnboardingAnswers {
   businessAddress?: string;
   businessPhone?: string;
   fiscalYearStart?: number;
+  /** URL-friendly store slug for public storefront, e.g. "mama-fashion" */
+  slug?: string;
+  /** Short public description of the business */
+  description?: string;
 }
 
 export interface OnboardingState {

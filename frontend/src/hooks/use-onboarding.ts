@@ -22,9 +22,13 @@ export type OnboardingAnswers = {
   country?: string;
   currency?: string;
   taxRegime?: string;
+  /** IFU (Benin) or NCC (Côte d'Ivoire) — required for fiscal e-invoicing certification */
+  taxId?: string;
   businessAddress?: string;
   businessPhone?: string;
   fiscalYearStart?: number;
+  slug?: string;
+  description?: string;
 };
 
 export type OnboardingProgress = {

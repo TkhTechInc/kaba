@@ -2,7 +2,7 @@ import { Controller, Get, Post, Query, Body, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { ITaxEngine } from './ITaxEngine';
 import type { IFNEProvider } from './interfaces/IFNEProvider';
-import type { IMECeFProvider } from './interfaces/IMECeFProvider';
+import type { IMECeFProvider, MECeFInvoicePayload } from './interfaces/IMECeFProvider';
 import { TAX_ENGINE, FNE_PROVIDER, MECEF_PROVIDER } from '@/nest/modules/tax/tax.tokens';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import type { TaxableTransaction } from './ITaxEngine';
@@ -109,25 +109,7 @@ export class TaxController {
   @Feature('tax')
   @RequirePermission('tax:read')
   async registerMECeFInvoice(
-    @Body() body: {
-      nim: string;
-      ifu: string;
-      client_ifu?: string;
-      reference?: string;
-      montant_ht: number;
-      montant_tva: number;
-      montant_ttc: number;
-      type_facture: 'FV' | 'FA';
-      date: string;
-      items: Array<{
-        nom: string;
-        quantite: number;
-        prix_unitaire_ht: number;
-        montant_ht: number;
-        montant_tva: number;
-        montant_ttc: number;
-      }>;
-    },
+    @Body() body: MECeFInvoicePayload,
   ) {
     const result = await this.mecefProvider.registerInvoice(body);
     return { success: true, data: result };
@@ -137,13 +119,13 @@ export class TaxController {
   @Feature('tax')
   @RequirePermission('tax:read')
   async confirmMECeFInvoice(
-    @Body() body: { token: string; decision: 'confirm' | 'reject' },
+    @Body() body: { token: string; decision: 'confirm' | 'cancel' },
   ) {
     const result = await this.mecefProvider.confirmInvoice(body.token, body.decision);
     if (!result) {
       return {
         success: false,
-        error: 'Token expired, already used, or decision was reject',
+        error: 'Token expired, already used, or decision was cancel',
       };
     }
     return { success: true, data: result };
