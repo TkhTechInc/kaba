@@ -12,6 +12,7 @@ function PlanKkiaPayReturnContent() {
   const token = searchParams.get("token");
   const transactionId =
     searchParams.get("transaction_id") ?? searchParams.get("transactionId");
+  const intentId = searchParams.get("intentId");
   const redirectStatus =
     searchParams.get("transaction_status") ??
     searchParams.get("status") ??
@@ -21,12 +22,12 @@ function PlanKkiaPayReturnContent() {
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    if (!token || !transactionId) {
+    if (!token || !transactionId || !intentId) {
       setStatus("error");
       setMessage("Missing payment details. Return to Settings and try again.");
       return;
     }
-    confirmPlanKkiaPay(token, transactionId, redirectStatus ?? undefined)
+    confirmPlanKkiaPay(token, transactionId, intentId, redirectStatus ?? undefined)
       .then((result) => {
         if (result.success) {
           if (result.businessId) invalidateFeaturesCache(result.businessId);
@@ -40,7 +41,7 @@ function PlanKkiaPayReturnContent() {
         setStatus("error");
         setMessage(err instanceof Error ? err.message : "Could not confirm payment.");
       });
-  }, [token, transactionId, redirectStatus]);
+  }, [token, transactionId, intentId, redirectStatus]);
 
   if (status === "loading") {
     return (

@@ -43,7 +43,18 @@ export class ProductController {
 
   @Get()
   @RequirePermission('inventory:read')
-  async list(@Query() query: ListProductsQueryDto) {
+  async list(
+    @Query() query: ListProductsQueryDto,
+    @Query('cursor') cursor?: string,
+  ) {
+    if (cursor !== undefined) {
+      const result = await this.productService.listWithCursor(
+        query.businessId,
+        query.limit ?? 50,
+        cursor || undefined,
+      );
+      return { success: true, data: result };
+    }
     const result = await this.productService.list(
       query.businessId,
       query.page ?? 1,

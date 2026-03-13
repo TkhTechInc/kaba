@@ -32,12 +32,17 @@ export class UssdController {
     }
 
     const expectedKey = process.env['USSD_API_KEY'];
+    const isProd = process.env['NODE_ENV'] === 'production';
     if (expectedKey) {
-      const incomingKey = (body as any)['apiKey'] ?? '';
+      const incomingKey = (body as Record<string, string>)['apiKey'] ?? '';
       if (incomingKey !== expectedKey) {
         res.type('text/plain').send('END Unauthorized request.');
         return;
       }
+    } else if (isProd) {
+      this.logger.error('USSD_API_KEY is required in production');
+      res.type('text/plain').send('END Unauthorized request.');
+      return;
     } else {
       this.logger.warn('USSD_API_KEY is not set — USSD endpoint is unauthenticated');
     }

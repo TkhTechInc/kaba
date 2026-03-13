@@ -10,6 +10,7 @@ import { AuditLogsStack } from './stacks/AuditLogsStack';
 import { UsersServiceStack } from './stacks/UsersServiceStack';
 import { KabaApiStack } from './stacks/KabaApiStack';
 import { IdempotencyStack } from './stacks/IdempotencyStack';
+import { AgentSessionsStack } from './stacks/AgentSessionsStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 
 const app = new cdk.App();
@@ -101,6 +102,13 @@ const idempotencyStack = new IdempotencyStack(app, `Kaba-Idempotency-${environme
   config: envConfig,
 });
 
+const agentSessionsStack = new AgentSessionsStack(app, `Kaba-AgentSessions-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Kaba - Agent sessions DynamoDB table',
+  config: envConfig,
+});
+
 const apiStack = new KabaApiStack(app, `Kaba-Api-${environment}`, {
   ...commonProps,
   environment,
@@ -112,6 +120,7 @@ const apiStack = new KabaApiStack(app, `Kaba-Api-${environment}`, {
   auditLogsTable: auditLogsStack.auditLogsTable,
   usersTable: usersStack.usersTable,
   idempotencyTable: idempotencyStack.idempotencyTable,
+  agentSessionsTable: agentSessionsStack.agentSessionsTable,
   receiptsBucket: receiptsStack.receiptsBucket,
   region: envConfig.region,
 });
@@ -123,5 +132,6 @@ apiStack.addDependency(inventoryStack);
 apiStack.addDependency(auditLogsStack);
 apiStack.addDependency(usersStack);
 apiStack.addDependency(idempotencyStack);
+apiStack.addDependency(agentSessionsStack);
 
 app.synth();

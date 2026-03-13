@@ -1,6 +1,6 @@
 "use client";
 
-import { EmailIcon, PasswordIcon } from "@/assets/icons";
+import { EmailIcon, LockIcon } from "@/assets/icons8";
 import { useAuth } from "@/contexts/auth-context";
 import InputGroup from "@/components/FormElements/InputGroup";
 import Link from "next/link";
@@ -154,7 +154,7 @@ export default function SignUpForm() {
           name="code"
           handleChange={handleChange}
           value={code}
-          icon={<PasswordIcon />}
+          icon={<LockIcon />}
           required
           aria-label="Verification code"
           inputRef={codeInputRef}
@@ -167,7 +167,7 @@ export default function SignUpForm() {
           name="password"
           handleChange={handleChange}
           value={password}
-          icon={<PasswordIcon />}
+          icon={<LockIcon />}
           required
           aria-label="Password"
         />
@@ -179,7 +179,7 @@ export default function SignUpForm() {
           name="confirmPassword"
           handleChange={handleChange}
           value={confirmPassword}
-          icon={<PasswordIcon />}
+          icon={<LockIcon />}
           required
           aria-label="Confirm password"
         />

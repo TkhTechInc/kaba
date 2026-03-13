@@ -10,6 +10,7 @@ import { Price } from "@/components/ui/Price";
 import { createLedgerApi, type LedgerEntry } from "@/services/ledger.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { ListSearchInput } from "@/components/ui/list-search-input";
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
@@ -40,6 +41,7 @@ export default function LedgerPage() {
   );
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const api = createLedgerApi(token);
 
@@ -160,6 +162,11 @@ export default function LedgerPage() {
             {t("ledger.entries.title")}
           </h3>
           <div className="flex flex-wrap items-center gap-2">
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t("ledger.entries.search")}
+            />
             <DateRangeFilter
               value={dateRange}
               onChange={(r) => { setDateRange(r); setPage(1); }}
@@ -222,10 +229,23 @@ export default function LedgerPage() {
             </div>
           ) : (
             <ResponsiveDataList<LedgerEntry>
-              items={entries}
+              items={
+                search.trim()
+                  ? entries.filter(
+                      (e) =>
+                        (e.description ?? "").toLowerCase().includes(search.trim().toLowerCase()) ||
+                        (e.category ?? "").toLowerCase().includes(search.trim().toLowerCase()) ||
+                        (e.type ?? "").toLowerCase().includes(search.trim().toLowerCase()) ||
+                        (e.date ?? "").toLowerCase().includes(search.trim().toLowerCase()) ||
+                        e.amount.toString().includes(search.trim())
+                    )
+                  : entries
+              }
               keyExtractor={(e) => e.id}
               emptyMessage={
-                canWrite ? (
+                search.trim() ? (
+                  t("ledger.entries.noResults")
+                ) : canWrite ? (
                   <>
                     {t("ledger.entries.empty")}{" "}
                     <Link href="/ledger/entries/new" className="text-primary hover:underline">

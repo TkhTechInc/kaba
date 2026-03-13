@@ -9,7 +9,7 @@ import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { createProductsApi, type Product } from "@/services/products.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
-import { SearchIcon } from "@/assets/icons";
+import { ListSearchInput } from "@/components/ui/list-search-input";
 import Link from "next/link";
 import { useLocale } from "@/contexts/locale-context";
 import { PermissionDenied } from "@/components/ui/permission-denied";
@@ -191,17 +191,11 @@ export default function ProductsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {/* Search */}
-            <div className="relative">
-              <input
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t("products.search")}
-                className="w-48 rounded-lg border border-stroke bg-gray-2 py-1.5 pl-8 pr-3 text-sm text-dark placeholder:text-dark-4 focus:border-primary focus:outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:placeholder:text-dark-6 sm:w-56"
-              />
-              <SearchIcon className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-dark-4 dark:text-dark-6" />
-            </div>
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t("products.search")}
+            />
             {canWrite && (
               <Link
                 href="/products/new"

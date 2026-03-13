@@ -1,4 +1,4 @@
-import { CheckIcon, XIcon } from "@/assets/icons";
+import { CheckIcon, CloseIcon } from "@/assets/icons8";
 import { cn } from "@/lib/utils";
 import { useId } from "react";
 
@@ -59,7 +59,7 @@ export function Checkbox({
               <CheckIcon className="hidden text-primary" />
             )}
 
-            {withIcon === "x" && <XIcon className="hidden text-primary" />}
+            {withIcon === "x" && <CloseIcon className="hidden text-primary" />}
           </div>
         </div>
         <span>{label}</span>

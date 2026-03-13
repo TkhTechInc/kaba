@@ -29,4 +29,12 @@ export class ListInvoicesQueryDto {
   @IsString()
   @Matches(DATE_REGEX)
   toDate?: string;
+
+  @IsOptional()
+  @IsString()
+  customerEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  customerId?: string;
 }

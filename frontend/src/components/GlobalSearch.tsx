@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { SearchIcon } from "@/assets/icons";
+import { SearchIcon } from "@/assets/icons8";
 import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
 import { useGlobalSearch, type SearchResult, type SearchResultKind } from "@/hooks/use-global-search";

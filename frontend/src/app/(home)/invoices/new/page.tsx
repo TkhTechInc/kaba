@@ -141,7 +141,18 @@ export default function CreateInvoicePage() {
     };
     api
       .create(payload)
-      .then((r) => router.push(`/invoices/${r.id}`))
+      .then((r) => {
+        const rawId = r?.id;
+        const id =
+          rawId &&
+          typeof rawId === "string" &&
+          !rawId.startsWith("pending-") &&
+          rawId !== "undefined" &&
+          rawId !== "null"
+            ? rawId
+            : null;
+        router.push(id ? `/invoices/${id}` : "/invoices");
+      })
       .catch((e) => setError(e.message))
       .finally(() => setSubmitting(false));
   };

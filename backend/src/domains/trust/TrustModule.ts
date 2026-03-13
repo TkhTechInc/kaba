@@ -56,7 +56,7 @@ import { TrustController } from './TrustController';
         businessRepo: BusinessRepository,
       ) => {
         const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
-        const baseUrl = config.get<string>('app.baseUrl') ?? 'https://api.sika.app';
+        const baseUrl = config.get<string>('app.baseUrl') ?? 'http://localhost:3001';
         return new TrustShareService(docClient, tableName, trustScoreService, businessRepo, baseUrl);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService, BusinessTrustScoreService, BusinessRepository],

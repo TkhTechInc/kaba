@@ -2,10 +2,11 @@
 
 import { useEffect, useCallback, useRef, useState } from "react";
 import { getAllQueued, removeQueued, incrementRetry } from "@/lib/offline-queue";
+import { runMobileSync } from "@/services/mobile-sync.service";
 
 const MAX_RETRIES = 5;
 
-export function useSyncManager(token: string | null) {
+export function useSyncManager(token: string | null, businessId?: string | null) {
   const syncingRef = useRef(false);
   const [pendingCount, setPendingCount] = useState(0);
   const [isOnline, setIsOnline] = useState(
@@ -25,6 +26,9 @@ export function useSyncManager(token: string | null) {
     if (syncingRef.current || !navigator.onLine) return;
     syncingRef.current = true;
     try {
+      if (businessId?.trim() && token) {
+        await runMobileSync(businessId, token);
+      }
       const items = await getAllQueued();
       for (const item of items) {
         if (item.retries >= MAX_RETRIES) {
@@ -56,7 +60,7 @@ export function useSyncManager(token: string | null) {
       syncingRef.current = false;
       refreshPendingCount();
     }
-  }, [token, refreshPendingCount]);
+  }, [token, businessId, refreshPendingCount]);
 
   useEffect(() => {
     refreshPendingCount();

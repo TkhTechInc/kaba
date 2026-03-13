@@ -11,8 +11,27 @@ import type { CreatePaymentIntentRequest, PaymentGatewayResponse } from '../mode
 
 const MOMO_DEFAULT_BASE_URL = 'https://sandbox.momodeveloper.mtn.com';
 
+/** Approximate rates to EUR for sandbox (MTN sandbox only accepts EUR). Used when MOMO_TARGET_ENV=sandbox. */
+const SANDBOX_EUR_RATES: Record<string, number> = {
+  XOF: 655.957,
+  XAF: 655.957,
+  GNF: 9000,
+  GHS: 15,
+};
+
 function toMsisdn(phone: string): string {
   return phone.replace(/\D/g, '');
+}
+
+/** When sandbox, convert non-EUR to EUR for API (sandbox only accepts EUR). */
+function toSandboxCurrency(amount: number, currency: string): { amount: number; currency: string } {
+  const targetEnv = process.env['MOMO_TARGET_ENV'] || 'sandbox';
+  if (targetEnv !== 'sandbox') return { amount, currency };
+  const uc = currency.toUpperCase();
+  if (uc === 'EUR') return { amount, currency };
+  const rate = SANDBOX_EUR_RATES[uc];
+  if (!rate) return { amount, currency };
+  return { amount: Math.round((amount / rate) * 100) / 100, currency: 'EUR' };
 }
 
 export class MomoGateway implements IPaymentGateway {
@@ -73,7 +92,9 @@ export class MomoGateway implements IPaymentGateway {
         return { success: false, gatewayTransactionId: '', gatewayResponse: null, error: 'Failed to obtain MoMo access token' };
       }
 
-      const amount = this.formatAmount(request.amount, request.currency);
+      const { amount: apiAmount, currency: apiCurrency } = toSandboxCurrency(request.amount, request.currency);
+      // MTN API expects amount in major units (e.g. "5.0" for EUR, "2500" for XOF), not minor units.
+      const amountStr = this.formatAmountForRequest(apiAmount, apiCurrency);
       const url = `${this.baseUrl}/collection/v1_0/requesttopay`;
 
       const res = await fetch(url, {
@@ -86,8 +107,8 @@ export class MomoGateway implements IPaymentGateway {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          amount: String(amount),
-          currency: request.currency,
+          amount: amountStr,
+          currency: apiCurrency,
           externalId: paymentId,
           payer: { partyIdType: 'MSISDN', partyId: toMsisdn(phoneNumber as string) },
           payerMessage: 'Invoice payment',
@@ -116,7 +137,7 @@ export class MomoGateway implements IPaymentGateway {
     return [...this.supportedCurrencies];
   }
 
-  async handleWebhook(payload: string, signature?: string): Promise<{ success: boolean; invoiceId?: string; businessId?: string }> {
+  async handleWebhook(payload: string, signature?: string): Promise<{ success: boolean; invoiceId?: string; businessId?: string; planToken?: string; storefrontToken?: string }> {
     if (this.webhookSecret) {
       if (!signature) return { success: false };
       const expected = crypto.createHmac('sha256', this.webhookSecret).update(payload).digest('hex');
@@ -132,13 +153,32 @@ export class MomoGateway implements IPaymentGateway {
       const body = JSON.parse(payload) as { status?: string; externalId?: string };
       const status = (body.status ?? '').toUpperCase();
       const success = status === 'SUCCESSFUL';
-      // Parse businessId + invoiceId from externalId format: qb-<businessId>-<invoiceId>-<timestamp>
       const externalId = body.externalId ?? '';
+
+      // Plan payment: qb-plan-<token>-<timestamp>
+      if (externalId.startsWith('qb-plan-')) {
+        const rest = externalId.slice(8);
+        const lastDash = rest.lastIndexOf('-');
+        const maybeTs = rest.slice(lastDash + 1);
+        const planToken = /^\d+$/.test(maybeTs) ? rest.slice(0, lastDash) : rest;
+        return { success, planToken: planToken || undefined };
+      }
+
+      // Storefront payment: qb-storefront-<token>-<timestamp>
+      if (externalId.startsWith('qb-storefront-')) {
+        const rest = externalId.slice(14);
+        const lastDash = rest.lastIndexOf('-');
+        const maybeTs = rest.slice(lastDash + 1);
+        const storefrontToken = /^\d+$/.test(maybeTs) ? rest.slice(0, lastDash) : rest;
+        return { success, storefrontToken: storefrontToken || undefined };
+      }
+
+      // Invoice payment: qb-<businessId>-<invoiceId>-<timestamp>
       let invoiceId: string | undefined;
       let businessId: string | undefined;
       if (externalId.startsWith('qb-')) {
-        const withoutPrefix = externalId.slice(3);            // "<businessId>-<invoiceId>-<timestamp>"
-        const withoutTimestamp = withoutPrefix.replace(/-\d+$/, ''); // "<businessId>-<invoiceId>"
+        const withoutPrefix = externalId.slice(3);
+        const withoutTimestamp = withoutPrefix.replace(/-\d+$/, '');
         const dashIdx = withoutTimestamp.indexOf('-');
         if (dashIdx !== -1) {
           businessId = withoutTimestamp.slice(0, dashIdx) || undefined;
@@ -153,6 +193,98 @@ export class MomoGateway implements IPaymentGateway {
     } catch {
       return { success: false };
     }
+  }
+
+  /**
+   * Disburse (transfer) money to a mobile money number.
+   * Uses MOMO_DISBURSEMENT_API_USER, MOMO_DISBURSEMENT_API_KEY, MOMO_DISBURSEMENT_SUBSCRIPTION_KEY.
+   * Falls back to ledger-only when disbursement credentials are not configured.
+   */
+  async disburse(phone: string, amount: number, currency: string, externalId: string): Promise<{ transactionId: string; success?: boolean; error?: string }> {
+    const apiUser = process.env['MOMO_DISBURSEMENT_API_USER'];
+    const apiKey = process.env['MOMO_DISBURSEMENT_API_KEY'];
+    const subKey = process.env['MOMO_DISBURSEMENT_SUBSCRIPTION_KEY'];
+
+    if (!apiUser?.trim() || !apiKey?.trim() || !subKey?.trim()) {
+      console.warn(`MoMo disbursement not configured. Transaction recorded in ledger only. phone=${phone} amount=${amount} ${currency}`);
+      return { transactionId: `pending-${externalId}` };
+    }
+
+    try {
+      const token = await this.getDisbursementToken(apiUser, apiKey, subKey);
+      if (!token) {
+        return { transactionId: `pending-${externalId}`, success: false, error: 'Failed to obtain MoMo disbursement token' };
+      }
+
+      const referenceId = crypto.randomUUID();
+      const formattedAmount = this.formatAmount(amount, currency);
+      const url = `${this.baseUrl}/disbursement/v1_0/transfer`;
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Ocp-Apim-Subscription-Key': subKey,
+          'X-Reference-Id': referenceId,
+          'X-Target-Environment': process.env['MOMO_TARGET_ENV'] || 'sandbox',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          amount: String(formattedAmount),
+          currency,
+          externalId,
+          payee: { partyIdType: 'MSISDN', partyId: toMsisdn(phone) },
+          payerMessage: 'Supplier payment',
+          payeeNote: `Payment ref ${externalId}`,
+        }),
+      });
+
+      if (res.status === 202 || res.status === 200) {
+        return { transactionId: referenceId, success: true };
+      }
+
+      const text = await res.text();
+      let errMsg: string;
+      try {
+        errMsg = (JSON.parse(text) as { message?: string }).message ?? text ?? `MoMo disbursement ${res.status}`;
+      } catch {
+        errMsg = text || `MoMo disbursement ${res.status}`;
+      }
+      return { transactionId: referenceId, success: false, error: errMsg };
+    } catch (err) {
+      return {
+        transactionId: `pending-${externalId}`,
+        success: false,
+        error: (err as Error).message,
+      };
+    }
+  }
+
+  private async getDisbursementToken(apiUser: string, apiKey: string, subscriptionKey: string): Promise<string | null> {
+    const url = `${this.baseUrl}/disbursement/token/`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': subscriptionKey,
+          Authorization: `Basic ${Buffer.from(`${apiUser}:${apiKey}`).toString('base64')}`,
+        },
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { access_token?: string };
+      return data.access_token ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /** MTN Collection API expects amount in major units as string (e.g. "5.0" EUR, "2500" XOF). */
+  private formatAmountForRequest(amount: number, currency: string): string {
+    const noCents = ['XOF', 'XAF', 'GNF', 'XPF'];
+    if (noCents.includes(currency.toUpperCase())) {
+      return String(Math.round(amount));
+    }
+    return String(Math.round(amount * 100) / 100);
   }
 
   private formatAmount(amount: number, currency: string): number {

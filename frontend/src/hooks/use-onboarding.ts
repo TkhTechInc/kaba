@@ -24,6 +24,10 @@ export type OnboardingAnswers = {
   taxRegime?: string;
   /** IFU (Benin) or NCC (Côte d'Ivoire) — required for fiscal e-invoicing certification */
   taxId?: string;
+  /** Legal structure: auto_entrepreneur | sarl | sa | snc | association | other */
+  legalStatus?: string;
+  /** RCCM registration number */
+  rccm?: string;
   businessAddress?: string;
   businessPhone?: string;
   fiscalYearStart?: number;

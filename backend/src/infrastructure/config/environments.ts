@@ -32,6 +32,8 @@ export interface EnvironmentConfig {
   };
   /** Frontend URL for CORS (e.g. https://dev.kaba.example.com). Localhost is always allowed. */
   frontendUrl?: string;
+  /** Public API URL for trust share links, webhooks, etc. (e.g. https://api.kabasika.com). Set via cdk deploy -c apiUrl=... */
+  apiUrl?: string;
   /** Google OAuth — pass via cdk deploy -c googleClientId=... -c googleClientSecret=... */
   googleClientId?: string;
   googleClientSecret?: string;
@@ -66,6 +68,8 @@ export interface EnvironmentConfig {
   };
   /** TKH Payments microservice base URL (e.g. https://<id>.execute-api.ca-central-1.amazonaws.com/dev/api/v1) */
   paymentsServiceUrl?: string;
+  /** TKH Payments API key sent as X-API-Key by PaymentsClient */
+  tkhPaymentsApiKey?: string;
   /** SNS topic ARN for payment events published by TKH Payments service */
   paymentsSnsTopicArn?: string;
 }
@@ -95,6 +99,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       enablePITR: false,
     },
     paymentsServiceUrl: 'https://hfy53j9rjc.execute-api.ca-central-1.amazonaws.com/dev/api/v1',
+    tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: 'arn:aws:sns:ca-central-1:497172038983:tkhtech-payment-events-dev',
     ai: {
       provider: 'openrouter',
@@ -132,6 +137,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     },
     // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
     paymentsServiceUrl: undefined,
+    tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: undefined,
   },
   prod: {
@@ -158,6 +164,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     },
     // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
     paymentsServiceUrl: undefined,
+    tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: undefined,
   },
 };
@@ -170,11 +177,13 @@ export function getEnvironmentConfig(environment: string, contextOverrides?: Rec
     );
   }
   // Allow CDK context to override payments URLs at deploy time:
-  // cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
+  // cdk deploy -c paymentsServiceUrl=https://... -c tkhPaymentsApiKey=... -c paymentsSnsTopicArn=arn:...
   return {
     ...config,
     paymentsServiceUrl: contextOverrides?.['paymentsServiceUrl'] ?? config.paymentsServiceUrl,
+    tkhPaymentsApiKey: contextOverrides?.['tkhPaymentsApiKey'] ?? config.tkhPaymentsApiKey,
     paymentsSnsTopicArn: contextOverrides?.['paymentsSnsTopicArn'] ?? config.paymentsSnsTopicArn,
+    apiUrl: contextOverrides?.['apiUrl'] ?? config.apiUrl,
   };
 }
 

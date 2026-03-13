@@ -20,7 +20,7 @@
 | KkiaPay JS widget | Supported on `/pay/[token]` public page |
 | SNS payment event handler | Lambda subscribes to `tkhtech-payment-events-dev`, marks invoices paid, creates ledger entries |
 | CDK — dev environment | Deployed to `ca-central-1` (Kaba AWS account `110044886269`) |
-| CI/CD (GitHub Actions) | `ci.yml` on PRs, `deploy.yml` on `main` push / tag |
+| CI/CD (GitHub Actions) | `ci.yml` on PRs (lint, type-check, `npm test` runs Jest), `deploy.yml` on `main` push / tag |
 | Global search | `GlobalSearch.tsx`, `use-global-search.ts`, `date-range-filter.tsx` committed |
 
 ---
@@ -33,6 +33,7 @@ cd backend
 npm run build
 npm run type-check
 npm run lint
+npm test          # Jest — 21+ spec files
 npm run dev
 
 # Frontend
@@ -81,7 +82,9 @@ cdk deploy -c environment=staging \
 
 ## Known Limitations
 
-- **Tests:** No Jest tests in backend, no Playwright/Cypress in frontend.
+- **Tests:** No Playwright/Cypress in frontend. Backend has 21+ Jest spec files; CI runs `npm test` (Jest).
+- **Reconciliation:** Mobile money SMS parsing requires `MOBILE_MONEY_PARSER_PROVIDER=llm` and AI config for real parsing; mock returns empty.
+- **WhatsApp:** Only Meta Cloud API supported; Twilio and Africa's Talking providers are TODO.
 - **Staging/Prod payments config:** `paymentsServiceUrl` and `paymentsSnsTopicArn` must be supplied via CDK context at deploy time (no hardcoded staging/prod URLs yet).
 - **KkiaPay webhook:** Payment webhook verification uses `KKIAPAY_PRIVATE_KEY` — must be set in Lambda environment for prod.
 

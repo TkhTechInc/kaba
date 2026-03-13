@@ -31,6 +31,7 @@ export interface KabaApiStackProps extends cdk.StackProps {
   auditLogsTable: dynamodb.ITable;
   usersTable: dynamodb.ITable;
   idempotencyTable: dynamodb.ITable;
+  agentSessionsTable: dynamodb.ITable;
   region: string;
   receiptsBucket?: s3.IBucket;
 }
@@ -41,7 +42,7 @@ export class KabaApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: KabaApiStackProps) {
     super(scope, id, props);
 
-    const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, idempotencyTable, region, receiptsBucket } = props;
+    const { environment, config, ledgerTable, invoicesTable, inventoryTable, auditLogsTable, usersTable, idempotencyTable, agentSessionsTable, region, receiptsBucket } = props;
     const resourcePrefix = `Kaba-Api-${environment}`;
 
     // SECURITY: JWT secret from Secrets Manager. Lambda resolves at runtime via JWT_SECRET_SECRET_NAME.
@@ -53,6 +54,7 @@ export class KabaApiStack extends cdk.Stack {
     // __dirname is src/infrastructure/stacks (ts-node) or dist/infrastructure/stacks (compiled)
     const apiLambdaAsset = path.join(__dirname, '../../../dist/api-lambda');
     const recurringLambdaAsset = path.join(__dirname, '../../../dist/recurring-invoice-lambda');
+    const paymentReminderLambdaAsset = path.join(__dirname, '../../../dist/payment-reminder-lambda');
 
     this.apiLambda = new lambda.Function(this, 'ApiLambda', {
       functionName: `${resourcePrefix}-handler`,
@@ -73,6 +75,7 @@ export class KabaApiStack extends cdk.Stack {
         DYNAMODB_AUDIT_LOGS_TABLE: auditLogsTable.tableName,
         DYNAMODB_USERS_TABLE: usersTable.tableName,
         DYNAMODB_IDEMPOTENCY_TABLE: idempotencyTable.tableName,
+        AGENT_SESSIONS_TABLE: agentSessionsTable.tableName,
         S3_RECEIPTS_BUCKET: receiptsBucket?.bucketName ?? '',
         SMS_ENABLED: config.sms?.enabled ? 'true' : 'false',
         SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
@@ -80,6 +83,7 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.googleClientId && { GOOGLE_CLIENT_ID: config.googleClientId }),
         ...(config.googleClientSecret && { GOOGLE_CLIENT_SECRET: config.googleClientSecret }),
         FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
+        API_URL: config.apiUrl ?? '',
         // AI: base provider + per-task model overrides. OPENROUTER_API_KEY loaded from secret.
         ...(config.ai?.provider && { AI_PROVIDER: config.ai.provider }),
         ...(config.ai?.model && { AI_MODEL: config.ai.model }),
@@ -101,6 +105,9 @@ export class KabaApiStack extends cdk.Stack {
         }),
         ...(config.paymentsServiceUrl && {
           PAYMENTS_SERVICE_URL: config.paymentsServiceUrl,
+        }),
+        ...(config.tkhPaymentsApiKey && {
+          TKH_PAYMENTS_API_KEY: config.tkhPaymentsApiKey,
         }),
       },
     });
@@ -129,6 +136,31 @@ export class KabaApiStack extends cdk.Stack {
       targets: [new targets.LambdaFunction(recurringInvoiceLambda)],
     });
 
+    // Payment reminder Lambda: sends SMS/WhatsApp reminders for overdue/pending debts daily at 8am UTC
+    const paymentReminderLambda = new lambda.Function(this, 'PaymentReminderLambda', {
+      functionName: `${resourcePrefix}-payment-reminder`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(paymentReminderLambdaAsset),
+      timeout: Duration.minutes(5),
+      memorySize: 256,
+      environment: {
+        DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
+        WHATSAPP_TOKEN: process.env['WHATSAPP_TOKEN'] ?? '',
+        WHATSAPP_PHONE_NUMBER_ID: process.env['WHATSAPP_PHONE_NUMBER_ID'] ?? '',
+      },
+    });
+    ledgerTable.grantReadWriteData(paymentReminderLambda);
+
+    // EventBridge rule: daily at 8am UTC
+    new events.Rule(this, 'DailyReminderRule', {
+      ruleName: `${resourcePrefix}-payment-reminder-daily`,
+      description: 'Send payment reminders for overdue/pending debts daily at 8am UTC',
+      schedule: events.Schedule.cron({ minute: '0', hour: '8', day: '*', month: '*', year: '*' }),
+      targets: [new targets.LambdaFunction(paymentReminderLambda)],
+    });
+
     // Payment event Lambda: triggered by SNS payment.completed events from TKH Payments service
     if (config.paymentsSnsTopicArn) {
       const paymentEventLambdaAsset = path.join(__dirname, '../../../dist/payment-event-lambda');
@@ -153,7 +185,13 @@ export class KabaApiStack extends cdk.Stack {
         config.paymentsSnsTopicArn,
       );
       paymentEventLambda.addEventSource(
-        new lambdaEventSources.SnsEventSource(paymentsTopic),
+        new lambdaEventSources.SnsEventSource(paymentsTopic, {
+          filterPolicy: {
+            appId: sns.SubscriptionFilter.stringFilter({
+              allowlist: ['kaba'],
+            }),
+          },
+        }),
       );
     }
 
@@ -233,6 +271,7 @@ export class KabaApiStack extends cdk.Stack {
     auditLogsTable.grantReadWriteData(this.apiLambda);
     usersTable.grantReadWriteData(this.apiLambda);
     idempotencyTable.grantReadWriteData(this.apiLambda);
+    agentSessionsTable.grantReadWriteData(this.apiLambda);
 
     if (receiptsBucket) {
       receiptsBucket.grantReadWrite(this.apiLambda);

@@ -22,6 +22,8 @@ export interface LedgerEntry {
   exchangeRate?: number;
   /** Forex gain/loss amount in ledger currency. */
   forexGainLoss?: number;
+  /** Supplier ID when entry is a supplier payment (type=expense, category=supplier_payment). */
+  supplierId?: string;
 }
 
 export interface CreateLedgerEntryInput {
@@ -38,6 +40,7 @@ export interface CreateLedgerEntryInput {
   originalCurrency?: string;
   exchangeRate?: number;
   forexGainLoss?: number;
+  supplierId?: string;
   /** When true, skip ledger limit check (e.g. for system-generated entries from invoice payment). */
   skipLimitCheck?: boolean;
 }

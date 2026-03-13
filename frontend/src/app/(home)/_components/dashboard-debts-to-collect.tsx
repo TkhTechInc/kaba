@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
-import { createDebtsApi } from "@/services/debts.service";
 import { useAuth } from "@/contexts/auth-context";
-import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
-import { useFeatures } from "@/hooks/use-features";
+import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
 import type { Debt } from "@/services/debts.service";
 
 function formatDate(s: string) {
@@ -23,34 +20,9 @@ function formatDate(s: string) {
 }
 
 export function DashboardDebtsToCollect({ className }: { className?: string }) {
-  const { businessId, token } = useAuth();
-  const { refreshTrigger } = useDashboardRefresh();
-  const features = useFeatures(businessId);
-  const [loading, setLoading] = useState(true);
-  const [debts, setDebts] = useState<Debt[]>([]);
-
-  useEffect(() => {
-    if (!businessId || !token) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    createDebtsApi(token)
-      .list(businessId, 1, 10)
-      .then((res) => {
-        const items = res.data?.items ?? [];
-        if (!cancelled) setDebts(items.filter((d) => d.status !== "paid").slice(0, 5));
-      })
-      .catch(() => {
-        if (!cancelled) setDebts([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, token, refreshTrigger]);
+  const { businessId } = useAuth();
+  const { data: homeData, loading } = useDashboardHome();
+  const debts = (homeData?.debts?.items ?? []) as Debt[];
 
   if (!businessId) return null;
 

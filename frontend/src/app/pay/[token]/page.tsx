@@ -1,21 +1,44 @@
 "use client";
 
 import { Logo } from "@/components/logo";
+import { MoMoLogo } from "@/components/payments/MoMoLogo";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Price } from "@/components/ui/Price";
-import { apiGet } from "@/lib/api-client";
+import { apiGet, apiPost } from "@/lib/api-client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
+function PayShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-50 px-4 py-8 text-dark">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-40 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-64 w-64 rounded-full bg-blue-200/60 blur-3xl" />
+      </div>
+      <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col">{children}</div>
+    </div>
+  );
+}
+
+function GlassCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-3xl border border-stroke bg-white p-6 shadow-1 sm:p-8">
+      {children}
+    </div>
+  );
+}
+
 /** KkiaPay widget: load script and open payment modal. */
 function KkiaPayWidgetButton({
   token,
+  intentId,
   amount,
   currency,
 }: {
   token: string;
+  intentId?: string;
   amount: number;
   currency: string;
 }) {
@@ -28,7 +51,7 @@ function KkiaPayWidgetButton({
     : Math.round(amount * 100);
   const callbackUrl =
     typeof window !== "undefined"
-      ? `${window.location.origin}/pay/kkiapay-return?token=${encodeURIComponent(token)}`
+      ? `${window.location.origin}/pay/kkiapay-return?token=${encodeURIComponent(token)}${intentId ? `&intentId=${encodeURIComponent(intentId)}` : ""}`
       : "";
 
   useEffect(() => {
@@ -50,6 +73,10 @@ function KkiaPayWidgetButton({
 
   const openWidget = () => {
     const win = typeof window !== "undefined" ? (window as Window & { openKkiapayWidget?: (opts: Record<string, unknown>) => void }) : null;
+    if (!intentId) {
+      setError("Payment session expired. Refresh and try again.");
+      return;
+    }
     if (!win?.openKkiapayWidget) {
       setError("KkiaPay not ready");
       return;
@@ -84,10 +111,74 @@ function KkiaPayWidgetButton({
     <button
       type="button"
       onClick={openWidget}
-      className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+      className="block w-full rounded-xl bg-gradient-to-r from-primary to-blue-500 px-4 py-3 text-center font-semibold text-white shadow-lg shadow-primary/25 transition hover:brightness-110"
     >
       Pay with KkiaPay (Mobile Money / Card)
     </button>
+  );
+}
+
+/** MoMo RequestToPay: enter phone, request sent to customer's MoMo app. */
+function MoMoRequestForm({
+  token,
+  onRequestSent,
+  onError,
+}: {
+  token: string;
+  onRequestSent: () => void;
+  onError: (msg: string) => void;
+}) {
+  const [phone, setPhone] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone.trim()) {
+      onError("Enter your MoMo phone number");
+      return;
+    }
+    setLoading(true);
+    onError("");
+    try {
+      const res = await apiPost<{ success: boolean; message?: string }>(
+        "/api/v1/invoices/pay/request-momo",
+        { token, phone: phone.trim() },
+        { skip401Redirect: true }
+      );
+      if (res?.success) {
+        onRequestSent();
+      } else {
+        onError("Request failed. Please try again.");
+      }
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Request failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <input
+        type="tel"
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        placeholder="+233241234567 or 0241234567"
+        className="w-full rounded-xl border border-stroke bg-white px-4 py-3 text-dark placeholder:text-dark-5"
+        disabled={loading}
+      />
+      <button
+        type="submit"
+        disabled={loading}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-blue-500 px-4 py-3 font-semibold text-white shadow-lg shadow-primary/25 transition hover:brightness-110 disabled:opacity-60"
+      >
+        <MoMoLogo className="h-6 w-auto" />
+        {loading ? "Sending…" : "Pay with MoMo"}
+      </button>
+      <p className="text-center text-xs text-dark-5">
+        A payment request will be sent to your phone. Approve it in your MoMo app.
+      </p>
+    </form>
   );
 }
 
@@ -108,7 +199,9 @@ interface InvoicePayData {
   items?: InvoicePayItem[];
   status: string;
   paymentUrl?: string;
+  intentId?: string;
   useKkiaPayWidget?: boolean;
+  useMomoRequest?: boolean;
   dueDate?: string;
 }
 
@@ -141,6 +234,8 @@ function PayContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [momoRequestSent, setMomoRequestSent] = useState(false);
+  const [momoError, setMomoError] = useState<string | null>(null);
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollStartRef = useRef<number | null>(null);
@@ -214,41 +309,43 @@ function PayContent() {
   // No token
   if (!tokenParam?.trim()) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-2 px-4 py-8 dark:bg-[#020d1a]">
+      <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-8 inline-flex">
+          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
             <Logo />
           </Link>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card sm:p-12">
-            <h1 className="mb-2 text-xl font-bold text-dark dark:text-white">
+          <GlassCard>
+            <div className="flex flex-1 flex-col items-center justify-center sm:p-4">
+            <h1 className="mb-2 text-xl font-bold text-dark">
               Invalid payment link
             </h1>
-            <p className="mb-6 text-center text-body-sm text-dark-4 dark:text-dark-6">
+            <p className="mb-6 text-center text-sm text-dark-5">
               This payment link is invalid or missing a token. Please check the
               link and try again.
             </p>
             <Link
               href="/auth/sign-up"
-              className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+              className="block w-full rounded-xl bg-gradient-to-r from-primary to-blue-500 px-4 py-3 text-center font-semibold text-white shadow-lg shadow-primary/25 transition hover:brightness-110"
             >
               Create an account
             </Link>
-          </div>
+            </div>
+          </GlassCard>
         </div>
         <PayFooter />
-      </div>
+      </PayShell>
     );
   }
 
   // Loading
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-2 px-4 py-8 dark:bg-[#020d1a]">
+      <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-8 inline-flex">
+          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
             <Logo />
           </Link>
-          <div className="flex flex-1 flex-col rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card sm:p-12">
+          <GlassCard>
             <div className="mb-6 flex items-center gap-3">
               <Skeleton className="h-8 w-48" />
             </div>
@@ -260,38 +357,40 @@ function PayContent() {
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
             <Skeleton className="h-32 w-full" />
-          </div>
+          </GlassCard>
         </div>
         <PayFooter />
-      </div>
+      </PayShell>
     );
   }
 
   // Error
   if (error || !data) {
     return (
-      <div className="flex min-h-screen flex-col bg-gray-2 px-4 py-8 dark:bg-[#020d1a]">
+      <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-8 inline-flex">
+          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
             <Logo />
           </Link>
-          <div className="flex flex-1 flex-col items-center justify-center rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card sm:p-12">
-            <h1 className="mb-2 text-xl font-bold text-dark dark:text-white">
+          <GlassCard>
+            <div className="flex flex-1 flex-col items-center justify-center sm:p-4">
+            <h1 className="mb-2 text-xl font-bold text-dark">
               Invalid or expired link
             </h1>
-            <p className="mb-6 text-center text-body-sm text-dark-4 dark:text-dark-6">
+            <p className="mb-6 text-center text-sm text-dark-5">
               {error ?? "This payment link is invalid or has expired."}
             </p>
             <Link
               href="/auth/sign-up"
-              className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+              className="block w-full rounded-xl bg-gradient-to-r from-primary to-blue-500 px-4 py-3 text-center font-semibold text-white shadow-lg shadow-primary/25 transition hover:brightness-110"
             >
               Create an account
             </Link>
-          </div>
+            </div>
+          </GlassCard>
         </div>
         <PayFooter />
-      </div>
+      </PayShell>
     );
   }
 
@@ -299,37 +398,40 @@ function PayContent() {
   const invoiceNumber = getInvoiceNumber(data);
 
   return (
-    <div className="flex min-h-screen flex-col bg-gray-2 px-4 py-8 dark:bg-[#020d1a]">
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-        <Link href="/" className="mb-8 inline-flex">
+    <PayShell>
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
+        <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
           <Logo />
         </Link>
 
-        <div className="flex flex-1 flex-col rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-          <div className="border-b border-stroke p-6 dark:border-dark-3 sm:p-8">
-            <h1 className="text-heading-4 font-bold text-dark dark:text-white">
+        <GlassCard>
+          <div className="mb-6 border-b border-stroke pb-6">
+            <p className="mb-2 inline-flex rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Secure checkout
+            </p>
+            <h1 className="text-3xl font-bold text-dark">
               Invoice #{invoiceNumber}
             </h1>
-            <p className="mt-1 text-body-sm text-dark-4 dark:text-dark-6">
+            <p className="mt-1 text-base text-dark-5">
               {data.businessName}
             </p>
           </div>
 
-          <div className="space-y-6 p-6 sm:p-8">
+          <div className="space-y-6">
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-sm font-medium text-dark-6">Amount</p>
-                <p className="text-lg font-semibold text-dark dark:text-white">
+                <p className="text-sm font-medium text-dark-5">Amount</p>
+                <p className="text-3xl font-bold text-dark">
                   <Price amount={data.amount} currency={data.currency} />
                 </p>
               </div>
               <div>
-                <p className="text-sm font-medium text-dark-6">Status</p>
+                <p className="text-sm font-medium text-dark-5">Status</p>
                 <span
                   className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium capitalize ${
                     paid
-                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                      : "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
+                      ? "border border-emerald-300/40 bg-emerald-500/10 text-emerald-100"
+                      : "border border-amber-300/40 bg-amber-500/10 text-amber-100"
                   }`}
                 >
                   {paid ? "Paid" : "Unpaid"}
@@ -346,10 +448,10 @@ function PayContent() {
             </div>
 
             <div>
-              <p className="mb-2 text-sm font-medium text-dark-6">
+              <p className="mb-2 text-sm font-medium text-dark-5">
                 Line items
               </p>
-              <div className="overflow-hidden rounded-lg border border-stroke dark:border-dark-3">
+              <div className="overflow-hidden rounded-2xl border border-stroke bg-gray-1">
                 <ResponsiveDataList<{ description: string; quantity: number; unitPrice: number; amount: number }>
                   items={data.items ?? []}
                   keyExtractor={(item) => `${item.description}-${item.quantity}-${item.amount}`}
@@ -359,10 +461,10 @@ function PayContent() {
                       key: "description",
                       label: "Description",
                       render: (item) => (
-                        <span className="text-dark dark:text-white">
+                        <span className="text-dark">
                           {item.description}
                           {item.quantity > 1 && (
-                            <span className="ml-1 text-dark-6">
+                            <span className="ml-1 text-dark-5">
                               × {item.quantity} @ <Price amount={item.unitPrice} currency={data.currency} />
                             </span>
                           )}
@@ -374,7 +476,7 @@ function PayContent() {
                       key: "amount",
                       label: "Amount",
                       render: (item) => (
-                        <span className="font-medium text-dark dark:text-white">
+                        <span className="font-medium text-dark">
                           <Price amount={item.amount} currency={data.currency} />
                         </span>
                       ),
@@ -385,9 +487,9 @@ function PayContent() {
               </div>
             </div>
 
-            <div className="flex justify-between border-t border-stroke pt-4 text-lg font-semibold dark:border-dark-3">
-              <span className="text-dark dark:text-white">Total</span>
-              <span className="text-dark dark:text-white">
+            <div className="flex justify-between border-t border-stroke pt-4 text-lg font-semibold">
+              <span className="text-dark">Total</span>
+              <span className="text-dark">
                 <Price amount={data.amount} currency={data.currency} />
               </span>
             </div>
@@ -417,16 +519,75 @@ function PayContent() {
                   paid.
                 </p>
               </div>
-            ) : data.useKkiaPayWidget && tokenParam ? (
-              <div className="flex flex-col gap-3">
-                <KkiaPayWidgetButton
-                  token={tokenParam}
-                  amount={data.amount}
-                  currency={data.currency}
-                />
-                <p className="text-center text-xs text-dark-4 dark:text-dark-6">
-                  Pay with Mobile Money or Card via KkiaPay
-                </p>
+            ) : (data.useKkiaPayWidget || data.useMomoRequest) && tokenParam ? (
+              <div className="flex flex-col gap-4">
+                {(data.useKkiaPayWidget && data.useMomoRequest) && (
+                  <p className="text-base font-semibold text-dark">
+                    Choose payment method
+                  </p>
+                )}
+                <div className="grid gap-6 lg:grid-cols-2">
+                  {data.useKkiaPayWidget && (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-stroke bg-gray-1 p-6">
+                      <p className="text-sm font-semibold uppercase tracking-wide text-dark-5">
+                        KkiaPay
+                      </p>
+                      <KkiaPayWidgetButton
+                        token={tokenParam}
+                        intentId={data.intentId}
+                        amount={data.amount}
+                        currency={data.currency}
+                      />
+                      <p className="text-center text-sm text-dark-5">
+                        Mobile Money or Card
+                      </p>
+                    </div>
+                  )}
+                  {data.useMomoRequest && (
+                    <div className="flex flex-col gap-3 rounded-2xl border border-stroke bg-gray-1 p-6">
+                      <div className="flex items-center gap-2">
+                        <MoMoLogo className="h-7 w-auto" />
+                        <p className="text-sm font-semibold uppercase tracking-wide text-dark-5">
+                          MTN MoMo
+                        </p>
+                      </div>
+                      {momoRequestSent ? (
+                        <>
+                          <div className="rounded-xl border border-emerald-300/40 bg-emerald-500/10 p-3">
+                            <p className="font-medium text-emerald-200">
+                              Check your phone
+                            </p>
+                            <p className="mt-1 text-sm text-emerald-100/85">
+                              Approve the request in your MoMo app.
+                            </p>
+                          </div>
+                          {polling && (
+                            <p className="flex items-center justify-center gap-2 text-sm text-dark-5">
+                              <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                              Waiting…
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <MoMoRequestForm
+                            token={tokenParam}
+                            onRequestSent={() => {
+                              setMomoRequestSent(true);
+                              startPolling(tokenParam);
+                            }}
+                            onError={setMomoError}
+                          />
+                          {momoError && (
+                            <p className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-2 text-xs text-amber-100">
+                              {momoError}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               data.paymentUrl && (
@@ -436,12 +597,12 @@ function PayContent() {
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => tokenParam && startPolling(tokenParam)}
-                    className="block w-full rounded-lg bg-primary px-4 py-3 text-center font-medium text-white hover:bg-primary/90"
+                    className="block w-full rounded-xl bg-gradient-to-r from-primary to-blue-500 px-4 py-3 text-center font-semibold text-white shadow-lg shadow-primary/25 transition hover:brightness-110"
                   >
                     Pay Now
                   </a>
                   {polling && (
-                    <p className="flex items-center justify-center gap-2 text-sm text-dark-4 dark:text-dark-6">
+                    <p className="flex items-center justify-center gap-2 text-sm text-dark-5">
                       <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                       Waiting for payment confirmation…
                     </p>
@@ -450,25 +611,25 @@ function PayContent() {
               )
             )}
 
-            {!paid && !data.paymentUrl && !data.useKkiaPayWidget && (
-              <p className="rounded-lg bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+            {!paid && !data.paymentUrl && !data.useKkiaPayWidget && !data.useMomoRequest && (
+              <p className="rounded-xl border border-amber-300/40 bg-amber-500/10 p-4 text-sm text-amber-100">
                 Payment link is not available for this invoice. Please contact
                 the business for payment instructions.
               </p>
             )}
           </div>
-        </div>
+        </GlassCard>
       </div>
 
       <PayFooter />
-    </div>
+    </PayShell>
   );
 }
 
 function PayFooter() {
   return (
-    <footer className="mt-8 border-t border-stroke pt-6 dark:border-dark-3">
-      <p className="text-center text-sm text-dark-6">
+    <footer className="mt-8 border-t border-white/15 pt-6">
+      <p className="text-center text-sm text-dark-5">
         Powered by{" "}
         <Link href="/" className="font-medium text-primary hover:underline">
           Kaba

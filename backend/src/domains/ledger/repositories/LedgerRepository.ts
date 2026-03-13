@@ -45,6 +45,7 @@ export class LedgerRepository {
       originalCurrency: input.originalCurrency,
       exchangeRate: input.exchangeRate,
       forexGainLoss: input.forexGainLoss,
+      supplierId: input.supplierId,
     };
 
     const item = this.mapToDynamoDB(entry);
@@ -450,6 +451,86 @@ export class LedgerRepository {
     return entries;
   }
 
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+    type?: 'sale' | 'expense',
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<{ items: LedgerEntry[]; nextCursor: string | null; hasMore: boolean }> {
+    const exclusiveStartKey = cursor
+      ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
+      : undefined;
+
+    const filterParts = ['attribute_not_exists(deletedAt)'];
+    const expressionAttributeValues: Record<string, unknown> = {
+      ':pk': businessId,
+      ':skPrefix': SK_PREFIX,
+    };
+    const expressionAttributeNames: Record<string, string> = {};
+
+    if (type) {
+      filterParts.push('#entryType = :entryType');
+      expressionAttributeNames['#entryType'] = 'type';
+      expressionAttributeValues[':entryType'] = type;
+    }
+    if (fromDate) {
+      filterParts.push('#dt >= :fromDate');
+      expressionAttributeNames['#dt'] = 'date';
+      expressionAttributeValues[':fromDate'] = fromDate;
+    }
+    if (toDate) {
+      filterParts.push('#dt <= :toDate');
+      expressionAttributeNames['#dt'] = 'date';
+      expressionAttributeValues[':toDate'] = toDate;
+    }
+
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: filterParts.join(' AND '),
+        ExpressionAttributeValues: expressionAttributeValues,
+        ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
+        Limit: limit,
+        ScanIndexForward: false,
+        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+      })
+    );
+
+    const nextCursor = result.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+      : null;
+
+    return {
+      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      nextCursor,
+      hasMore: !!result.LastEvaluatedKey,
+    };
+  }
+
+  async listSince(
+    businessId: string,
+    since: string,
+    limit: number = 500,
+  ): Promise<LedgerEntry[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: 'createdAt >= :since',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+          ':since': since,
+        },
+        Limit: limit,
+      })
+    );
+    return (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+  }
+
   private mapToDynamoDB(entry: LedgerEntry): Record<string, unknown> {
     return {
       pk: entry.businessId,
@@ -469,6 +550,7 @@ export class LedgerRepository {
       ...(entry.originalCurrency != null && { originalCurrency: entry.originalCurrency }),
       ...(entry.exchangeRate != null && { exchangeRate: entry.exchangeRate }),
       ...(entry.forexGainLoss != null && { forexGainLoss: entry.forexGainLoss }),
+      ...(entry.supplierId != null && { supplierId: entry.supplierId }),
     };
   }
 
@@ -489,6 +571,7 @@ export class LedgerRepository {
       originalCurrency: item.originalCurrency != null ? String(item.originalCurrency) : undefined,
       exchangeRate: item.exchangeRate != null ? Number(item.exchangeRate) : undefined,
       forexGainLoss: item.forexGainLoss != null ? Number(item.forexGainLoss) : undefined,
+      supplierId: item.supplierId != null ? String(item.supplierId) : undefined,
     };
   }
 }

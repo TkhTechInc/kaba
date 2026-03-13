@@ -234,8 +234,44 @@ export class ChatOrchestrator {
       case 'generate_invoice':
         return 'Invoice creation via chat is coming soon. Use the Kaba app to create invoices for now.';
 
-      case 'send_invoice':
-        return 'Invoice sending via chat is coming soon. Use the Kaba app to send invoices for now.';
+      case 'send_invoice': {
+        const unpaidInvoices = await this.invoiceService.listUnpaid(businessId);
+        if (!unpaidInvoices.length) {
+          return "You don't have any pending invoices to share. Create one from the Kaba app first.";
+        }
+        // Use most recent unpaid invoice (filtering by customer name not possible without joining customer data)
+        const invoice = unpaidInvoices[0];
+        try {
+          const { paymentUrl } = await this.invoiceService.generatePaymentLink(businessId, invoice.id);
+          return (
+            `Payment link for invoice #${invoice.id.slice(-6)}:\n` +
+            `${paymentUrl}\n\n` +
+            `Amount: ${invoice.currency} ${(invoice.amount || 0).toLocaleString()}\n` +
+            `Due: ${invoice.dueDate || 'N/A'}`
+          );
+        } catch {
+          return `Here is invoice #${invoice.id.slice(-6)} for ${invoice.currency} ${(invoice.amount || 0).toLocaleString()}. Open the Kaba app to send it.`;
+        }
+      }
+
+      case 'collect_payment': {
+        const debtResult = await this.debtService.list(businessId);
+        const unpaidDebts = (debtResult.items || []).filter((d) => d.status !== 'paid');
+        if (!unpaidDebts.length) {
+          return '🎉 Great news! All your customers are up to date — no outstanding payments.';
+        }
+        const total = unpaidDebts.reduce((sum, d) => sum + (d.amount || 0), 0);
+        const currency = unpaidDebts[0]?.currency || '';
+        const lines = unpaidDebts
+          .slice(0, 3)
+          .map(d => `• ${d.debtorName || 'Customer'}: ${d.currency} ${(d.amount || 0).toLocaleString()} (due ${d.dueDate || 'N/A'})`);
+        let reply =
+          `You have ${unpaidDebts.length} outstanding payment(s) totalling ${currency} ${total.toLocaleString()}:\n` +
+          lines.join('\n');
+        if (unpaidDebts.length > 3) reply += `\n…and ${unpaidDebts.length - 3} more.`;
+        reply += '\n\nReply "send invoice to [customer name]" to share a payment link.';
+        return reply;
+      }
 
       default:
         return (
@@ -244,6 +280,8 @@ export class ChatOrchestrator {
           `• "I sold [item] for [amount]"\n` +
           `• "I spent [amount] on [item]"\n` +
           `• "List unpaid invoices"\n` +
+          `• "Send invoice to [customer]"\n` +
+          `• "Who owes me money?" (outstanding payments)\n` +
           `• "List my debts"\n` +
           `• "My trust score"\n` +
           `• "Monthly report"`

@@ -83,6 +83,10 @@
     "actions": "Actions"
   },
   "dashboard": {
+    "errorBanner": {
+      "message": "Échec du chargement du tableau de bord",
+      "retry": "Réessayer"
+    },
     "action": {
       "newInvoice": "+ Nouvelle facture",
       "recordTransaction": "+ Enregistrer une transaction",
@@ -160,6 +164,10 @@
       "status": "Statut",
       "amount": "Montant"
     },
+    "pendingApproval": {
+      "loadError": "Impossible de charger les approbations en attente",
+      "approveFailed": "Échec de l'approbation"
+    },
     "status": {
       "pendingApproval": "En attente d'approbation",
       "dgiCertified": "✓ DGI {serialNumber}",
@@ -172,10 +180,15 @@
       "paymentLinkAriaLabel": "Générer un lien de paiement pour la facture {id}"
     },
     "paymentLinkLabel": "Lien de paiement :",
-    "upgradeToDownload": "Mettez à niveau pour télécharger le PDF"
+    "upgradeToDownload": "Mettez à niveau pour télécharger le PDF",
+    "search": "Rechercher des factures…",
+    "noResults": "Aucune facture ne correspond à votre recherche."
   },
   "customers": {
     "title": "Clients",
+    "search": "Rechercher des clients…",
+    "noResults": "Aucun client ne correspond à votre recherche.",
+    "dateFilterHint": "Effacez le filtre de date pour voir tous les clients, y compris les nouveaux.",
     "addCustomer": "+ Ajouter un client",
     "noBusinessSelected": "Sélectionnez une entreprise pour gérer les clients.",
     "loading": "Chargement…",
@@ -216,7 +229,9 @@
       "newEntry": "+ Nouvelle écriture",
       "loading": "Chargement…",
       "empty": "Aucune écriture pour l'instant.",
-      "emptyCta": "Créez votre première écriture."
+      "emptyCta": "Créez votre première écriture.",
+      "search": "Rechercher des écritures…",
+      "noResults": "Aucune écriture ne correspond à votre recherche."
     },
     "filter": {
       "all": "Toutes",
@@ -273,6 +288,7 @@
     },
     "consolidated": {
       "breadcrumb": "P&L Consolidé",
+      "loadError": "Impossible de charger le rapport consolidé",
       "heading": "Rapport consolidé multi-succursales",
       "loadingOrgs": "Chargement des organisations…",
       "noOrgs": "Aucune organisation avec des succursales",
@@ -290,6 +306,7 @@
     "subtitle": "Configurez les paramètres de votre entreprise.",
     "nav": {
       "plans": "Abonnements",
+      "profile": "Profil entreprise",
       "team": "Équipe",
       "activityLog": "Journal d'activité",
       "preferences": "Préférences",
@@ -490,6 +507,8 @@
   "debts": {
     "title": "Dettes en cours",
     "noBusinessSelected": "Sélectionnez une entreprise pour gérer les dettes.",
+    "search": "Rechercher des dettes…",
+    "noResults": "Aucune dette ne correspond à votre recherche.",
     "filter": {
       "pending": "En attente"
     },
@@ -536,14 +555,15 @@
     "noBusinessSelected": "Sélectionnez une entreprise pour traiter les reçus.",
     "upload": {
       "title": "Télécharger un reçu",
-      "hint": "Prenez une photo de votre reçu ou choisissez une image depuis votre appareil. Nous lirons les détails pour vous.",
-      "fileLabel": "Photo ou image de votre reçu",
+      "hint": "Prenez une photo, choisissez une image ou téléchargez un reçu PDF. Nous lirons les détails pour vous.",
+      "fileLabel": "Photo, image ou PDF de votre reçu",
       "submit": "Lire le reçu",
       "reading": "Lecture du reçu…"
     },
     "details": {
       "title": "Détails du reçu",
       "previewAlt": "Aperçu du reçu",
+      "pdfSelected": "Reçu PDF sélectionné. Cliquez sur « Lire le reçu » pour extraire les détails.",
       "empty": "Les détails de votre reçu apparaîtront ici après le téléchargement.",
       "summary": "Résumé",
       "shop": "Boutique",
@@ -919,6 +939,90 @@
       "cancel": "Annuler"
     },
     "error": "Échec de l'export"
+  },
+  "errors": {
+    "badge": "Erreur {code}",
+    "goToDashboard": "Aller au tableau de bord",
+    "goBack": "Retour",
+    "tryAgain": "Réessayer",
+    "404": {
+      "title": "Page introuvable",
+      "description": "La page que vous recherchez n'existe pas ou a été déplacée."
+    },
+    "403": {
+      "title": "Accès refusé",
+      "description": "Vous n'avez pas la permission de voir cette page. Contactez le propriétaire de votre espace si vous pensez que c'est une erreur."
+    },
+    "401": {
+      "title": "Connexion requise",
+      "description": "Vous devez être connecté pour accéder à cette page."
+    },
+    "429": {
+      "title": "Ralentissez",
+      "description": "Trop de requêtes. Attendez un moment avant de réessayer."
+    },
+    "500": {
+      "title": "Une erreur est survenue",
+      "description": "Une erreur inattendue s'est produite de notre côté. Nous avons été notifiés et nous examinons le problème."
+    },
+    "default": {
+      "title": "Une erreur est survenue",
+      "description": "Une erreur s'est produite. Veuillez réessayer ou retourner au tableau de bord."
+    }
+  },
+  "suppliers": {
+    "title": "Fournisseurs",
+    "noBusinessSelected": "Aucune entreprise sélectionnée.",
+    "search": "Rechercher des fournisseurs…",
+    "noResults": "Aucun fournisseur ne correspond à votre recherche.",
+    "forbidden": "Vous n'avez pas la permission de voir les fournisseurs.",
+    "addSupplier": "Ajouter un fournisseur",
+    "editSupplier": "Modifier le fournisseur",
+    "deleteConfirm": "Supprimer ce fournisseur ?",
+    "noSuppliersYet": "Aucun fournisseur pour l'instant.",
+    "addFirstSupplier": "Ajoutez votre premier fournisseur",
+    "column": {
+      "name": "Nom",
+      "phoneMomo": "Téléphone / MoMo",
+      "currency": "Devise",
+      "country": "Pays",
+      "actions": "Actions"
+    },
+    "action": {
+      "pay": "Payer",
+      "edit": "Modifier",
+      "delete": "Supprimer"
+    },
+    "form": {
+      "name": "Nom",
+      "phone": "Téléphone",
+      "momoPhone": "Téléphone MoMo",
+      "bankAccount": "Compte bancaire",
+      "currency": "Devise",
+      "countryCode": "Code pays",
+      "notes": "Notes",
+      "required": " *",
+      "saving": "Enregistrement…",
+      "saveChanges": "Enregistrer les modifications",
+      "cancel": "Annuler"
+    },
+    "payModal": {
+      "title": "Payer {name}",
+      "subtitle": "Cela enregistrera une dépense dans votre grand livre.",
+      "amount": "Montant",
+      "currency": "Devise",
+      "description": "Description",
+      "placeholder": "Paiement à {name}",
+      "processing": "Traitement…",
+      "recordPayment": "Enregistrer le paiement"
+    },
+    "error": {
+      "load": "Impossible de charger les fournisseurs",
+      "create": "Impossible de créer le fournisseur",
+      "update": "Impossible de mettre à jour le fournisseur",
+      "delete": "Impossible de supprimer le fournisseur",
+      "pay": "Impossible d'enregistrer le paiement"
+    }
   },
   "dateFilter": {
     "button": "Filtrer par date",

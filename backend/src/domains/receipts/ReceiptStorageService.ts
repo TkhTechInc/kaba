@@ -20,12 +20,28 @@ export class ReceiptStorageService {
     this.bucket = config?.get<string>('s3.receiptsBucket') || process.env['S3_RECEIPTS_BUCKET'] || '';
   }
 
-  /** Generate presigned URL for client to upload receipt. */
+  /** Map content type to file extension for receipt uploads. */
+  private static extensionFromContentType(contentType: string): string {
+    const normalized = contentType?.toLowerCase().split(';')[0].trim() ?? '';
+    const map: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'image/webp': 'webp',
+      'image/heic': 'heic',
+      'application/pdf': 'pdf',
+    };
+    return map[normalized] ?? 'jpg';
+  }
+
+  /** Generate presigned URL for client to upload receipt. Supports images and PDF. */
   async getUploadUrl(
     businessId: string,
     contentType: string = 'image/jpeg',
   ): Promise<{ uploadUrl: string; key: string }> {
-    const key = `receipts/${businessId}/${uuidv4()}.jpg`;
+    const ext = ReceiptStorageService.extensionFromContentType(contentType);
+    const key = `receipts/${businessId}/${uuidv4()}.${ext}`;
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,

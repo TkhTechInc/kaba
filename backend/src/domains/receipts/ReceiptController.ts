@@ -80,7 +80,7 @@ export class ReceiptController {
 
     const pdfInput = {
       businessName: business.name ?? 'Receipt',
-      businessLogoUrl: undefined,
+      businessLogoUrl: business.logoUrl ?? undefined,
       vendor: dto.vendor,
       date: dto.date ?? new Date().toISOString().slice(0, 10),
       total: dto.total,

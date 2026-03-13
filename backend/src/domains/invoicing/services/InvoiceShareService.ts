@@ -6,7 +6,7 @@ import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { InvoiceService } from './InvoiceService';
-import { PaymentGatewayManager } from '@/domains/payments/gateways/PaymentGatewayManager';
+import { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import type { Invoice, InvoiceItem } from '../models/Invoice';
 
@@ -27,6 +27,10 @@ export interface PublicInvoicePayResponse {
   paymentUrl?: string;
   /** When true, frontend should show KkiaPay widget instead of redirect. */
   useKkiaPayWidget?: boolean;
+  /** When true, frontend should show MoMo phone form to request payment (RequestToPay flow). */
+  useMomoRequest?: boolean;
+  /** Required for KkiaPay verification flow. */
+  intentId?: string;
 }
 
 @Injectable()
@@ -37,7 +41,7 @@ export class InvoiceShareService {
     private readonly customerRepository: CustomerRepository,
     private readonly businessRepository: BusinessRepository,
     private readonly invoiceService: InvoiceService,
-    private readonly paymentGatewayManager: PaymentGatewayManager,
+    private readonly paymentsClient: PaymentsClient,
     private readonly configService: ConfigService
   ) {}
 
@@ -222,15 +226,49 @@ export class InvoiceShareService {
     ]);
 
     let paymentUrl: string | undefined;
+    let intentId: string | undefined;
     let useKkiaPayWidget = false;
+    let useMomoRequest = false;
+    const forceKkiaPayUi = process.env['KKIAPAY_TEST_FORCE_UI'] === 'true';
     if (invoice.status !== 'paid' && invoice.status !== 'cancelled') {
       const currency = invoice.currency?.toUpperCase() ?? '';
-      const kkiapayAvailable =
-        this.paymentGatewayManager.isKkiaPayAvailable() &&
-        this.paymentGatewayManager.getSupportedCurrencies().includes(currency);
-      if (kkiapayAvailable && ['XOF', 'XAF', 'GNF'].includes(currency)) {
-        useKkiaPayWidget = true;
-      } else {
+      try {
+        const payConfig = await this.paymentsClient.getPayConfig(currency, business?.countryCode);
+        useKkiaPayWidget = payConfig.useKkiaPayWidget;
+        useMomoRequest = payConfig.useMomoRequest;
+      } catch {
+        // TKH Payments unavailable; fallback to payment link only
+      }
+      if (useKkiaPayWidget) {
+        try {
+          const intent = await this.paymentsClient.createIntent({
+            amount: invoice.amount,
+            currency,
+            country: business?.countryCode,
+            metadata: {
+              appId: 'kaba',
+              referenceId: invoice.id,
+              businessId: record.businessId,
+              invoiceId: record.invoiceId,
+              customerId: invoice.customerId ?? undefined,
+              customerEmail: customer?.email ?? undefined,
+              phoneNumber: customer?.phone ?? business?.phone ?? undefined,
+            },
+          });
+          if (intent.success) {
+            intentId = intent.intentId;
+            paymentUrl = intent.paymentUrl;
+          }
+        } catch {
+          // fall through; UI can still show other methods
+        }
+      }
+      if (forceKkiaPayUi && !intentId) {
+        intentId = `dev-kkiapay-${record.token}`;
+      }
+      const widgetReady = useKkiaPayWidget && !!intentId;
+      useKkiaPayWidget = widgetReady;
+      if (!widgetReady && !useMomoRequest) {
         try {
           const link = await this.invoiceService.generatePaymentLink(
             record.businessId,
@@ -249,7 +287,51 @@ export class InvoiceShareService {
       customer: { name: customer?.name ?? 'Customer' },
       ...(paymentUrl && { paymentUrl }),
       ...(useKkiaPayWidget && { useKkiaPayWidget }),
+      ...(useMomoRequest && { useMomoRequest }),
+      ...(intentId && { intentId }),
     };
+  }
+
+  /**
+   * Request MoMo payment (RequestToPay). Sends a payment request to the customer's phone.
+   * Customer approves on their phone; webhook marks invoice paid when successful.
+   */
+  async requestMoMoPayment(token: string, phone: string): Promise<{ success: boolean; error?: string }> {
+    const record = await this.invoiceShareRepository.getByToken(token);
+    if (!record) return { success: false, error: 'Invalid or expired link' };
+    if (!record.invoiceId?.trim() || !record.businessId?.trim()) {
+      return { success: false, error: 'Invalid payment link' };
+    }
+    if (new Date(record.expiresAt) < new Date()) return { success: false, error: 'Link expired' };
+
+    const invoice = await this.invoiceRepository.getById(record.businessId, record.invoiceId);
+    if (!invoice || invoice.deletedAt) return { success: false, error: 'Invoice not found' };
+    if (invoice.status === 'paid' || invoice.status === 'cancelled') {
+      return { success: false, error: 'Invoice is already paid or cancelled' };
+    }
+
+    const business = await this.businessRepository.getById(record.businessId);
+    const normalizedPhone = this.normalizePhone(phone.trim(), business?.countryCode);
+    if (!normalizedPhone) {
+      return { success: false, error: 'Invalid phone number. Use E.164 format (e.g. +233241234567)' };
+    }
+
+    const amount = invoice.amount;
+    const currency = invoice.currency ?? 'XOF';
+    const externalId = `qb-${record.businessId}-${record.invoiceId}-${Date.now()}`;
+
+    const response = await this.paymentsClient.requestMoMoPayment({
+      amount,
+      currency,
+      phone: normalizedPhone,
+      countryCode: business?.countryCode,
+      metadata: {
+        businessId: record.businessId,
+        invoiceId: record.invoiceId,
+        paymentIntentId: externalId,
+      },
+    });
+    return response;
   }
 
   /**
@@ -257,7 +339,12 @@ export class InvoiceShareService {
    * @param redirectStatus - Optional status from KkiaPay redirect URL (e.g. "error", "transaction.failed").
    *   If present and indicates failure, we reject without calling the API. Use ?transaction_status=failed for testing.
    */
-  async confirmKkiaPayPayment(token: string, transactionId: string, redirectStatus?: string): Promise<{ success: boolean; error?: string }> {
+  async confirmKkiaPayPayment(
+    token: string,
+    transactionId: string,
+    intentId: string,
+    redirectStatus?: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const record = await this.invoiceShareRepository.getByToken(token);
     if (!record) return { success: false, error: 'Invalid or expired link' };
     if (!record.invoiceId?.trim() || !record.businessId?.trim()) {
@@ -270,7 +357,7 @@ export class InvoiceShareService {
       return { success: false, error: 'Payment was not successful' };
     }
 
-    const verify = await this.paymentGatewayManager.verifyKkiaPayTransaction(transactionId);
+    const verify = await this.paymentsClient.verifyKkiaPayTransaction(transactionId, intentId);
     if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
 
     try {

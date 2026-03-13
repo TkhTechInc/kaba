@@ -39,7 +39,10 @@ export class HttpExceptionFilter implements ExceptionFilter {
         code = (resp['error'] as string) || code;
       }
     } else if (exception instanceof Error) {
-      message = exception.message;
+      this.logger.error(exception.message, exception.stack);
+      if (process.env['NODE_ENV'] !== 'production') {
+        message = exception.message;
+      }
     }
 
     this.logger.error(`${request.method} ${request.path} → ${status}: ${message}`);

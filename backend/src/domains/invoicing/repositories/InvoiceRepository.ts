@@ -412,6 +412,113 @@ export class InvoiceRepository {
     }
   }
 
+  /**
+   * List invoices for a specific customer within a business, excluding cancelled ones.
+   */
+  async listByCustomerId(
+    businessId: string,
+    customerId: string,
+    limit = 50,
+  ): Promise<Invoice[]> {
+    const items: Invoice[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: 'customerId = :cid AND #s <> :cancelled AND attribute_not_exists(deletedAt)',
+          ExpressionAttributeValues: {
+            ':pk': businessId,
+            ':skPrefix': SK_PREFIX,
+            ':cid': customerId,
+            ':cancelled': 'cancelled',
+          },
+          ExpressionAttributeNames: { '#s': 'status' },
+          ScanIndexForward: false,
+          Limit: limit,
+          ...(lastKey && { ExclusiveStartKey: lastKey }),
+        })
+      );
+      items.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey && items.length < limit);
+
+    return items.slice(0, limit);
+  }
+
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<{ items: Invoice[]; nextCursor: string | null; hasMore: boolean }> {
+    const exclusiveStartKey = cursor
+      ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
+      : undefined;
+
+    const filterParts = ['attribute_not_exists(deletedAt)'];
+    const exprValues: Record<string, unknown> = { ':pk': businessId, ':skPrefix': SK_PREFIX };
+    const exprNames: Record<string, string> = {};
+
+    if (fromDate) {
+      filterParts.push('#ca >= :fromDate');
+      exprNames['#ca'] = 'createdAt';
+      exprValues[':fromDate'] = fromDate;
+    }
+    if (toDate) {
+      filterParts.push('#ca <= :toDate');
+      exprNames['#ca'] = 'createdAt';
+      exprValues[':toDate'] = toDate + 'T23:59:59.999Z';
+    }
+
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: filterParts.join(' AND '),
+        ExpressionAttributeValues: exprValues,
+        ...(Object.keys(exprNames).length > 0 && { ExpressionAttributeNames: exprNames }),
+        Limit: limit,
+        ScanIndexForward: false,
+        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+      })
+    );
+
+    const nextCursor = result.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+      : null;
+
+    return {
+      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      nextCursor,
+      hasMore: !!result.LastEvaluatedKey,
+    };
+  }
+
+  async listSince(
+    businessId: string,
+    since: string,
+    limit: number = 500,
+  ): Promise<Invoice[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: 'createdAt >= :since',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+          ':since': since,
+        },
+        Limit: limit,
+      })
+    );
+    return (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+  }
+
   private mapToDynamoDB(invoice: Invoice): Record<string, unknown> {
     return {
       pk: invoice.businessId,

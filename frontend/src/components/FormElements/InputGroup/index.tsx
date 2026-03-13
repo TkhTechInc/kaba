@@ -1,6 +1,6 @@
 "use client";
 
-import { EyeIcon, EyeSlashIcon } from "@/assets/icons";
+import { VisibilityIcon, VisibilityOffIcon } from "@/assets/icons8";
 import { cn } from "@/lib/utils";
 import { type HTMLInputTypeAttribute, useId, useState } from "react";
 import { TTSButton } from "@/components/A11y/TTSButton";
@@ -114,7 +114,7 @@ const InputGroup: React.FC<InputGroupProps> = ({
             className="absolute right-4.5 top-1/2 z-10 -translate-y-1/2 cursor-pointer rounded p-1 text-dark-6 transition hover:text-dark-4 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:text-dark-5 dark:hover:text-dark-4 dark:focus:ring-offset-dark-2"
             aria-label={passwordVisible ? "Hide password" : "Show password"}
           >
-            {passwordVisible ? <EyeSlashIcon /> : <EyeIcon />}
+            {passwordVisible ? <VisibilityOffIcon /> : <VisibilityIcon />}
           </button>
         ) : (
           icon

@@ -8,7 +8,7 @@ import {
   PaymentGatewayResponse,
 } from '../models/Payment';
 
-export type PaymentGatewayType = 'mock' | 'stripe' | 'kkiapay' | 'momo' | 'paystack';
+export type PaymentGatewayType = 'mock' | 'stripe' | 'kkiapay' | 'momo' | 'paystack' | 'moov_africa';
 
 export interface IPaymentGateway {
   readonly gatewayType: PaymentGatewayType;
@@ -27,5 +27,7 @@ export interface IPaymentGateway {
     success: boolean;
     invoiceId?: string;
     businessId?: string;
+    planToken?: string;
+    storefrontToken?: string;
   }>;
 }

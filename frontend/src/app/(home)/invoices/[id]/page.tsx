@@ -6,11 +6,12 @@ import { useFeatures } from "@/hooks/use-features";
 import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice, type Customer } from "@/services/invoices.service";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -24,8 +25,11 @@ export default function InvoiceDetailPage() {
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const [whatsappSent, setWhatsappSent] = useState(false);
 
-  const id = params?.id as string;
+  const id = params?.id as string | undefined;
   const api = createInvoicesApi(token);
+
+  // Redirect to list if id is invalid (prevents GET /invoices/undefined)
+  const isValidId = id && typeof id === "string" && id !== "undefined" && id !== "null";
 
   const canEdit = invoice && (invoice.status === "draft" || invoice.status === "pending_approval");
   const canGetPaymentLink =
@@ -88,9 +92,15 @@ export default function InvoiceDetailPage() {
   };
 
   useEffect(() => {
-    if (!businessId || !id) return;
+    if (!businessId || !isValidId) {
+      setLoading(false);
+      if (!isValidId && id !== undefined) {
+        router.replace("/invoices");
+      }
+      return;
+    }
     api
-      .getById(id, businessId)
+      .getById(id!, businessId)
       .then((r) => setInvoice(r.data))
       .catch((e) => {
         setError(e.message);

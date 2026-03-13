@@ -10,6 +10,7 @@ import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { ListSearchInput } from "@/components/ui/list-search-input";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
@@ -35,6 +36,7 @@ export default function InvoicesPage() {
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
+  const [search, setSearch] = useState("");
 
   const api = createInvoicesApi(token);
 
@@ -130,6 +132,11 @@ export default function InvoicesPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-6 py-4 dark:border-dark-3">
           <h3 className="font-semibold text-dark dark:text-white">{t("invoices.title")}</h3>
           <div className="flex flex-wrap items-center gap-2">
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t("invoices.search")}
+            />
             <DateRangeFilter
               value={dateRange}
               onChange={(r) => { setDateRange(r); setPage(1); }}
@@ -165,9 +172,23 @@ export default function InvoicesPage() {
                 <div className="p-6 text-center text-dark-6">{t("invoices.loading")}</div>
               ) : (
                 <ResponsiveDataList<Invoice>
-                  items={invoices}
+                  items={
+                    search.trim()
+                      ? invoices.filter((inv) => {
+                          const cust = customers.find((c) => c.id === inv.customerId);
+                          const custName = cust?.name ?? inv.customerId;
+                          const q = search.trim().toLowerCase();
+                          return (
+                            custName.toLowerCase().includes(q) ||
+                            inv.id.toLowerCase().includes(q) ||
+                            inv.amount.toString().includes(q) ||
+                            inv.status.toLowerCase().includes(q)
+                          );
+                        })
+                      : invoices
+                  }
                   keyExtractor={(inv) => inv.id}
-                  emptyMessage={t("invoices.empty")}
+                  emptyMessage={search.trim() ? t("invoices.noResults") : t("invoices.empty")}
                   columns={[
                     {
                       key: "customer",
@@ -232,6 +253,33 @@ export default function InvoicesPage() {
                       >
                         {t("invoices.action.paymentLink")}
                       </button>
+                      {(inv.status === "draft" || inv.status === "sent") && (
+                        <Link
+                          href={`/invoices/${inv.id}/pos`}
+                          aria-label="Open POS terminal"
+                          title="Open POS terminal"
+                          className="inline-flex items-center text-primary hover:text-primary/80"
+                        >
+                          <svg
+                            className="h-4 w-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect x="3" y="3" width="7" height="7" rx="1" />
+                            <rect x="14" y="3" width="7" height="7" rx="1" />
+                            <rect x="3" y="14" width="7" height="7" rx="1" />
+                            <rect x="14" y="14" width="3" height="3" rx="0.5" />
+                            <rect x="18" y="14" width="3" height="3" rx="0.5" />
+                            <rect x="14" y="18" width="3" height="3" rx="0.5" />
+                            <rect x="18" y="18" width="3" height="3" rx="0.5" />
+                          </svg>
+                        </Link>
+                      )}
                     </>
                   )}
                 />

@@ -292,6 +292,8 @@ describe('BusinessTrustScoreService', () => {
       expect(withCycle.breakdown.transactionRecency).toBe(50);
     });
 
-    it.todo('market day cycle penalty for non-aligned gaps not yet implemented');
+    it.skip('market day cycle penalty for non-aligned gaps', () => {
+      // deferred: market day cycle penalty
+    });
   });
 });

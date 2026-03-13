@@ -22,6 +22,7 @@ import { ConfigService } from '@nestjs/config';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  app.set('trust proxy', 1);
   app.use(helmet({ contentSecurityPolicy: false }));
 
   const configService = app.get(ConfigService);
@@ -29,8 +30,9 @@ async function bootstrap() {
     'http://localhost:3000',
     'http://localhost:3001',
   ];
+  const isProd = configService.get<string>('environment') === 'production';
   app.enableCors({
-    origin: corsOrigins.length > 0 ? corsOrigins : ['http://localhost:3000', 'http://localhost:3001'],
+    origin: corsOrigins.length > 0 ? corsOrigins : (isProd ? [] : ['http://localhost:3000', 'http://localhost:3001']),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],

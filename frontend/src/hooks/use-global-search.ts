@@ -122,6 +122,7 @@ export function useGlobalSearch(token: string | null, businessId: string | null)
           );
         })
         .slice(0, 5)
+        .filter((inv) => inv.id)
         .map((inv) => ({
           id: inv.id,
           kind: "invoice" as const,

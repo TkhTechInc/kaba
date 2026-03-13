@@ -94,6 +94,13 @@ export const NAV_DATA: NavSection[] = [
         featureKey: "debt_tracker",
         permission: "ledger:read",
       },
+      {
+        title: "Suppliers",
+        icon: Icons.User,
+        url: "/suppliers",
+        items: [],
+        permission: "ledger:read",
+      },
     ],
   },
   {
@@ -151,6 +158,7 @@ export const NAV_DATA: NavSection[] = [
         url: "/settings",
         items: [
           { title: "Plans", url: "/settings" },
+          { title: "Business Profile", url: "/settings/profile" },
           { title: "Team", url: "/settings/team" },
           { title: "Activity Log", url: "/settings/activity" },
           { title: "Preferences", url: "/settings/preferences" },

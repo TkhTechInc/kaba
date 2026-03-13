@@ -4,6 +4,8 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
+import { useFeatures } from "@/hooks/use-features";
+import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { createReportsApi } from "@/services/reports.service";
 import { listOrganizations, type OrganizationAccess } from "@/services/access.service";
 import { Price } from "@/components/ui/Price";
@@ -12,8 +14,9 @@ import { ApiError } from "@/lib/api-client";
 import { useState, useEffect } from "react";
 
 export default function ConsolidatedReportPage() {
-  const { token } = useAuth();
+  const { token, businessId } = useAuth();
   const { t } = useLocale();
+  const features = useFeatures(businessId);
   const today = new Date().toISOString().slice(0, 10);
   const firstOfMonth = today.slice(0, 7) + "-01";
 
@@ -46,13 +49,44 @@ export default function ConsolidatedReportPage() {
       .then((r) => setReport(r.data))
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load consolidated report");
+        else setError(e instanceof Error ? e.message : t("reports.consolidated.loadError"));
       })
       .finally(() => setLoading(false));
   };
 
   const colorClass = (n: number) =>
     n >= 0 ? "text-green-600" : "text-red-600";
+
+  if (!businessId) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
+        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-dark-6">{t("reports.noBusinessSelected")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!features.isEnabled("reports")) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
+        <UpgradePrompt feature="Reports" />
+      </div>
+    );
+  }
 
   if (forbidden) {
     return (

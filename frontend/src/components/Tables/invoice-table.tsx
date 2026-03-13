@@ -1,4 +1,4 @@
-import { TrashIcon } from "@/assets/icons";
+import { DeleteIcon } from "@/assets/icons8";
 import {
   Table,
   TableBody,
@@ -70,7 +70,7 @@ export async function InvoiceTable() {
 
                   <button className="hover:text-primary">
                     <span className="sr-only">Delete Invoice</span>
-                    <TrashIcon />
+                    <DeleteIcon />
                   </button>
 
                   <button className="hover:text-primary">

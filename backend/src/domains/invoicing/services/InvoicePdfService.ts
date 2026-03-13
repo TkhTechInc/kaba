@@ -54,11 +54,19 @@ export class InvoicePdfService {
   ): Promise<Buffer> {
     const isPaid = invoice.status === 'paid';
     const hasMecef = invoice.mecefStatus === 'confirmed' && !!invoice.mecefSerialNumber;
+    // Show QR on every invoice when business has a taxId, regardless of tier or MECeF status.
+    // If MECeF-confirmed, use the official DGI QR URL; otherwise generate a verification URL.
+    const hasTaxId = !!business?.taxId;
+    const showQr = hasMecef || hasTaxId;
 
     let qrImageBuffer: Buffer | null = null;
-    if (hasMecef && invoice.mecefQrCode) {
+    if (showQr) {
+      // Prefer the official MECeF QR code URL; fall back to a self-hosted verification link.
+      const qrContent = (hasMecef && invoice.mecefQrCode)
+        ? invoice.mecefQrCode
+        : `https://kabasika.com/verify/${invoice.id}`;
       try {
-        qrImageBuffer = await QRCode.toBuffer(invoice.mecefQrCode, {
+        qrImageBuffer = await QRCode.toBuffer(qrContent, {
           type: 'png',
           width: mode === 'thermal' ? 100 : 80,
           margin: 1,
@@ -68,9 +76,9 @@ export class InvoicePdfService {
     }
 
     if (mode === 'thermal') {
-      return this.generateThermal(invoice, customer, businessName, business, qrImageBuffer, isPaid, hasMecef);
+      return this.generateThermal(invoice, customer, businessName, business, qrImageBuffer, isPaid, hasMecef, showQr);
     }
-    return this.generateA4(invoice, customer, businessName, business, qrImageBuffer, isPaid, hasMecef, mode);
+    return this.generateA4(invoice, customer, businessName, business, qrImageBuffer, isPaid, hasMecef, mode, showQr);
   }
 
   // ── A4 layout (invoice + receipt modes) ──────────────────────────────────────
@@ -83,7 +91,9 @@ export class InvoicePdfService {
     isPaid: boolean,
     hasMecef: boolean,
     mode: PdfMode,
+    showQr?: boolean,
   ): Promise<Buffer> {
+    const _showQr = showQr ?? hasMecef;
     const isReceipt = mode === 'receipt';
 
     return new Promise((resolve, reject) => {
@@ -137,39 +147,42 @@ export class InvoicePdfService {
       doc.fillColor('#CBD5E1').fontSize(8).font('Helvetica')
         .text(`# ${invoiceNumber}`, PAGE_MARGIN + CONTENT_W * 0.6, 70, { width: CONTENT_W * 0.4, align: 'right' });
 
-      // ── MECeF QR block — TOP (receipt/invoice when certified) ────────────────
-      // Place QR immediately after header for receipts, before items
-      if (hasMecef && invoice.mecefSerialNumber) {
+      // ── Fiscal QR block — shown whenever business has taxId or MECeF confirmed ─
+      if (_showQr && qrImageBuffer) {
         doc.y = 140;
-        const fiscalH = qrImageBuffer ? 88 : 60;
+        const fiscalH = 94;
         const fiscalY = doc.y;
+        const textW = CONTENT_W - 104;
 
         doc.rect(PAGE_MARGIN, fiscalY, CONTENT_W, fiscalH).fill(COLOR_FISCAL_BG);
         doc.rect(PAGE_MARGIN, fiscalY, CONTENT_W, fiscalH).strokeColor(COLOR_FISCAL_BD).lineWidth(1).stroke();
 
-        const textW = CONTENT_W - (qrImageBuffer ? 100 : 20);
-
-        doc.fillColor(COLOR_ACCENT).fontSize(7.5).font('Helvetica-Bold')
-          .text(fiscalCopy.badge, PAGE_MARGIN + 10, fiscalY + 10, { width: textW });
-
-        doc.fillColor(COLOR_TEXT).fontSize(8).font('Helvetica-Bold')
-          .text(invoice.mecefSerialNumber, PAGE_MARGIN + 10, doc.y + 3, {
-            width: textW, characterSpacing: 0.8,
-          });
-
-        if (invoice.mecefQrCode) {
+        if (hasMecef) {
+          doc.fillColor(COLOR_ACCENT).fontSize(7.5).font('Helvetica-Bold')
+            .text(fiscalCopy.badge, PAGE_MARGIN + 10, fiscalY + 10, { width: textW });
+          if (invoice.mecefSerialNumber) {
+            doc.fillColor(COLOR_TEXT).fontSize(8).font('Helvetica-Bold')
+              .text(invoice.mecefSerialNumber, PAGE_MARGIN + 10, doc.y + 3, {
+                width: textW, characterSpacing: 0.8,
+              });
+          }
           doc.fillColor(COLOR_MUTED).fontSize(6.5).font('Helvetica')
-            .text(invoice.mecefQrCode, PAGE_MARGIN + 10, doc.y + 3, { width: textW });
+            .text(fiscalCopy.notice, PAGE_MARGIN + 10, doc.y + 3, { width: textW });
+        } else {
+          // taxId present but invoice not yet MECeF-confirmed — show IFU & verification link
+          doc.fillColor(COLOR_ACCENT).fontSize(7.5).font('Helvetica-Bold')
+            .text('DOCUMENT FISCAL — Vérifiable en ligne', PAGE_MARGIN + 10, fiscalY + 10, { width: textW });
+          if (business?.taxId) {
+            doc.fillColor(COLOR_TEXT).fontSize(8).font('Helvetica-Bold')
+              .text(`IFU : ${business.taxId}`, PAGE_MARGIN + 10, doc.y + 3, { width: textW });
+          }
+          doc.fillColor(COLOR_MUTED).fontSize(6.5).font('Helvetica')
+            .text('Scannez le QR code pour vérifier ce document sur kabasika.com', PAGE_MARGIN + 10, doc.y + 3, { width: textW });
         }
 
-        doc.fillColor(COLOR_MUTED).fontSize(6.5).font('Helvetica')
-          .text(fiscalCopy.notice, PAGE_MARGIN + 10, doc.y + 3, { width: textW });
-
-        if (qrImageBuffer) {
-          try {
-            doc.image(qrImageBuffer, PAGE_WIDTH - PAGE_MARGIN - 84, fiscalY + 6, { width: 78, height: 78 });
-          } catch { /* skip */ }
-        }
+        try {
+          doc.image(qrImageBuffer, PAGE_WIDTH - PAGE_MARGIN - 84, fiscalY + 6, { width: 78, height: 78 });
+        } catch { /* skip */ }
 
         doc.y = fiscalY + fiscalH + 8;
       } else {
@@ -338,10 +351,12 @@ export class InvoicePdfService {
     qrImageBuffer: Buffer | null,
     isPaid: boolean,
     hasMecef: boolean,
+    showQr?: boolean,
   ): Promise<Buffer> {
+    const _showQr = showQr ?? hasMecef;
     const lineCount = invoice.items.length;
     // Estimate page height: header~120 + qr~110 + items*(20) + totals~60 + footer~40
-    const pageHeight = 120 + (hasMecef ? 110 : 0) + lineCount * 22 + 100;
+    const pageHeight = 120 + (_showQr ? 110 : 0) + lineCount * 22 + 100;
 
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({
@@ -406,30 +421,30 @@ export class InvoicePdfService {
       doc.text(`Client : ${customer.name}`, THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center' });
       y = doc.y + 4;
 
-      // ── MECeF QR at the top — BEFORE items ───────────────────────────────────
-      if (hasMecef && invoice.mecefQrCode) {
+      // ── QR block at the top — shown for MECeF-confirmed or any invoice with taxId ─
+      if (_showQr && qrImageBuffer) {
         doc.moveTo(THERMAL_MARGIN, y).lineTo(THERMAL_WIDTH - THERMAL_MARGIN, y)
           .strokeColor('#CCCCCC').lineWidth(0.5).stroke();
         y += 5;
 
-        // QR image centered
-        if (qrImageBuffer) {
-          const qrSize = 96;
-          try {
-            doc.image(qrImageBuffer, (THERMAL_WIDTH - qrSize) / 2, y, { width: qrSize, height: qrSize });
-            y += qrSize + 3;
-          } catch { /* skip */ }
-        }
+        const qrSize = 96;
+        try {
+          doc.image(qrImageBuffer, (THERMAL_WIDTH - qrSize) / 2, y, { width: qrSize, height: qrSize });
+          y += qrSize + 3;
+        } catch { /* skip */ }
 
-        // codeMECeFDGI below QR
-        if (invoice.mecefSerialNumber) {
-          doc.fontSize(6).font('Helvetica-Bold').fillColor('#1E3A5F')
-            .text(invoice.mecefSerialNumber, THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center', characterSpacing: 0.5 });
-          y = doc.y + 1;
+        if (hasMecef) {
+          if (invoice.mecefSerialNumber) {
+            doc.fontSize(6).font('Helvetica-Bold').fillColor('#1E3A5F')
+              .text(invoice.mecefSerialNumber, THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center', characterSpacing: 0.5 });
+            y = doc.y + 1;
+          }
+          doc.fontSize(5.5).font('Helvetica').fillColor('#888888')
+            .text('Certifié DGI — e-MECeF Bénin', THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center' });
+        } else {
+          doc.fontSize(5.5).font('Helvetica').fillColor('#888888')
+            .text('Vérifiable sur kabasika.com', THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center' });
         }
-
-        doc.fontSize(5.5).font('Helvetica').fillColor('#888888')
-          .text('Certifié DGI — e-MECeF Bénin', THERMAL_MARGIN, y, { width: THERMAL_CW, align: 'center' });
         y = doc.y + 4;
 
         doc.moveTo(THERMAL_MARGIN, y).lineTo(THERMAL_WIDTH - THERMAL_MARGIN, y)

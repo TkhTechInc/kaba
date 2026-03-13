@@ -48,6 +48,7 @@ async function bootstrap(): Promise<Handler> {
     await ensureOpenRouterApiKey();
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { abortOnError: false });
 
+    app.set('trust proxy', 1);
     app.use(helmet({ contentSecurityPolicy: false }));
 
     let corsOrigins: string[] | undefined;
@@ -57,9 +58,13 @@ async function bootstrap(): Promise<Handler> {
     } catch {
       corsOrigins = (process.env['CORS_ORIGINS'] || '').split(',').map((s) => s.trim()).filter(Boolean);
     }
+    const nodeEnv = process.env['NODE_ENV'] || 'dev';
+    if (!corsOrigins?.length && nodeEnv === 'production') {
+      throw new Error('CORS_ORIGINS must be set in production');
+    }
     if (!corsOrigins?.length) corsOrigins = undefined;
     app.enableCors({
-      origin: corsOrigins?.length ? corsOrigins : true,
+      origin: corsOrigins?.length ? corsOrigins : (nodeEnv === 'production' ? [] : true),
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
       allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key', 'X-Idempotency-Key'],

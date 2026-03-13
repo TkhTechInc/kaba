@@ -1,7 +1,7 @@
 "use client";
 
 import { useOnboardingAI, type OnboardingAISuggestion } from "@/hooks/use-onboarding-ai";
-import { SearchIcon } from "@/assets/icons";
+import { SearchIcon } from "@/assets/icons8";
 import { cn } from "@/lib/utils";
 import React, { useState } from "react";
 

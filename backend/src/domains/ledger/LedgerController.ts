@@ -55,7 +55,21 @@ export class LedgerController {
 
   @Get('entries')
   @RequirePermission('ledger:read')
-  async listEntries(@Query() query: ListEntriesQueryDto) {
+  async listEntries(
+    @Query() query: ListEntriesQueryDto,
+    @Query('cursor') cursor?: string,
+  ) {
+    if (cursor !== undefined) {
+      const result = await this.ledgerService.listWithCursor(
+        query.businessId,
+        query.limit ?? 20,
+        cursor || undefined,
+        query.type,
+        query.fromDate,
+        query.toDate,
+      );
+      return { success: true, data: result };
+    }
     const result = await this.ledgerService.listEntries(
       query.businessId,
       query.page ?? 1,

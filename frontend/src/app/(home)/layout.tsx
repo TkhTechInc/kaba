@@ -6,13 +6,14 @@ import { Header } from "@/components/Layouts/header";
 import { Sidebar } from "@/components/Layouts/sidebar";
 import { SkipLink } from "@/components/A11y/SkipLink";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { AgentChatWidget } from "@/components/mcp";
 import { useAuth } from "@/contexts/auth-context";
 import { useSyncManager } from "@/hooks/use-sync-manager";
 import type { PropsWithChildren } from "react";
 
 export default function DashboardLayout({ children }: PropsWithChildren) {
-  const { token } = useAuth();
-  useSyncManager(token);
+  const { token, businessId } = useAuth();
+  useSyncManager(token, businessId);
 
   return (
     <AuthGuard>
@@ -28,6 +29,9 @@ export default function DashboardLayout({ children }: PropsWithChildren) {
           </div>
           <OfflineBanner />
         </div>
+        {businessId && (
+          <AgentChatWidget token={token} businessId={businessId} mode="business" />
+        )}
       </OnboardingGuard>
     </AuthGuard>
   );

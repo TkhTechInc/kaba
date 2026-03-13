@@ -1,4 +1,4 @@
-import { CheckIcon, XIcon } from "@/assets/icons";
+import { CheckIcon, CloseIcon } from "@/assets/icons8";
 import { cn } from "@/lib/utils";
 import { useId } from "react";
 
@@ -44,7 +44,7 @@ export function Switch({
           {withIcon && (
             <>
               <CheckIcon className="check-icon hidden fill-white dark:fill-dark" />
-              <XIcon className="x-icon" />
+              <CloseIcon className="x-icon" />
             </>
           )}
         </div>

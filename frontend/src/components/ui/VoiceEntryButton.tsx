@@ -33,13 +33,6 @@ type RecordingState =
   | "done"           // Success flash
   | "error";         // Error flash
 
-// Extend Window to include webkit-prefixed SpeechRecognition
-declare global {
-  interface Window {
-    SpeechRecognition?: new () => SpeechRecognition;
-    webkitSpeechRecognition?: new () => SpeechRecognition;
-  }
-}
 
 export function VoiceEntryButton({
   token,
@@ -56,6 +49,7 @@ export function VoiceEntryButton({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const autoStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Ref so the onend closure always sees the latest transcript, not the stale closure value
   const transcriptRef = useRef("");
   // Set to true by onerror so onend (which always fires after onerror) doesn't double-fire
@@ -115,8 +109,17 @@ export function VoiceEntryButton({
       setState("processing");
       setStatusMessage("Transcribing audio…");
       try {
-        const arrayBuffer = await blob.arrayBuffer();
-        const base64 = Buffer.from(arrayBuffer).toString("base64");
+        // Use FileReader instead of Buffer (Buffer is not available in the browser)
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const dataUrl = reader.result as string;
+            // Strip "data:audio/webm;base64," prefix
+            resolve(dataUrl.split(",")[1] ?? "");
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
         const res = await api.voiceToTransactionFromAudio(businessId, base64, currency);
         const result = res.data;
         if (result.success && result.entry) {
@@ -153,10 +156,11 @@ export function VoiceEntryButton({
     if (!SpeechRecognitionCtor) return false;
 
     const recognition = new SpeechRecognitionCtor();
+    // Single-utterance mode: interimResults=false avoids onend firing before final result
     recognition.continuous = false;
-    recognition.interimResults = true;
-    // Chrome requires an explicit lang — without it recognition silently returns empty.
-    // fr-FR gives best coverage for West African French/Fon/Yoruba code-switching.
+    recognition.interimResults = false;
+    // Chrome requires an explicit lang. Use browser lang but normalise to a supported tag.
+    // West African users often have fr-FR or en-US — both work well enough for mixed speech.
     recognition.lang = navigator.language || "fr-FR";
     recognition.maxAlternatives = 1;
 
@@ -165,22 +169,29 @@ export function VoiceEntryButton({
     recognition.onstart = () => {
       setState("listening");
       setStatusMessage("Listening… speak now");
+      // Auto-stop after 10 s so the button never gets stuck
+      autoStopTimerRef.current = setTimeout(() => {
+        recognition.stop();
+      }, 10_000);
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
-      let interim = "";
-      let final = "";
+      let text = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i];
-        if (r.isFinal) final += r[0].transcript;
-        else interim += r[0].transcript;
+        if (r.isFinal) text += r[0].transcript;
       }
-      const text = final || interim;
-      transcriptRef.current = text;
-      setTranscript(text);
+      if (text) {
+        transcriptRef.current = text;
+        setTranscript(text);
+      }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
       // Mark errored so onend (which always fires after onerror) skips sendText
       speechErroredRef.current = true;
       recognitionRef.current = null;
@@ -206,6 +217,10 @@ export function VoiceEntryButton({
     };
 
     recognition.onend = () => {
+      if (autoStopTimerRef.current) {
+        clearTimeout(autoStopTimerRef.current);
+        autoStopTimerRef.current = null;
+      }
       // onerror always triggers onend — skip if we already handled the error
       if (speechErroredRef.current) {
         speechErroredRef.current = false;
@@ -227,7 +242,13 @@ export function VoiceEntryButton({
   const startMediaRecorder = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+
+      // Pick the best supported MIME type (webm on Chrome/Firefox, mp4 on Safari)
+      const mimeType = ["audio/webm", "audio/mp4", "audio/ogg"].find((m) =>
+        MediaRecorder.isTypeSupported(m)
+      ) ?? "";
+
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       audioChunksRef.current = [];
 
       recorder.ondataavailable = (e) => {
@@ -235,8 +256,13 @@ export function VoiceEntryButton({
       };
 
       recorder.onstop = async () => {
+        if (autoStopTimerRef.current) {
+          clearTimeout(autoStopTimerRef.current);
+          autoStopTimerRef.current = null;
+        }
         stream.getTracks().forEach((t) => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
+        const type = mimeType || "audio/webm";
+        const blob = new Blob(audioChunksRef.current, { type });
         await sendAudio(blob);
       };
 
@@ -244,6 +270,11 @@ export function VoiceEntryButton({
       mediaRecorderRef.current = recorder;
       setState("recording");
       setStatusMessage("Recording… tap again to stop");
+
+      // Auto-stop after 30 s to prevent runaway recordings
+      autoStopTimerRef.current = setTimeout(() => {
+        if (recorder.state === "recording") recorder.stop();
+      }, 30_000);
     } catch {
       setState("error");
       setStatusMessage("Microphone access denied.");

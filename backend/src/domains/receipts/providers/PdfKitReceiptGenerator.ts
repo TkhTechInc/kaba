@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 import type { IReceiptPdfGenerator, ReceiptPdfInput } from '../interfaces/IReceiptPdfGenerator';
 
+const LOGO_MAX_HEIGHT = 48;
+const LOGO_MAX_WIDTH = 120;
+
 /**
  * PdfKit-based receipt PDF generator. Produces merchant-branded receipt PDFs.
  * Switch via RECEIPT_PDF_PROVIDER=pdfkit.
@@ -9,6 +12,8 @@ import type { IReceiptPdfGenerator, ReceiptPdfInput } from '../interfaces/IRecei
 @Injectable()
 export class PdfKitReceiptGenerator implements IReceiptPdfGenerator {
   async generate(input: ReceiptPdfInput): Promise<Buffer> {
+    const logoBuffer = await this.fetchLogoBuffer(input.businessLogoUrl);
+
     return new Promise((resolve, reject) => {
       const doc = new PDFDocument({ margin: 50 });
       const chunks: Buffer[] = [];
@@ -16,12 +21,19 @@ export class PdfKitReceiptGenerator implements IReceiptPdfGenerator {
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', reject);
 
+      // Optional logo (before business name; skip if load failed)
+      if (logoBuffer) {
+        try {
+          doc.image(logoBuffer, { fit: [LOGO_MAX_WIDTH, LOGO_MAX_HEIGHT], align: 'center' });
+          doc.moveDown(0.5);
+        } catch {
+          // Skip logo if PdfKit cannot decode the image
+        }
+      }
+
       // Header: business name
       doc.fontSize(20).text(input.businessName, { align: 'center' });
       doc.moveDown(0.5);
-
-      // Optional logo (skip if absent)
-      // businessLogoUrl not implemented - Business model has no logo field yet
 
       doc.fontSize(10).text('Receipt', { align: 'center' });
       doc.moveDown(2);
@@ -70,5 +82,18 @@ export class PdfKitReceiptGenerator implements IReceiptPdfGenerator {
 
       doc.end();
     });
+  }
+
+  /** Fetch logo from URL; returns null on any failure (skip logo gracefully). */
+  private async fetchLogoBuffer(url?: string): Promise<Buffer | null> {
+    if (!url?.trim()) return null;
+    try {
+      const res = await fetch(url.trim(), { signal: AbortSignal.timeout(5000) });
+      if (!res.ok) return null;
+      const arrayBuffer = await res.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch {
+      return null;
+    }
   }
 }

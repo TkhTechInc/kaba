@@ -7,6 +7,7 @@ export type IntentType =
   | 'get_trust_score'
   | 'generate_invoice'
   | 'send_invoice'
+  | 'collect_payment'
   | 'get_report'
   | 'unknown';
 

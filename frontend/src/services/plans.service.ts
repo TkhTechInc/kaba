@@ -21,6 +21,9 @@ export type PlanPayDataResponse = {
     amount: number;
     currency: string;
     useKkiaPayWidget: boolean;
+    useMomoRequest?: boolean;
+    intentId?: string;
+    upgraded?: boolean;
   };
 };
 
@@ -51,14 +54,27 @@ export async function getPlanPayData(
   return res.data;
 }
 
+export async function requestPlanMoMo(
+  token: string,
+  phone: string
+): Promise<{ success: boolean }> {
+  const res = await apiPost<{ success: boolean }>(
+    "/api/v1/plans/pay/request-momo",
+    { token, phone },
+    { skip401Redirect: true }
+  );
+  return { success: res?.success ?? false };
+}
+
 export async function confirmPlanKkiaPay(
   token: string,
   transactionId: string,
+  intentId: string,
   redirectStatus?: string
 ): Promise<{ success: boolean; businessId?: string }> {
   const res = await apiPost<{ success: boolean; businessId?: string }>(
     "/api/v1/plans/pay/confirm-kkiapay",
-    { token, transactionId, ...(redirectStatus && { redirectStatus }) },
+    { token, transactionId, intentId, ...(redirectStatus && { redirectStatus }) },
     { skip401Redirect: true }
   );
   return {

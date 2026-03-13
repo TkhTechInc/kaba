@@ -1,4 +1,6 @@
 import { DashboardRefreshProvider } from "./_components/dashboard-refresh-provider";
+import { DashboardHomeProvider } from "./_components/dashboard-home-provider";
+import { DashboardErrorBanner } from "./_components/dashboard-error-banner";
 import { OverviewCardsGroupClient } from "./_components/overview-cards/overview-cards-client";
 import { DashboardChartsGate } from "./_components/dashboard-charts-gate";
 import { DashboardPaymentsOverview } from "./_components/dashboard-payments-overview";
@@ -11,7 +13,9 @@ import { DashboardQuickActions } from "./_components/dashboard-quick-actions";
 export default async function Home() {
   return (
     <DashboardRefreshProvider>
-      <OverviewCardsGroupClient />
+      <DashboardHomeProvider>
+        <DashboardErrorBanner />
+        <OverviewCardsGroupClient />
       <DashboardQuickActions />
       <DashboardChartsGate>
         <div className="mt-4 grid grid-cols-12 gap-4 md:mt-6 md:gap-6 2xl:mt-9 2xl:gap-7.5">
@@ -27,6 +31,7 @@ export default async function Home() {
           <DashboardActivityByType />
         </div>
       </DashboardChartsGate>
+      </DashboardHomeProvider>
     </DashboardRefreshProvider>
   );
 }

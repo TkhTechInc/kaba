@@ -13,6 +13,7 @@ export interface Debt {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  lastReminderSentAt?: string;
 }
 
 export interface CreateDebtInput {

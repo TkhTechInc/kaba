@@ -11,6 +11,7 @@ function KkiaPayReturnContent() {
   const token = searchParams.get("token");
   const transactionId =
     searchParams.get("transaction_id") ?? searchParams.get("transactionId");
+  const intentId = searchParams.get("intentId");
   // KkiaPay may add status to redirect URL. For testing failed tx: add ?transaction_status=failed
   const redirectStatus =
     searchParams.get("transaction_status") ??
@@ -23,14 +24,14 @@ function KkiaPayReturnContent() {
   const [message, setMessage] = useState<string>("");
 
   useEffect(() => {
-    if (!token || !transactionId) {
+    if (!token || !transactionId || !intentId) {
       setStatus("error");
       setMessage("Missing payment details. Return to the invoice and try again.");
       return;
     }
     apiPost<{ success: boolean }>(
       "/api/v1/invoices/pay/confirm-kkiapay",
-      { token, transactionId, ...(redirectStatus && { redirectStatus }) },
+      { token, transactionId, intentId, ...(redirectStatus && { redirectStatus }) },
       { skip401Redirect: true }
     )
       .then((res) => {
@@ -46,7 +47,7 @@ function KkiaPayReturnContent() {
         const msg = err instanceof Error ? err.message : "Could not confirm payment.";
         setMessage(msg);
       });
-  }, [token, transactionId, redirectStatus]);
+  }, [token, transactionId, intentId, redirectStatus]);
 
   if (status === "loading") {
     return (

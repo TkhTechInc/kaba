@@ -2,7 +2,6 @@ import {
   IsString,
   IsOptional,
   IsNumber,
-  IsBase64,
   MaxLength,
   IsIn,
   Matches,
@@ -41,7 +40,8 @@ export class VoiceToTransactionDto {
   text?: string;
 
   @IsOptional()
-  @IsBase64()
+  @IsString()
+  @MaxLength(20_000_000) // ~15 MB of audio base64
   audioBase64?: string;
 
   @IsOptional()

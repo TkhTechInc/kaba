@@ -33,6 +33,8 @@ const DEFAULT_FEATURES: FeatureConfigMap = {
   trust_share: { enabled: true, tiers: ['starter', 'pro', 'enterprise'] },
   trust_lookup: { enabled: true, tiers: ['pro', 'enterprise'] },
   whatsapp_invoice_delivery: { enabled: true, tiers: ['pro', 'enterprise'] },
+  mcp_agent_basic: { enabled: true, tiers: ['starter', 'pro', 'enterprise'], limits: { starter: 100, pro: 1000, enterprise: 10000 } },
+  mcp_agent_advanced: { enabled: true, tiers: ['pro', 'enterprise'] },
 };
 
 @Injectable()

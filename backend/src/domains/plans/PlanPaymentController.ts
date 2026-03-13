@@ -47,16 +47,31 @@ export class PlanPaymentController {
     return { success: true, data };
   }
 
+  @Post('pay/request-momo')
+  @Public()
+  async requestMoMo(@Body() body: { token: string; phone: string }) {
+    const { token, phone } = body;
+    if (!token?.trim() || !phone?.trim()) {
+      throw new BadRequestException('token and phone are required');
+    }
+    const result = await this.planPaymentService.requestMoMoPayment(token.trim(), phone.trim());
+    if (!result.success) {
+      throw new BadRequestException(result.error ?? 'MoMo payment request failed');
+    }
+    return { success: true, message: 'Payment request sent to your phone. Please approve on your MoMo app.' };
+  }
+
   @Post('pay/confirm-kkiapay')
   @Public()
-  async confirmKkiaPay(@Body() body: { token: string; transactionId: string; redirectStatus?: string }) {
-    const { token, transactionId, redirectStatus } = body;
-    if (!token?.trim() || !transactionId?.trim()) {
-      throw new BadRequestException('token and transactionId are required');
+  async confirmKkiaPay(@Body() body: { token: string; transactionId: string; intentId: string; redirectStatus?: string }) {
+    const { token, transactionId, intentId, redirectStatus } = body;
+    if (!token?.trim() || !transactionId?.trim() || !intentId?.trim()) {
+      throw new BadRequestException('token, transactionId and intentId are required');
     }
     const result = await this.planPaymentService.confirmKkiaPayPayment(
       token.trim(),
       transactionId.trim(),
+      intentId.trim(),
       redirectStatus?.trim(),
     );
     if (!result.success) {

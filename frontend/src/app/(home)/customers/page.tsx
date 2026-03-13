@@ -13,6 +13,7 @@ import {
 import { createReportsApi } from "@/services/reports.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { ListSearchInput } from "@/components/ui/list-search-input";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
@@ -45,6 +46,7 @@ export default function CustomersPage() {
   const [creditError, setCreditError] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
+  const [search, setSearch] = useState("");
 
   const api = createInvoicesApi(token);
   const reportsApi = createReportsApi(token);
@@ -138,6 +140,11 @@ export default function CustomersPage() {
             {t("customers.title")}
           </h3>
           <div className="flex flex-wrap items-center gap-2">
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t("customers.search")}
+            />
             <DateRangeFilter
               value={dateRange}
               onChange={(r) => { setDateRange(r); setPage(1); }}
@@ -156,16 +163,40 @@ export default function CustomersPage() {
                 <div className="p-6 text-center text-dark-6">{t("customers.loading")}</div>
               ) : (
                 <ResponsiveDataList<Customer>
-                  items={customers}
+                  items={
+                    search.trim()
+                      ? customers.filter(
+                          (c) =>
+                            c.name.toLowerCase().includes(search.trim().toLowerCase()) ||
+                            (c.email ?? "").toLowerCase().includes(search.trim().toLowerCase()) ||
+                            (c.phone ?? "").toLowerCase().includes(search.trim().toLowerCase())
+                        )
+                      : customers
+                  }
                   keyExtractor={(c) => c.id}
                   emptyMessage={
-                    <span>
-                      {t("customers.empty")}{" "}
-                      <Link href="/customers/new" className="text-primary hover:underline">
-                        {t("customers.emptyCta")}
-                      </Link>
-                      .
-                    </span>
+                    search.trim() ? (
+                      t("customers.noResults")
+                    ) : (dateRange.fromDate || dateRange.toDate) ? (
+                      <span>
+                        {t("customers.dateFilterHint")}{" "}
+                        <button
+                          type="button"
+                          onClick={() => { setDateRange({ fromDate: "", toDate: "" }); setPage(1); }}
+                          className="text-primary hover:underline"
+                        >
+                          {t("dateRangeFilter.clear")}
+                        </button>
+                      </span>
+                    ) : (
+                      <span>
+                        {t("customers.empty")}{" "}
+                        <Link href="/customers/new" className="text-primary hover:underline">
+                          {t("customers.emptyCta")}
+                        </Link>
+                        .
+                      </span>
+                    )
                   }
                   columns={[
                     { key: "name", label: t("customers.column.name"), render: (c) => c.name, prominent: true },

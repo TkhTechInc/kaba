@@ -9,6 +9,7 @@ import { Price } from "@/components/ui/Price";
 import { createDebtsApi, type Debt, type DebtStatus } from "@/services/debts.service";
 import { PaginationWithPageSize } from "@/components/ui/pagination-with-page-size";
 import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filter";
+import { ListSearchInput } from "@/components/ui/list-search-input";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useLocale } from "@/contexts/locale-context";
@@ -30,6 +31,7 @@ export default function DebtsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
+  const [search, setSearch] = useState("");
 
   const api = createDebtsApi(token);
   const canRemind = features.isEnabled("debt_reminders");
@@ -130,6 +132,11 @@ export default function DebtsPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
           <h3 className="font-semibold text-dark dark:text-white">{t("debts.title")}</h3>
           <div className="flex flex-wrap items-center gap-2">
+            <ListSearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={t("debts.search")}
+            />
             <DateRangeFilter
               value={dateRange}
               onChange={(r) => { setDateRange(r); setPage(1); }}
@@ -167,16 +174,29 @@ export default function DebtsPage() {
             <div className="flex justify-center py-8">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
-          ) : debts.length === 0 ? (
-            <p className="py-8 text-center text-dark-6">
-              {t("dashboard.debtsToCollect.noPending")}{" "}
-              <Link href="/debts/new" className="text-primary hover:underline">
-                {t("dashboard.debtsToCollect.addDebt")}
-              </Link>
-            </p>
-          ) : (
+          ) : (() => {
+            const q = search.trim().toLowerCase();
+            const visibleDebts = q
+              ? debts.filter(
+                  (d) =>
+                    (d.debtorName ?? "").toLowerCase().includes(q) ||
+                    d.amount.toString().includes(q) ||
+                    (d.dueDate ?? "").toLowerCase().includes(q) ||
+                    (d.status ?? "").toLowerCase().includes(q)
+                )
+              : debts;
+            return visibleDebts.length === 0 ? (
+              <p className="py-8 text-center text-dark-6">
+                {search.trim() ? t("debts.noResults") : t("dashboard.debtsToCollect.noPending")}{" "}
+                {!search.trim() && (
+                  <Link href="/debts/new" className="text-primary hover:underline">
+                    {t("dashboard.debtsToCollect.addDebt")}
+                  </Link>
+                )}
+              </p>
+            ) : (
             <ResponsiveDataList<Debt>
-              items={debts}
+              items={visibleDebts}
               keyExtractor={(d) => d.id}
               emptyMessage={t("dashboard.debtsToCollect.noPending")}
               columns={[
@@ -232,7 +252,8 @@ export default function DebtsPage() {
                   )
               }
             />
-          )}
+            );
+          })()}
         </div>
         <PaginationWithPageSize
           page={page}

@@ -1,26 +1,24 @@
 import { Module, Global, forwardRef } from '@nestjs/common';
-import { PaymentGatewayManager } from './gateways/PaymentGatewayManager';
-import { MockPaymentGateway } from './gateways/MockPaymentGateway';
-import { PaymentWebhookController } from './PaymentWebhookController';
 import { PaymentsClient } from './services/PaymentsClient';
 import { InvoiceModule } from '@/domains/invoicing/InvoiceModule';
+import { PlanModule } from '@/domains/plans/PlanModule';
+import { StorefrontModule } from '@/domains/storefront/StorefrontModule';
 import { AuditModule } from '@/domains/audit/AuditModule';
 
-export const PAYMENT_GATEWAY_MANAGER = 'PAYMENT_GATEWAY_MANAGER';
-export const PAYMENT_GATEWAY = 'PAYMENT_GATEWAY';
-
+/**
+ * All payments go through TKH Payments (payment gateway aggregator).
+ * Requires PAYMENTS_SERVICE_URL. No local gateway fallback.
+ */
 @Global()
 @Module({
-  imports: [forwardRef(() => InvoiceModule), AuditModule],
-  controllers: [PaymentWebhookController],
-  providers: [
-    PaymentGatewayManager,
-    {
-      provide: PAYMENT_GATEWAY,
-      useClass: MockPaymentGateway,
-    },
-    PaymentsClient,
+  imports: [
+    forwardRef(() => InvoiceModule),
+    forwardRef(() => PlanModule),
+    forwardRef(() => StorefrontModule),
+    AuditModule,
   ],
-  exports: [PaymentGatewayManager, PAYMENT_GATEWAY, PaymentsClient],
+  controllers: [],
+  providers: [PaymentsClient],
+  exports: [PaymentsClient],
 })
 export class PaymentModule {}

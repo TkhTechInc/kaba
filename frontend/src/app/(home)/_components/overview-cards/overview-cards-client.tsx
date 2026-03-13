@@ -1,42 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { compactFormat, formatPriceWithCurrency } from "@/lib/format-number";
-import { getDashboardSummary } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
-import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
+import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
 import { useFeatures } from "@/hooks/use-features";
 import { OverviewCard } from "./card";
 import * as icons from "./icons";
 import { useLocale } from "@/contexts/locale-context";
 
 export function OverviewCardsGroupClient() {
-  const { token, businessId } = useAuth();
-  const { refreshTrigger } = useDashboardRefresh();
+  const { businessId } = useAuth();
+  const { data: homeData, loading } = useDashboardHome();
   const features = useFeatures(businessId);
   const { t } = useLocale();
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardSummary>>>(null);
-
-  useEffect(() => {
-    if (!businessId || !token) {
-      setLoading(false);
-      setData(null);
-      return;
-    }
-    let cancelled = false;
-    getDashboardSummary(businessId, token)
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, token, refreshTrigger]);
+  const data = homeData?.dashboard ?? null;
 
   if (!businessId) {
     return (

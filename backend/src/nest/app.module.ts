@@ -52,6 +52,10 @@ import { PlanModule } from '@/domains/plans/PlanModule';
 import { IdempotencyModule } from '@/domains/idempotency/IdempotencyModule';
 import { RegulatoryModule } from '@/domains/regulatory/RegulatoryModule';
 import { ChatModule } from '@/domains/chat/ChatModule';
+import { StorefrontModule } from '@/domains/storefront/StorefrontModule';
+import { SupplierModule } from '@/domains/suppliers/SupplierModule';
+import { MobileModule } from '@/domains/mobile/MobileModule';
+import { McpModule } from '@/domains/mcp/McpModule';
 import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
 
 @Module({
@@ -87,6 +91,10 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     PlanModule,
     IdempotencyModule,
     RegulatoryModule,
+    StorefrontModule,
+    SupplierModule,
+    MobileModule,
+    McpModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -51,8 +51,18 @@ export class VoiceToTransactionService {
         description: string;
         category: string;
       }>({
-        prompt: `Extract transaction from: "${text}"`,
-        systemPrompt: 'Extract sale or expense. Return JSON: { type: "sale"|"expense", amount: number, description: string, category: string }. For "I sold X for Y" use type sale. For "I spent Y on X" use type expense.',
+        prompt: `Extract a financial transaction from this spoken statement: "${text}"\nCurrency context: ${currency}`,
+        systemPrompt: `You are a financial assistant for West African small businesses.
+Extract ONE transaction from the user's spoken input. The user may speak in English, French, Pidgin, Fon, Yoruba, or mixed languages.
+
+Rules:
+- type = "sale" when money is received (sold, received, cashed, vendu, reçu)
+- type = "expense" when money is spent (bought, paid, spent, acheté, payé, dépensé)
+- amount = numeric value only (no currency symbol). Interpret "5k" as 5000, "2.5k" as 2500.
+- description = short description of what was sold/bought
+- category = one of: Food, Transport, Supplies, Rent, Salary, Sales, Services, Other
+
+Return only valid JSON. If you cannot confidently extract a transaction, still return your best guess.`,
         jsonSchema: {
           type: 'object',
           properties: {

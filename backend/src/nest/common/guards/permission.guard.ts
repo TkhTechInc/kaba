@@ -68,6 +68,11 @@ export class PermissionGuard implements CanActivate {
     const params = (request.params as Record<string, unknown>) || {};
     const body = (request.body as Record<string, unknown>) || {};
     const query = (request.query as Record<string, unknown>) || {};
-    return (params.businessId as string) ?? (body.businessId as string) ?? (query.businessId as string);
+    return (
+      (params.businessId as string) ??
+      (body.businessId as string) ??
+      (body.parentBusinessId as string) ??
+      (query.businessId as string)
+    );
   }
 }

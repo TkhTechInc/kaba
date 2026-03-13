@@ -18,6 +18,10 @@ export interface OnboardingAnswers {
   taxRegime?: string;
   /** IFU (Benin) or NCC (Côte d'Ivoire) — required for fiscal certification */
   taxId?: string;
+  /** Legal structure: auto_entrepreneur | sarl | sa | snc | association | other */
+  legalStatus?: string;
+  /** RCCM registration number (Registre du Commerce et du Crédit Mobilier) */
+  rccm?: string;
   businessAddress?: string;
   businessPhone?: string;
   fiscalYearStart?: number;

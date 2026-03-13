@@ -111,6 +111,8 @@ export class OnboardingService {
         businessType: mergedAnswers.businessType as import('@/domains/ledger/models/Business').BusinessType | undefined,
         taxRegime: mergedAnswers.taxRegime,
         taxId: mergedAnswers.taxId,
+        legalStatus: mergedAnswers.legalStatus as import('@/domains/ledger/models/Business').LegalStatus | undefined,
+        rccm: mergedAnswers.rccm,
         address: mergedAnswers.businessAddress,
         phone: mergedAnswers.businessPhone,
         fiscalYearStart: mergedAnswers.fiscalYearStart,
@@ -160,7 +162,7 @@ export class OnboardingService {
     if (answers.businessType != null && !completedSteps.includes('businessType')) completedSteps.push('businessType');
     if (answers.country != null && !completedSteps.includes('country')) completedSteps.push('country');
     if (answers.currency != null && !completedSteps.includes('currency')) completedSteps.push('currency');
-    if ((answers.taxRegime != null || answers.taxId != null) && !completedSteps.includes('taxRegime')) completedSteps.push('taxRegime');
+    if ((answers.taxRegime != null || answers.taxId != null || answers.legalStatus != null || answers.rccm != null) && !completedSteps.includes('taxRegime')) completedSteps.push('taxRegime');
     if (
       (answers.businessAddress != null || answers.businessPhone != null || answers.fiscalYearStart != null) &&
       !completedSteps.includes('details')
@@ -181,7 +183,9 @@ export class OnboardingService {
 
     await this.onboardingRepo.upsert(updated);
 
-    if (options?.onboardingComplete) {
+    // Always sync to business record when already complete (profile updates) or when completing now.
+    const alreadyComplete = !!state.completedAt;
+    if (options?.onboardingComplete || alreadyComplete) {
       await this.businessRepo.updateOnboarding(businessId, {
         name: mergedAnswers.businessName,
         countryCode: mergedAnswers.country,
@@ -189,12 +193,14 @@ export class OnboardingService {
         businessType: mergedAnswers.businessType as BusinessType | undefined,
         taxRegime: mergedAnswers.taxRegime,
         taxId: mergedAnswers.taxId,
+        legalStatus: mergedAnswers.legalStatus as import('@/domains/ledger/models/Business').LegalStatus | undefined,
+        rccm: mergedAnswers.rccm,
         address: mergedAnswers.businessAddress,
         phone: mergedAnswers.businessPhone,
         fiscalYearStart: mergedAnswers.fiscalYearStart,
         slug: mergedAnswers.slug,
         description: mergedAnswers.description,
-        onboardingComplete: true,
+        onboardingComplete: options?.onboardingComplete || alreadyComplete,
       });
     }
 
@@ -237,6 +243,9 @@ export class OnboardingService {
       currency: state.answers.currency,
       businessType: state.answers.businessType as BusinessType | undefined,
       taxRegime: state.answers.taxRegime,
+      taxId: state.answers.taxId,
+      legalStatus: state.answers.legalStatus as import('@/domains/ledger/models/Business').LegalStatus | undefined,
+      rccm: state.answers.rccm,
       address: state.answers.businessAddress,
       phone: state.answers.businessPhone,
       fiscalYearStart: state.answers.fiscalYearStart,

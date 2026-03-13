@@ -330,4 +330,15 @@ export class LedgerService {
       }
     }
   }
+
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+    type?: 'sale' | 'expense',
+    fromDate?: string,
+    toDate?: string,
+  ) {
+    return this.ledgerRepository.listWithCursor(businessId, limit, cursor, type, fromDate, toDate);
+  }
 }

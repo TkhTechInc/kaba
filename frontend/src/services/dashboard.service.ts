@@ -2,6 +2,18 @@ import {
   apiGetWithOfflineCache,
 } from "@/lib/api-client";
 import { CACHE_KEYS, deleteCachedByPrefix, listCacheKey } from "@/lib/offline-cache";
+import { setLastSyncedAt } from "@/services/mobile-sync.service";
+
+/** Mobile home response – single consolidated call for dashboard. */
+export interface MobileHomeData {
+  dashboard: DashboardSummary;
+  weeklyProfit: WeeksProfitData;
+  paymentsOverview: PaymentsOverviewData;
+  activityByType: ActivityByTypeData[];
+  recentLedger: { items: Array<{ id: string; type: string; amount: number; currency: string; description: string; category: string; date: string; createdAt: string }>; total: number };
+  pendingInvoices: { items: Array<{ id: string; amount: number; currency: string; dueDate: string; status: string }>; total: number };
+  debts: { items: Array<{ id: string; debtorName: string; amount: number; currency: string; dueDate: string; status: string }>; total: number };
+}
 
 export interface DashboardSummary {
   balance: number;
@@ -27,6 +39,28 @@ export interface ActivityByTypeData {
   amount: number;
 }
 
+/** Single consolidated dashboard call – replaces 4+ separate calls on load. */
+export async function getMobileHome(
+  businessId: string,
+  token: string | null
+): Promise<MobileHomeData | null> {
+  if (!businessId?.trim()) return null;
+  try {
+    const res = await apiGetWithOfflineCache<MobileHomeData>(
+      "/api/v1/mobile/home",
+      listCacheKey(CACHE_KEYS.DASHBOARD, businessId, { businessId, type: "home" }),
+      { token: token ?? undefined, params: { businessId } }
+    );
+    const data = res.data ?? null;
+    if (data && typeof navigator !== "undefined" && navigator.onLine) {
+      setLastSyncedAt(businessId, new Date().toISOString()).catch(() => {});
+    }
+    return data;
+  } catch {
+    return null;
+  }
+}
+
 /** Invalidate all cached data for a business (dashboard, debts, invoices, customers, ledger, products). Call after seeding. */
 export async function invalidateBusinessCache(businessId: string): Promise<void> {
   const prefixes = [
@@ -38,6 +72,7 @@ export async function invalidateBusinessCache(businessId: string): Promise<void>
     CACHE_KEYS.LEDGER_ENTRIES,
     CACHE_KEYS.LEDGER_BALANCE,
     CACHE_KEYS.PRODUCTS,
+    "sync:meta",
   ];
   for (const p of prefixes) {
     await deleteCachedByPrefix(`${p}:${businessId}`);

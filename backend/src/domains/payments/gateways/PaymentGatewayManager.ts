@@ -4,6 +4,7 @@ import type { CreatePaymentIntentRequest, PaymentGatewayResponse } from '../mode
 import { MockPaymentGateway } from './MockPaymentGateway';
 import { KkiaPayGateway } from './KkiaPayGateway';
 import { MomoGateway } from './MomoGateway';
+import { MoovAfricaGateway } from './moov-africa/MoovAfricaGateway';
 import { PaystackGateway } from './PaystackGateway';
 import { StripeGateway } from './StripeGateway';
 
@@ -12,9 +13,9 @@ import { StripeGateway } from './StripeGateway';
  * Payment gateways are country-specific; currency is used only to validate support.
  */
 const COUNTRY_GATEWAY_PRIORITY: Record<string, PaymentGatewayType[]> = {
-  // Benin, Togo, Ivory Coast — KkiaPay primary (XOF)
-  BJ: ['kkiapay', 'momo', 'stripe', 'mock'],
-  TG: ['kkiapay', 'momo', 'stripe', 'mock'],
+  // Benin, Togo, Ivory Coast — KkiaPay primary, Moov Africa (Benin/Togo), MTN MoMo
+  BJ: ['kkiapay', 'moov_africa', 'momo', 'stripe', 'mock'],
+  TG: ['kkiapay', 'moov_africa', 'momo', 'stripe', 'mock'],
   CI: ['kkiapay', 'momo', 'stripe', 'mock'],
   // Senegal, Mali, Niger, Burkina Faso — XOF
   SN: ['kkiapay', 'momo', 'stripe', 'mock'],
@@ -73,6 +74,20 @@ export class PaymentGatewayManager {
     if (paystackKey?.trim()) {
       this.registerGateway(new PaystackGateway(paystackKey, process.env['PAYSTACK_WEBHOOK_SECRET'] ?? ''));
     }
+
+    const moovAfricaUser = process.env['MOOV_AFRICA_USERNAME'];
+    const moovAfricaPass = process.env['MOOV_AFRICA_PASSWORD'];
+    if (moovAfricaUser?.trim() && moovAfricaPass?.trim()) {
+      this.registerGateway(
+        new MoovAfricaGateway(
+          moovAfricaUser,
+          moovAfricaPass,
+          process.env['MOOV_AFRICA_BASE_URL'],
+          process.env['MOOV_AFRICA_ENCRYPTION_KEY'],
+          process.env['MOOV_AFRICA_SANDBOX'] !== 'false',
+        ),
+      );
+    }
   }
 
   private registerGateway(gateway: IPaymentGateway): void {
@@ -115,6 +130,24 @@ export class PaymentGatewayManager {
   }
 
   /**
+   * Get gateway for mobile money request-to-pay flow (MoMo, Moov Africa).
+   * Prefers moov_africa for BJ/TG, else momo. Excludes KkiaPay (widget flow).
+   */
+  getMobileMoneyRequestGateway(currency: string, countryCode?: string): IPaymentGateway | null {
+    const cc = countryCode?.toUpperCase().trim();
+    const cur = currency.toUpperCase();
+    const order: PaymentGatewayType[] =
+      cc === 'BJ' || cc === 'TG'
+        ? ['moov_africa', 'momo']
+        : ['momo', 'moov_africa'];
+    for (const type of order) {
+      const gw = this.gateways.get(type);
+      if (gw?.isCurrencySupported(cur)) return gw;
+    }
+    return null;
+  }
+
+  /**
    * Create payment intent using the gateway selected by country (and currency).
    */
   async createPaymentIntent(request: CreatePaymentIntentRequest): Promise<PaymentGatewayResponse> {
@@ -138,7 +171,13 @@ export class PaymentGatewayManager {
 
   /** True if at least one real (non-mock) gateway is configured. */
   hasRealGateway(): boolean {
-    return this.gateways.has('stripe') || this.gateways.has('kkiapay') || this.gateways.has('momo') || this.gateways.has('paystack');
+    return (
+      this.gateways.has('stripe') ||
+      this.gateways.has('kkiapay') ||
+      this.gateways.has('momo') ||
+      this.gateways.has('paystack') ||
+      this.gateways.has('moov_africa')
+    );
   }
 
   /** Verify KkiaPay transaction (for widget flow). Returns success if payment completed. */
@@ -155,5 +194,31 @@ export class PaymentGatewayManager {
   /** True if KkiaPay gateway is registered. */
   isKkiaPayAvailable(): boolean {
     return this.gateways.has('kkiapay');
+  }
+
+  /**
+   * Disburse money to a mobile money number (e.g. supplier payout).
+   * Uses MoMo Disbursement API when MOMO_DISBURSEMENT_* env vars are set.
+   */
+  async disburseToMobileMoney(
+    phone: string,
+    amount: number,
+    currency: string,
+    externalId: string,
+  ): Promise<{ success: boolean; transactionId?: string; error?: string }> {
+    const gw = this.gateways.get('momo');
+    if (!gw) return { success: false, error: 'MoMo not configured' };
+    const withDisburse = gw as IPaymentGateway & {
+      disburse?: (p: string, a: number, c: string, e: string) => Promise<{ transactionId: string; success?: boolean; error?: string }>;
+    };
+    if (typeof withDisburse.disburse !== 'function') {
+      return { success: false, error: 'MoMo disbursement not available' };
+    }
+    const result = await withDisburse.disburse(phone, amount, currency, externalId);
+    return {
+      success: result.success !== false,
+      transactionId: result.transactionId,
+      error: result.error,
+    };
   }
 }

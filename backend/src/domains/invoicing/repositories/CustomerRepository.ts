@@ -5,6 +5,7 @@ import {
   QueryCommand,
   UpdateCommand,
   DeleteCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Customer, CreateCustomerInput, UpdateCustomerInput } from '../models/Customer';
 import { DatabaseError } from '@/shared/errors/DomainError';
@@ -173,6 +174,33 @@ export class CustomerRepository {
     return items;
   }
 
+  /**
+   * Find a customer by email within a business.
+   * Uses a query with FilterExpression on the business partition key.
+   */
+  async findByEmail(businessId: string, email: string): Promise<Customer | null> {
+    try {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: '#e = :email',
+          ExpressionAttributeValues: {
+            ':pk': businessId,
+            ':skPrefix': SK_PREFIX,
+            ':email': email,
+          },
+          ExpressionAttributeNames: { '#e': 'email' },
+          Limit: 1,
+        })
+      );
+      if (!result.Items?.length) return null;
+      return this.mapFromDynamoDB(result.Items[0]);
+    } catch (e) {
+      throw new DatabaseError('Find customer by email failed', e);
+    }
+  }
+
   /** Anonymize customer PII (right to be forgotten). */
   async anonymize(businessId: string, id: string): Promise<boolean> {
     const placeholder = '[erased]';
@@ -283,6 +311,77 @@ export class CustomerRepository {
     } catch (e) {
       throw new DatabaseError('List customers failed', e);
     }
+  }
+
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+    fromDate?: string,
+    toDate?: string,
+  ): Promise<{ items: Customer[]; nextCursor: string | null; hasMore: boolean }> {
+    const exclusiveStartKey = cursor
+      ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
+      : undefined;
+
+    const filterParts: string[] = [];
+    const exprNames: Record<string, string> = {};
+    const exprValues: Record<string, unknown> = { ':pk': businessId, ':skPrefix': SK_PREFIX };
+
+    if (fromDate) {
+      filterParts.push('#ca >= :fromDate');
+      exprNames['#ca'] = 'createdAt';
+      exprValues[':fromDate'] = fromDate;
+    }
+    if (toDate) {
+      filterParts.push('#ca <= :toDate');
+      exprNames['#ca'] = 'createdAt';
+      exprValues[':toDate'] = toDate + 'T23:59:59.999Z';
+    }
+
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        ExpressionAttributeValues: exprValues,
+        ScanIndexForward: false,
+        ...(filterParts.length > 0 && { FilterExpression: filterParts.join(' AND ') }),
+        ...(Object.keys(exprNames).length > 0 && { ExpressionAttributeNames: exprNames }),
+        Limit: limit,
+        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+      })
+    );
+
+    const nextCursor = result.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+      : null;
+
+    return {
+      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      nextCursor,
+      hasMore: !!result.LastEvaluatedKey,
+    };
+  }
+
+  async listSince(
+    businessId: string,
+    since: string,
+    limit: number = 500,
+  ): Promise<Customer[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: 'createdAt >= :since',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+          ':since': since,
+        },
+        Limit: limit,
+      })
+    );
+    return (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
   }
 
   private mapToDynamoDB(customer: Customer): Record<string, unknown> {

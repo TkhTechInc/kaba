@@ -10,12 +10,29 @@ export function configuration() {
         'JWT_SECRET must be set to a secure value in production. Use JWT_SECRET_SECRET_NAME for Lambda (Secrets Manager) or set JWT_SECRET env var.'
       );
     }
+    const corsOrigins = (process.env['CORS_ORIGINS'] || '').split(',').map((s) => s.trim()).filter(Boolean);
+    if (!corsOrigins.length) {
+      throw new Error(
+        'CORS_ORIGINS must be set in production (comma-separated frontend URLs, e.g. https://app.kabasika.com)'
+      );
+    }
   }
 
   return {
   port: parseInt(process.env['PORT'] || '3001', 10),
   environment: nodeEnv,
-  region: process.env['AWS_REGION'] || 'af-south-1',
+  /** Public URL of this API (for trust share links, webhooks, etc.). e.g. https://api.kabasika.com */
+  app: {
+    baseUrl: process.env['API_URL'] || process.env['APP_URL'] || (nodeEnv !== 'production' ? 'http://localhost:3001' : ''),
+  },
+  region: process.env['AWS_REGION'] || 'ca-central-1',
+  aws: {
+    sesRegion: process.env['AWS_SES_REGION'] || process.env['AWS_REGION'] || 'ca-central-1',
+  },
+  email: {
+    enabled: process.env['EMAIL_ENABLED'] === 'true',
+    from: process.env['EMAIL_FROM'] || process.env['AWS_SES_FROM'] || 'noreply@kabasika.com',
+  },
   cors: {
     origins: [
       ...(process.env['CORS_ORIGINS'] || '').split(',').filter(Boolean),

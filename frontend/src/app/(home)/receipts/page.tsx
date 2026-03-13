@@ -148,7 +148,7 @@ export default function ReceiptsPage() {
     setError(null);
     setResult(null);
     try {
-      const contentType = file.type || "image/jpeg";
+      const contentType = file.type || (file.name?.toLowerCase().endsWith(".pdf") ? "application/pdf" : "image/jpeg");
       const { data } = await api.getUploadUrl(businessId, contentType);
       const uploadRes = await fetch(data.uploadUrl, {
         method: "PUT",
@@ -233,7 +233,7 @@ export default function ReceiptsPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,application/pdf"
                 capture="environment"
                 onChange={handleFileChange}
                 className="w-full rounded-lg border border-stroke px-4 py-3 file:mr-4 file:rounded file:border-0 file:bg-primary file:px-4 file:py-2 file:text-white dark:border-dark-3 dark:bg-dark-2"
@@ -255,9 +255,22 @@ export default function ReceiptsPage() {
           </h3>
           {!result ? (
             <div className="space-y-4">
-              {preview && (
+              {preview && file && (
                 <div className="overflow-hidden rounded-lg border border-stroke dark:border-dark-3">
-                  <img src={preview} alt={t("receipts.details.previewAlt")} className="max-h-48 w-full object-contain" />
+                  {file.type === "application/pdf" ? (
+                    <object
+                      data={preview}
+                      type="application/pdf"
+                      className="h-48 w-full object-contain"
+                      aria-label={t("receipts.details.previewAlt")}
+                    >
+                      <p className="p-4 text-sm text-dark-6">
+                        {t("receipts.details.pdfSelected")}
+                      </p>
+                    </object>
+                  ) : (
+                    <img src={preview} alt={t("receipts.details.previewAlt")} className="max-h-48 w-full object-contain" />
+                  )}
                 </div>
               )}
               <p className="text-dark-6">

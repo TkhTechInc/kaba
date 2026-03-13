@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
+import { useFeatures } from "@/hooks/use-features";
 import { createInvoicesApi, type Invoice } from "@/services/invoices.service";
 import { Price } from "@/components/ui/Price";
 import { PermissionDenied } from "@/components/ui/permission-denied";
@@ -13,6 +14,7 @@ import { useEffect, useState } from "react";
 export default function PendingApprovalsPage() {
   const { token, businessId } = useAuth();
   const { t } = useLocale();
+  const features = useFeatures(businessId);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export default function PendingApprovalsPage() {
       .then((r) => setInvoices(r.data.items))
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load pending approvals");
+        else setError(e instanceof Error ? e.message : t("invoices.pendingApproval.loadError"));
       })
       .finally(() => setLoading(false));
   };
@@ -45,11 +47,33 @@ export default function PendingApprovalsPage() {
       await api.approveInvoice(invoiceId, businessId);
       setInvoices((prev) => prev.filter((inv) => inv.id !== invoiceId));
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Approval failed");
+      setError(e instanceof Error ? e.message : t("invoices.pendingApproval.approveFailed"));
     } finally {
       setApprovingId(null);
     }
   };
+
+  if (!businessId) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("invoices.status.pendingApproval")} />
+        <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
+          <p className="text-dark-6">{t("invoices.noBusinessSelected")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (features.loading) {
+    return (
+      <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+        <Breadcrumb pageName={t("invoices.status.pendingApproval")} />
+        <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
 
   if (forbidden) {
     return (

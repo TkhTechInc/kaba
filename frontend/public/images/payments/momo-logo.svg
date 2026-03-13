@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 28" fill="none" role="img" aria-label="MTN MoMo">
+  <!-- MTN MoMo wordmark - yellow circle + MoMo text -->
+  <circle cx="14" cy="14" r="12" fill="#FFCC00"/>
+  <text x="14" y="18" font-family="Arial, sans-serif" font-size="9" font-weight="bold" fill="#000" text-anchor="middle">Mo</text>
+  <text x="38" y="18" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#000">MoMo</text>
+</svg>

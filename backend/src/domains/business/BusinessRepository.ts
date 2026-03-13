@@ -6,8 +6,8 @@ import {
   QueryCommand,
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { DatabaseError } from '@/shared/errors/DomainError';
-import type { Business, BusinessType, TaxRegime } from '@/domains/ledger/models/Business';
+import { DatabaseError, ValidationError } from '@/shared/errors/DomainError';
+import type { Business, BusinessType, LegalStatus, TaxRegime } from '@/domains/ledger/models/Business';
 import type { Tier } from '@/domains/features/feature.types';
 
 export interface UpdateOnboardingInput {
@@ -17,6 +17,8 @@ export interface UpdateOnboardingInput {
   currency?: string;
   taxRegime?: TaxRegime;
   taxId?: string;
+  legalStatus?: LegalStatus;
+  rccm?: string;
   address?: string;
   phone?: string;
   fiscalYearStart?: number;
@@ -25,6 +27,9 @@ export interface UpdateOnboardingInput {
   trustScoredAt?: string;
   marketDayCycle?: number;
   organizationId?: string;
+  slug?: string;
+  logoUrl?: string;
+  description?: string;
 }
 
 const SK_META = 'META';
@@ -192,10 +197,18 @@ export class BusinessRepository {
     input: UpdateOnboardingInput,
   ): Promise<Business> {
     const existing = await this.getOrCreate(businessId, 'free');
+    if (input.slug != null && input.slug.trim() !== '') {
+      const taken = await this.isSlugTaken(input.slug.trim(), businessId);
+      if (taken) {
+        throw new ValidationError('This store URL is already taken. Please choose another.');
+      }
+    }
     const now = new Date().toISOString();
+    const slugValue = input.slug != null ? String(input.slug).trim() : existing.slug;
     const updated: Business = {
       ...existing,
       ...input,
+      slug: slugValue || undefined,
       updatedAt: now,
     };
 
@@ -234,6 +247,47 @@ export class BusinessRepository {
         throw new Error(`Business ${businessId} not found`);
       }
       throw new DatabaseError('Unlink from organization failed', e);
+    }
+  }
+
+  /**
+   * Check if a slug is already used by another business.
+   * Use excludeBusinessId when the current business is keeping its own slug.
+   */
+  async isSlugTaken(slug: string, excludeBusinessId?: string): Promise<boolean> {
+    if (!slug?.trim()) return false;
+    const existing = await this.getBySlug(slug);
+    if (!existing) return false;
+    return existing.id !== excludeBusinessId;
+  }
+
+  /**
+   * Look up a business by its public slug.
+   * Uses a Scan with FilterExpression — suitable until a GSI on `slug` is added.
+   */
+  async getBySlug(slug: string): Promise<Business | null> {
+    try {
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
+          new ScanCommand({
+            TableName: this.tableName,
+            FilterExpression: '#slug = :slug AND sk = :meta',
+            ExpressionAttributeNames: { '#slug': 'slug' },
+            ExpressionAttributeValues: {
+              ':slug': slug,
+              ':meta': SK_META,
+            },
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
+          }),
+        );
+        const items = result.Items ?? [];
+        if (items.length > 0) return this.mapFromDynamoDB(items[0]);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      return null;
+    } catch (e) {
+      throw new DatabaseError('Get business by slug failed', e);
     }
   }
 
@@ -278,6 +332,8 @@ export class BusinessRepository {
       businessType: b.businessType,
       taxRegime: b.taxRegime,
       taxId: b.taxId,
+      legalStatus: b.legalStatus,
+      rccm: b.rccm,
       address: b.address,
       phone: b.phone,
       fiscalYearStart: b.fiscalYearStart,
@@ -285,6 +341,9 @@ export class BusinessRepository {
       trustScore: b.trustScore ?? undefined,
       trustScoredAt: b.trustScoredAt ?? undefined,
       marketDayCycle: b.marketDayCycle ?? undefined,
+      slug: b.slug ?? undefined,
+      logoUrl: b.logoUrl ?? undefined,
+      description: b.description ?? undefined,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
       ...(b.lockedPeriods?.length ? { lockedPeriods: b.lockedPeriods } : {}),
@@ -315,6 +374,8 @@ export class BusinessRepository {
       businessType: item.businessType != null ? (item.businessType as BusinessType) : undefined,
       taxRegime: item.taxRegime != null ? String(item.taxRegime) : undefined,
       taxId: item.taxId != null ? String(item.taxId) : undefined,
+      legalStatus: item.legalStatus != null ? (item.legalStatus as LegalStatus) : undefined,
+      rccm: item.rccm != null ? String(item.rccm) : undefined,
       address: item.address != null ? String(item.address) : undefined,
       phone: item.phone != null ? String(item.phone) : undefined,
       fiscalYearStart: item.fiscalYearStart != null ? Number(item.fiscalYearStart) : undefined,
@@ -323,6 +384,9 @@ export class BusinessRepository {
       trustScore: item.trustScore != null ? Number(item.trustScore) : undefined,
       trustScoredAt: item.trustScoredAt != null ? String(item.trustScoredAt) : undefined,
       marketDayCycle: item.marketDayCycle != null ? Number(item.marketDayCycle) : undefined,
+      slug: item.slug != null ? String(item.slug) : undefined,
+      logoUrl: item.logoUrl != null ? String(item.logoUrl) : undefined,
+      description: item.description != null ? String(item.description) : undefined,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
     };

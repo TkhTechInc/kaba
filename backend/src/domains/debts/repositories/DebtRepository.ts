@@ -4,6 +4,7 @@ import {
   GetCommand,
   QueryCommand,
   UpdateCommand,
+  ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Debt, CreateDebtInput } from '../models/Debt';
 import { DatabaseError } from '@/shared/errors/DomainError';
@@ -240,6 +241,63 @@ export class DebtRepository {
     }
   }
 
+  /**
+   * Scan all debts across all businesses that are overdue/pending and need a reminder.
+   * cutoffDate: YYYY-MM-DD — only debts with dueDate <= cutoffDate are returned.
+   * reminderThreshold: ISO string — debts are returned if lastReminderSentAt is absent or <= threshold.
+   */
+  async scanOverdue(cutoffDate: string, reminderThreshold: string): Promise<Debt[]> {
+    const all: Debt[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+    try {
+      do {
+        const result = await this.docClient.send(
+          new ScanCommand({
+            TableName: this.tableName,
+            FilterExpression:
+              'entityType = :entity' +
+              ' AND #st IN (:pending, :overdue)' +
+              ' AND dueDate <= :cutoff' +
+              ' AND attribute_exists(phone)' +
+              ' AND (attribute_not_exists(lastReminderSentAt) OR lastReminderSentAt <= :threshold)',
+            ExpressionAttributeNames: {
+              '#st': 'status',
+            },
+            ExpressionAttributeValues: {
+              ':entity': 'DEBT',
+              ':pending': 'pending',
+              ':overdue': 'overdue',
+              ':cutoff': cutoffDate,
+              ':threshold': reminderThreshold,
+            },
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
+          } as import('@aws-sdk/lib-dynamodb').ScanCommandInput),
+        );
+        all.push(...(result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      return all;
+    } catch (e) {
+      throw new DatabaseError('Scan overdue debts failed', e);
+    }
+  }
+
+  /** Full replace of a debt record (no ConditionExpression). */
+  async update(debt: Debt): Promise<Debt> {
+    const item = this.mapToDynamoDB(debt);
+    try {
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: item,
+        }),
+      );
+      return debt;
+    } catch (e) {
+      throw new DatabaseError('Update debt failed', e);
+    }
+  }
+
   private getStatus(dueDate: string): Debt['status'] {
     const due = new Date(dueDate);
     const today = new Date();
@@ -249,7 +307,7 @@ export class DebtRepository {
   }
 
   private mapToDynamoDB(debt: Debt): Record<string, unknown> {
-    return {
+    const item: Record<string, unknown> = {
       pk: debt.businessId,
       sk: `${SK_PREFIX}${debt.id}`,
       entityType: 'DEBT',
@@ -266,6 +324,10 @@ export class DebtRepository {
       createdAt: debt.createdAt,
       updatedAt: debt.updatedAt,
     };
+    if (debt.lastReminderSentAt != null) {
+      item.lastReminderSentAt = debt.lastReminderSentAt;
+    }
+    return item;
   }
 
   private mapFromDynamoDB(item: Record<string, unknown>): Debt {
@@ -282,6 +344,7 @@ export class DebtRepository {
       notes: item.notes != null ? String(item.notes) : undefined,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
+      lastReminderSentAt: item.lastReminderSentAt != null ? String(item.lastReminderSentAt) : undefined,
     };
   }
 }

@@ -122,7 +122,9 @@ export class AuthController {
       user.picture,
     );
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${result.accessToken}`);
+    // Support custom URL schemes (e.g. "kaba") for mobile deep links
+    const separator = frontendUrl.includes('://') ? '' : '://';
+    res.redirect(`${frontendUrl}${separator}auth/callback?token=${result.accessToken}`);
   }
 
   @Get('facebook')
@@ -143,6 +145,7 @@ export class AuthController {
       user.picture,
     );
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    res.redirect(`${frontendUrl}/auth/callback?token=${result.accessToken}`);
+    const separator = frontendUrl.includes('://') ? '' : '://';
+    res.redirect(`${frontendUrl}${separator}auth/callback?token=${result.accessToken}`);
   }
 }

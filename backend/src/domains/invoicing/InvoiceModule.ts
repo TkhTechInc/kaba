@@ -78,6 +78,6 @@ import { PaymentModule } from '@/domains/payments/PaymentModule';
     CustomerService,
     RecurringInvoiceService,
   ],
-  exports: [InvoiceService, CustomerService, RecurringInvoiceService],
+  exports: [InvoiceService, InvoiceShareService, CustomerService, RecurringInvoiceService],
 })
 export class InvoiceModule {}

@@ -76,7 +76,10 @@ export async function createBranch(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify(input),
+    body: JSON.stringify({
+      ...input,
+      businessId: input.parentBusinessId,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { message?: string };

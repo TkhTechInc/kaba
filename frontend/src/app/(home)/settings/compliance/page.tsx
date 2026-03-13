@@ -22,6 +22,7 @@ export default function CompliancePage() {
 
   const SETTINGS_NAV = [
     { label: t("settings.nav.plans"), href: "/settings/plans"},
+    { label: t("settings.nav.profile"), href: "/settings/profile" },
     { label: t("settings.nav.team"), href: "/settings/team" },
     { label: t("settings.nav.activityLog"), href: "/settings/activity" },
     { label: t("settings.nav.preferences"), href: "/settings/preferences" },

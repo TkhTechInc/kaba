@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
@@ -10,7 +10,7 @@ import { PlanPaymentService } from './PlanPaymentService';
 import { PlanPaymentController } from './PlanPaymentController';
 
 @Module({
-  imports: [AuditModule, BusinessModule, PaymentModule],
+  imports: [AuditModule, BusinessModule, forwardRef(() => PaymentModule)],
   controllers: [PlanPaymentController],
   providers: [
     {

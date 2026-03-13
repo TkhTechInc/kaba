@@ -265,6 +265,61 @@ export class ProductRepository {
     }
   }
 
+  async listWithCursor(
+    businessId: string,
+    limit: number = 20,
+    cursor?: string,
+  ): Promise<{ items: Product[]; nextCursor: string | null; hasMore: boolean }> {
+    const exclusiveStartKey = cursor
+      ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
+      : undefined;
+
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+        },
+        Limit: limit,
+        ScanIndexForward: false,
+        ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+      })
+    );
+
+    const nextCursor = result.LastEvaluatedKey
+      ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
+      : null;
+
+    return {
+      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      nextCursor,
+      hasMore: !!result.LastEvaluatedKey,
+    };
+  }
+
+  async listSince(
+    businessId: string,
+    since: string,
+    limit: number = 500,
+  ): Promise<Product[]> {
+    const result = await this.docClient.send(
+      new QueryCommand({
+        TableName: this.tableName,
+        KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+        FilterExpression: 'createdAt >= :since',
+        ExpressionAttributeValues: {
+          ':pk': businessId,
+          ':skPrefix': SK_PREFIX,
+          ':since': since,
+        },
+        Limit: limit,
+      })
+    );
+    return (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+  }
+
   private mapToDynamoDB(product: Product): Record<string, unknown> {
     return {
       pk: product.businessId,

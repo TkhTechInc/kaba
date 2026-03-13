@@ -83,6 +83,10 @@
     "actions": "Actions"
   },
   "dashboard": {
+    "errorBanner": {
+      "message": "Failed to load dashboard",
+      "retry": "Retry"
+    },
     "action": {
       "newInvoice": "+ New Invoice",
       "recordTransaction": "+ Record Transaction",
@@ -160,6 +164,10 @@
       "status": "Status",
       "amount": "Amount"
     },
+    "pendingApproval": {
+      "loadError": "Failed to load pending approvals",
+      "approveFailed": "Approval failed"
+    },
     "status": {
       "pendingApproval": "Pending Approval",
       "dgiCertified": "✓ DGI {serialNumber}",
@@ -172,10 +180,15 @@
       "paymentLinkAriaLabel": "Generate payment link for invoice {id}"
     },
     "paymentLinkLabel": "Payment link:",
-    "upgradeToDownload": "Upgrade to download PDF"
+    "upgradeToDownload": "Upgrade to download PDF",
+    "search": "Search invoices…",
+    "noResults": "No invoices match your search."
   },
   "customers": {
     "title": "Customers",
+    "search": "Search customers…",
+    "noResults": "No customers match your search.",
+    "dateFilterHint": "Clear the date filter to see all customers including newly added.",
     "addCustomer": "+ Add Customer",
     "noBusinessSelected": "Select a business to manage customers.",
     "loading": "Loading…",
@@ -216,7 +229,9 @@
       "newEntry": "+ New Entry",
       "loading": "Loading…",
       "empty": "No entries yet.",
-      "emptyCta": "Create your first entry."
+      "emptyCta": "Create your first entry.",
+      "search": "Search entries…",
+      "noResults": "No entries match your search."
     },
     "filter": {
       "all": "All",
@@ -273,6 +288,7 @@
     },
     "consolidated": {
       "breadcrumb": "Consolidated P&L",
+      "loadError": "Failed to load consolidated report",
       "heading": "Multi-Branch Consolidated Report",
       "loadingOrgs": "Loading organizations…",
       "noOrgs": "No organizations with branches",
@@ -290,6 +306,7 @@
     "subtitle": "Configure your business settings.",
     "nav": {
       "plans": "Plans",
+      "profile": "Business Profile",
       "team": "Team",
       "activityLog": "Activity Log",
       "preferences": "Preferences",
@@ -490,6 +507,8 @@
   "debts": {
     "title": "Outstanding debts",
     "noBusinessSelected": "Select a business to manage debts.",
+    "search": "Search debts…",
+    "noResults": "No debts match your search.",
     "filter": {
       "pending": "Pending"
     },
@@ -536,14 +555,15 @@
     "noBusinessSelected": "Select a business to process receipts.",
     "upload": {
       "title": "Upload Receipt",
-      "hint": "Take a photo of your receipt or choose an image from your device. We'll read the details for you.",
-      "fileLabel": "Photo or image of your receipt",
+      "hint": "Take a photo, choose an image, or upload a PDF receipt. We'll read the details for you.",
+      "fileLabel": "Photo, image, or PDF of your receipt",
       "submit": "Read receipt",
       "reading": "Reading receipt…"
     },
     "details": {
       "title": "Receipt details",
       "previewAlt": "Receipt preview",
+      "pdfSelected": "PDF receipt selected. Click \"Read receipt\" to extract details.",
       "empty": "Your receipt details will appear here after you upload.",
       "summary": "Summary",
       "shop": "Shop",
@@ -919,6 +939,90 @@
       "cancel": "Cancel"
     },
     "error": "Export failed"
+  },
+  "errors": {
+    "badge": "Error {code}",
+    "goToDashboard": "Go to dashboard",
+    "goBack": "Go back",
+    "tryAgain": "Try again",
+    "404": {
+      "title": "Page not found",
+      "description": "The page you're looking for doesn't exist or has been moved."
+    },
+    "403": {
+      "title": "Access denied",
+      "description": "You don't have permission to view this page. Contact your workspace owner if you think this is a mistake."
+    },
+    "401": {
+      "title": "Sign in required",
+      "description": "You need to be signed in to view this page."
+    },
+    "429": {
+      "title": "Slow down",
+      "description": "Too many requests. Wait a moment before trying again."
+    },
+    "500": {
+      "title": "Something went wrong",
+      "description": "An unexpected error occurred on our end. We've been notified and are looking into it."
+    },
+    "default": {
+      "title": "Something went wrong",
+      "description": "An error occurred. Please try again or go back to the dashboard."
+    }
+  },
+  "suppliers": {
+    "title": "Suppliers",
+    "noBusinessSelected": "No business selected.",
+    "search": "Search suppliers…",
+    "noResults": "No suppliers match your search.",
+    "forbidden": "You do not have permission to view suppliers.",
+    "addSupplier": "Add Supplier",
+    "editSupplier": "Edit Supplier",
+    "deleteConfirm": "Delete this supplier?",
+    "noSuppliersYet": "No suppliers yet.",
+    "addFirstSupplier": "Add your first supplier",
+    "column": {
+      "name": "Name",
+      "phoneMomo": "Phone / MoMo",
+      "currency": "Currency",
+      "country": "Country",
+      "actions": "Actions"
+    },
+    "action": {
+      "pay": "Pay",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "form": {
+      "name": "Name",
+      "phone": "Phone",
+      "momoPhone": "MoMo Phone",
+      "bankAccount": "Bank Account",
+      "currency": "Currency",
+      "countryCode": "Country Code",
+      "notes": "Notes",
+      "required": " *",
+      "saving": "Saving…",
+      "saveChanges": "Save Changes",
+      "cancel": "Cancel"
+    },
+    "payModal": {
+      "title": "Pay {name}",
+      "subtitle": "This will record an expense entry in your ledger.",
+      "amount": "Amount",
+      "currency": "Currency",
+      "description": "Description",
+      "placeholder": "Payment to {name}",
+      "processing": "Processing…",
+      "recordPayment": "Record Payment"
+    },
+    "error": {
+      "load": "Failed to load suppliers",
+      "create": "Failed to create supplier",
+      "update": "Failed to update supplier",
+      "delete": "Failed to delete supplier",
+      "pay": "Failed to record payment"
+    }
   },
   "dateFilter": {
     "button": "Filter by date",

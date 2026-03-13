@@ -153,12 +153,16 @@ export default function ReconciliationPage() {
                     <ul className="mt-1 list-inside list-disc space-y-0.5">
                       {result.matchedInvoices.map((inv) => (
                         <li key={inv.id}>
-                          <Link
-                            href={`/invoices/${inv.id}`}
-                            className="text-primary hover:underline"
-                          >
-                            Invoice #{inv.number}
-                          </Link>
+                          {inv.id ? (
+                            <Link
+                              href={`/invoices/${inv.id}`}
+                              className="text-primary hover:underline"
+                            >
+                              Invoice #{inv.number}
+                            </Link>
+                          ) : (
+                            <span>Invoice #{inv.number}</span>
+                          )}
                         </li>
                       ))}
                     </ul>

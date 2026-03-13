@@ -56,7 +56,7 @@ const TAX_REGIMES = [
 const STEPS = [
   { id: 1, key: "business", title: "Business" },
   { id: 2, key: "location", title: "Location" },
-  { id: 3, key: "tax", title: "Tax (optional)" },
+  { id: 3, key: "tax", title: "Fiscal (optional)" },
   { id: 4, key: "details", title: "Details (optional)" },
 ];
 
@@ -107,6 +107,8 @@ export function OnboardingWizard({
   const [currency, setCurrency] = useState(data?.answers.currency ?? "");
   const [taxRegime, setTaxRegime] = useState(data?.answers.taxRegime ?? "");
   const [taxId, setTaxId] = useState(data?.answers.taxId ?? "");
+  const [legalStatus, setLegalStatus] = useState(data?.answers.legalStatus ?? "");
+  const [rccm, setRccm] = useState(data?.answers.rccm ?? "");
   const [businessAddress, setBusinessAddress] = useState(data?.answers.businessAddress ?? "");
   const [businessPhone, setBusinessPhone] = useState(data?.answers.businessPhone ?? "");
   const [fiscalYearStart, setFiscalYearStart] = useState(
@@ -143,6 +145,8 @@ export function OnboardingWizard({
       setCurrency(data.answers.currency ?? "");
       setTaxRegime(data.answers.taxRegime ?? "");
       setTaxId(data.answers.taxId ?? "");
+      setLegalStatus(data.answers.legalStatus ?? "");
+      setRccm(data.answers.rccm ?? "");
       setBusinessAddress(data.answers.businessAddress ?? "");
       setBusinessPhone(data.answers.businessPhone ?? "");
       setFiscalYearStart(
@@ -210,6 +214,8 @@ export function OnboardingWizard({
     if (name === "currency") setCurrency(value);
     if (name === "taxRegime") setTaxRegime(value);
     if (name === "taxId") setTaxId(value.replace(/\s/g, ""));
+    if (name === "legalStatus") setLegalStatus(value);
+    if (name === "rccm") setRccm(value);
     if (name === "businessAddress") setBusinessAddress(value);
     if (name === "businessPhone") setBusinessPhone(value);
     if (name === "fiscalYearStart") setFiscalYearStart(value);
@@ -225,7 +231,12 @@ export function OnboardingWizard({
         await update({ country, currency });
         setStep(3);
       } else if (step === 3) {
-        await update({ taxRegime, taxId: taxId || undefined });
+        await update({
+          taxRegime: taxRegime || undefined,
+          taxId: taxId || undefined,
+          legalStatus: legalStatus || undefined,
+          rccm: rccm || undefined,
+        });
         setStep(4);
       } else if (step === 4) {
         await update(
@@ -247,7 +258,13 @@ export function OnboardingWizard({
     setError(null);
     try {
       if (step === 3) {
-        await update({ taxRegime: taxRegime || undefined, taxId: taxId || undefined, onboardingComplete: true });
+        await update({
+          taxRegime: taxRegime || undefined,
+          taxId: taxId || undefined,
+          legalStatus: legalStatus || undefined,
+          rccm: rccm || undefined,
+          onboardingComplete: true,
+        });
         onComplete();
       }
       if (step === 4) {
@@ -285,7 +302,7 @@ export function OnboardingWizard({
       <h2 id="onboarding-step-title" className="mb-6 text-xl font-semibold text-dark dark:text-white">
         {step === 1 && "Tell us about your business"}
         {step === 2 && "Where do you operate?"}
-        {step === 3 && "Tax registration (optional)"}
+        {step === 3 && "Structure légale & fiscal (optional)"}
         {step === 4 && "Contact & reporting (optional)"}
       </h2>
 
@@ -414,17 +431,74 @@ export function OnboardingWizard({
       )}
 
       {step === 3 && (
-        <div className="space-y-4" aria-labelledby="onboarding-step-title">
+        <div className="space-y-5" aria-labelledby="onboarding-step-title">
+          {/* Legal status */}
+          <div>
+            <label htmlFor="legalStatus" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+              Legal structure <span className="font-normal text-dark-4">(optional)</span>
+            </label>
+            <select
+              id="legalStatus"
+              name="legalStatus"
+              value={legalStatus}
+              onChange={handleChange}
+              ref={firstInputRef as React.RefObject<HTMLSelectElement>}
+              className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
+              aria-label="Legal structure"
+            >
+              <option value="">Select (optional)</option>
+              <option value="auto_entrepreneur">Auto-entrepreneur / Micro-entreprise</option>
+              <option value="sarl">SARL — Société à Responsabilité Limitée</option>
+              <option value="sa">SA — Société Anonyme</option>
+              <option value="snc">SNC — Société en Nom Collectif</option>
+              <option value="association">Association / ONG</option>
+              <option value="other">Autre</option>
+            </select>
+            {legalStatus === "auto_entrepreneur" && country === "BJ" && (
+              <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
+                💡 En tant qu'auto-entrepreneur au Bénin, l'IFU reste obligatoire pour vendre légalement. Il est gratuit et s'obtient en 24–48h sur impots.bj.
+              </p>
+            )}
+            {(legalStatus === "sarl" || legalStatus === "sa") && (
+              <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
+                Les SARL et SA doivent être enregistrées au RCCM et disposer d'un IFU actif pour émettre des factures certifiées.
+              </p>
+            )}
+          </div>
+
+          {/* RCCM — shown for formal entities */}
+          {(legalStatus === "sarl" || legalStatus === "sa" || legalStatus === "snc") && (
+            <div>
+              <label htmlFor="rccm" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+                RCCM <span className="font-normal text-dark-4">(Registre du Commerce)</span>
+              </label>
+              <input
+                id="rccm"
+                type="text"
+                name="rccm"
+                value={rccm}
+                onChange={handleChange}
+                placeholder={country === "BJ" ? "e.g. RB/COT/25 A 12345" : "Numéro RCCM"}
+                className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 text-dark outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
+                aria-label="RCCM registration number"
+                autoComplete="off"
+              />
+              <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
+                Numéro d'immatriculation au Registre du Commerce. Figurant sur vos statuts ou votre extrait RCCM.
+              </p>
+            </div>
+          )}
+
+          {/* Tax regime */}
           <div>
             <label htmlFor="taxRegime" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Tax regime
+              Régime fiscal <span className="font-normal text-dark-4">(optional)</span>
             </label>
             <select
               id="taxRegime"
               name="taxRegime"
               value={taxRegime}
               onChange={handleChange}
-              ref={firstInputRef as React.RefObject<HTMLSelectElement>}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
               aria-label="Tax regime (optional)"
             >
@@ -435,9 +509,14 @@ export function OnboardingWizard({
                 </option>
               ))}
             </select>
+            {taxRegime === "vat" && (
+              <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
+                TVA à 18 % appliquée automatiquement sur vos factures certifiées.
+              </p>
+            )}
           </div>
 
-          {/* IFU / NCC — shown only for countries with mandatory e-invoicing tax IDs */}
+          {/* IFU / NCC — shown for supported countries */}
           {FISCAL_ID_COUNTRIES[country] && (
             <div>
               <label htmlFor="taxId" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
@@ -458,6 +537,18 @@ export function OnboardingWizard({
               <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
                 {FISCAL_ID_COUNTRIES[country].hint}
               </p>
+              {taxId && (
+                <div className="mt-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800 dark:bg-green-900/20 dark:text-green-300">
+                  ✓ Un QR code fiscal apparaîtra sur toutes vos factures.
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Info banner for countries without e-invoicing yet */}
+          {!FISCAL_ID_COUNTRIES[country] && country && (
+            <div className="rounded-lg border border-stroke bg-gray-1 p-4 text-xs text-dark-4 dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6">
+              La certification électronique des factures n'est pas encore disponible pour votre pays. Vous pourrez mettre à jour votre profil fiscal plus tard dans <strong>Paramètres → Profil entreprise</strong>.
             </div>
           )}
         </div>

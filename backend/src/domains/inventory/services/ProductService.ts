@@ -110,4 +110,13 @@ export class ProductService {
   ): Promise<Product | null> {
     return this.productRepository.decrementStock(businessId, id, quantity);
   }
+
+  async listWithCursor(
+    businessId: string,
+    limit: number = 50,
+    cursor?: string,
+  ) {
+    await this.assertFeatureEnabled(businessId);
+    return this.productRepository.listWithCursor(businessId, limit, cursor);
+  }
 }

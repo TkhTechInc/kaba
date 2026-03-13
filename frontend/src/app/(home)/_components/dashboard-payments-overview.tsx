@@ -8,7 +8,7 @@ import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { getPaymentsOverview } from "@/services/dashboard.service";
 import { useAuth } from "@/contexts/auth-context";
-import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
+import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
 import { useFeatures } from "@/hooks/use-features";
 import { useSearchParams } from "next/navigation";
 import { useLocale } from "@/contexts/locale-context";
@@ -25,34 +25,35 @@ function parseTimeFrame(selected: string | null, sectionKey: string): "monthly" 
 
 export function DashboardPaymentsOverview({ className }: PropsType) {
   const { businessId, token } = useAuth();
-  const { refreshTrigger } = useDashboardRefresh();
+  const { data: homeData, loading: homeLoading } = useDashboardHome();
   const features = useFeatures(businessId);
   const { t } = useLocale();
   const searchParams = useSearchParams();
   const selected = searchParams.get("selected_time_frame");
   const timeFrame = parseTimeFrame(selected, "payments_overview");
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<Awaited<ReturnType<typeof getPaymentsOverview>>>(null);
+  const [overrideData, setOverrideData] = useState<Awaited<ReturnType<typeof getPaymentsOverview>> | null>(null);
+  const [overrideLoading, setOverrideLoading] = useState(false);
+
+  const useDefault = timeFrame === "monthly";
+  const data = useDefault ? (homeData?.paymentsOverview ?? null) : overrideData;
+  const loading = useDefault ? homeLoading : overrideLoading;
 
   useEffect(() => {
-    if (!businessId || !token) {
-      setLoading(false);
-      setData(null);
-      return;
-    }
+    if (!businessId || !token || useDefault) return;
     let cancelled = false;
+    setOverrideLoading(true);
     getPaymentsOverview(businessId, token, timeFrame)
       .then((d) => {
-        if (!cancelled) setData(d);
+        if (!cancelled) setOverrideData(d);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) setOverrideLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [businessId, token, timeFrame, refreshTrigger]);
+  }, [businessId, token, timeFrame, useDefault]);
 
   if (!businessId) return null;
 

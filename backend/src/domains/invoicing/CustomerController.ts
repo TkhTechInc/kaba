@@ -8,13 +8,18 @@ import {
   Query,
   Param,
   UseGuards,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { CustomerService } from './services/CustomerService';
+import { CustomerRepository } from './repositories/CustomerRepository';
+import { InvoiceRepository } from './repositories/InvoiceRepository';
+import { InvoiceShareService } from './services/InvoiceShareService';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { ListCustomersQueryDto } from './dto/list-customers-query.dto';
 import { GetCustomerQueryDto } from './dto/get-customer-query.dto';
-import { Auth } from '@/nest/common/decorators/auth.decorator';
+import { Auth, Public } from '@/nest/common/decorators/auth.decorator';
 import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
 import { FeatureGuard } from '@/nest/common/guards/feature.guard';
@@ -26,7 +31,12 @@ import { RequirePermission } from '@/nest/common/decorators/require-permission.d
 @UseGuards(FeatureGuard, PermissionGuard)
 @Feature('invoicing')
 export class CustomerController {
-  constructor(private readonly customerService: CustomerService) {}
+  constructor(
+    private readonly customerService: CustomerService,
+    private readonly customerRepository: CustomerRepository,
+    private readonly invoiceRepository: InvoiceRepository,
+    private readonly invoiceShareService: InvoiceShareService,
+  ) {}
 
   @Post()
   @RequirePermission('invoices:write')
@@ -42,7 +52,20 @@ export class CustomerController {
 
   @Get()
   @RequirePermission('invoices:read')
-  async list(@Query() query: ListCustomersQueryDto & { fromDate?: string; toDate?: string }) {
+  async list(
+    @Query() query: ListCustomersQueryDto & { fromDate?: string; toDate?: string },
+    @Query('cursor') cursor?: string,
+  ) {
+    if (cursor !== undefined) {
+      const result = await this.customerRepository.listWithCursor(
+        query.businessId,
+        query.limit ?? 20,
+        cursor || undefined,
+        query.fromDate,
+        query.toDate,
+      );
+      return { success: true, data: result };
+    }
     const result = await this.customerService.list(
       query.businessId,
       query.page ?? 1,
@@ -93,5 +116,66 @@ export class CustomerController {
   ) {
     await this.customerService.delete(query.businessId, id, userId);
     return { success: true };
+  }
+
+  /** Public portal: look up a customer by email within a business. */
+  @Get('portal/lookup')
+  @Public()
+  async portalLookup(
+    @Query('businessId') businessId: string,
+    @Query('email') email: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    if (!email?.trim()) {
+      throw new BadRequestException('email is required');
+    }
+    const customer = await this.customerRepository.findByEmail(businessId, email.trim().toLowerCase());
+    if (!customer) {
+      throw new NotFoundException('No customer found with that email for this business');
+    }
+    return {
+      success: true,
+      data: { customerId: customer.id, name: customer.name },
+    };
+  }
+
+  /** Public portal: get invoices for a customer (excludes cancelled/draft). Adds payUrl for payable invoices. */
+  @Get('portal/invoices')
+  @Public()
+  async portalInvoices(
+    @Query('businessId') businessId: string,
+    @Query('customerId') customerId: string,
+  ) {
+    if (!businessId?.trim()) {
+      throw new BadRequestException('businessId is required');
+    }
+    if (!customerId?.trim()) {
+      throw new BadRequestException('customerId is required');
+    }
+    const invoices = await this.invoiceRepository.listByCustomerId(businessId, customerId, 50);
+    const visible = invoices.filter((inv) => inv.status !== 'draft' && inv.status !== 'cancelled');
+
+    const items = await Promise.all(
+      visible.map(async (inv) => {
+        const payable = inv.status === 'sent' || inv.status === 'overdue';
+        let payUrl: string | undefined;
+        if (payable) {
+          try {
+            const { payUrl: url } = await this.invoiceShareService.generatePublicToken(inv.id, businessId);
+            payUrl = url;
+          } catch {
+            // omit payUrl if token generation fails
+          }
+        }
+        return { ...inv, ...(payUrl && { payUrl }) };
+      }),
+    );
+
+    return {
+      success: true,
+      data: { items },
+    };
   }
 }

@@ -49,7 +49,7 @@ export async function handler(event: SNSEvent): Promise<void> {
       }
 
       const invoiceId = raw.referenceId;
-      const businessId = raw.businessId;
+      const businessId = raw.businessId ?? (raw.metadata as Record<string, string> | undefined)?.['businessId'];
 
       if (!invoiceId || !businessId) {
         console.warn('[PaymentEventHandler] Missing referenceId or businessId — skipping');

@@ -1,6 +1,6 @@
 "use client";
 
-import { EmailIcon, PasswordIcon } from "@/assets/icons";
+import { EmailIcon, LockIcon } from "@/assets/icons8";
 import { useAuth } from "@/contexts/auth-context";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -66,7 +66,7 @@ export default function SigninWithPassword() {
         name="password"
         handleChange={handleChange}
         value={password}
-        icon={<PasswordIcon />}
+        icon={<LockIcon />}
         showPasswordToggle
         required
         aria-label="Password"

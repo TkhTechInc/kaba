@@ -12,6 +12,7 @@ const INTENT_TYPES: IntentType[] = [
   'get_trust_score',
   'generate_invoice',
   'send_invoice',
+  'collect_payment',
   'get_report',
   'unknown',
 ];
@@ -20,7 +21,10 @@ const SYSTEM_PROMPT = `You are a financial assistant for West African small busi
 Extract the user's intent from their message. Return JSON matching the schema.
 Supported intents: ${INTENT_TYPES.join(', ')}.
 For record_sale/record_expense, extract: amount (number), currency (string, default XOF), description (string), customerName (string, optional).
-For generate_invoice/send_invoice, extract: customerName (string), amount (number), currency (string).
+For generate_invoice/send_invoice, extract: customerName (string), amount (number), currency (string), invoiceId (string, optional).
+For collect_payment/list_debts, extract: customerName (string, optional).
+Use "send_invoice" when user says "send invoice", "share payment link", "send payment request to [customer]".
+Use "collect_payment" when user says "who owes me", "outstanding payments", "collect payment", "how much is owed".
 If unsure, use intent "unknown".`;
 
 const INTENT_SCHEMA = {

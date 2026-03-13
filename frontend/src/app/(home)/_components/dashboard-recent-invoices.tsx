@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
-import { createInvoicesApi } from "@/services/invoices.service";
 import { useAuth } from "@/contexts/auth-context";
-import { useDashboardRefresh } from "@/app/(home)/_components/dashboard-refresh-provider";
-import { useFeatures } from "@/hooks/use-features";
+import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
 import type { Invoice } from "@/services/invoices.service";
 
 function formatDate(s: string) {
@@ -43,33 +40,9 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export function DashboardRecentInvoices({ className }: { className?: string }) {
-  const { businessId, token } = useAuth();
-  const { refreshTrigger } = useDashboardRefresh();
-  const features = useFeatures(businessId);
-  const [loading, setLoading] = useState(true);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-
-  useEffect(() => {
-    if (!businessId || !token) {
-      setLoading(false);
-      return;
-    }
-    let cancelled = false;
-    createInvoicesApi(token)
-      .list(businessId, 1, 5)
-      .then((res) => {
-        if (!cancelled) setInvoices(res.data?.items ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setInvoices([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [businessId, token, refreshTrigger]);
+  const { businessId } = useAuth();
+  const { data: homeData, loading } = useDashboardHome();
+  const invoices = (homeData?.pendingInvoices?.items ?? []) as Invoice[];
 
   if (!businessId) return null;
 
@@ -124,11 +97,13 @@ export function DashboardRecentInvoices({ className }: { className?: string }) {
             { key: "dueDate", label: "Due Date", render: (inv) => formatDate(inv.dueDate) },
             { key: "status", label: "Status", render: (inv) => <StatusBadge status={inv.status} /> },
           ]}
-          renderActions={(inv) => (
-            <Link href={`/invoices/${inv.id}`} className="text-primary hover:underline">
-              View
-            </Link>
-          )}
+          renderActions={(inv) =>
+            inv.id ? (
+              <Link href={`/invoices/${inv.id}`} className="text-primary hover:underline">
+                View
+              </Link>
+            ) : null
+          }
         />
       )}
     </div>
