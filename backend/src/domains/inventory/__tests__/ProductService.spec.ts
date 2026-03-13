@@ -63,7 +63,7 @@ function makeMocks() {
   const featureService = new FeatureService(null as unknown as ConfigService);
 
   const businessRepo = {
-    getOrCreate: jest.fn().mockResolvedValue(FREE_BUSINESS),
+    getOrCreate: jest.fn().mockResolvedValue(STARTER_BUSINESS),
   } as unknown as jest.Mocked<BusinessRepository>;
 
   const service = new ProductService(

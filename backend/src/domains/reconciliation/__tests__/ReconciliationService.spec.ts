@@ -126,6 +126,7 @@ describe('ReconciliationService', () => {
           description: 'Payment from customer',
           category: 'Mobile Money',
         }),
+        undefined,
       );
       expect(usageRepo.incrementMobileMoneyRecon).toHaveBeenCalledWith('biz-001');
       expect(result.entry.id).toBe('entry-001');
@@ -146,6 +147,7 @@ describe('ReconciliationService', () => {
           amount: 5000,
           currency: 'XOF',
         }),
+        undefined,
       );
       expect(result.parsed.type).toBe('debit');
     });
@@ -160,6 +162,7 @@ describe('ReconciliationService', () => {
         expect.objectContaining({
           description: 'Mobile money: TXN-456',
         }),
+        undefined,
       );
     });
 
@@ -173,6 +176,7 @@ describe('ReconciliationService', () => {
         expect.objectContaining({
           description: 'Mobile money transaction',
         }),
+        undefined,
       );
     });
 

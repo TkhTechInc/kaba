@@ -29,8 +29,8 @@ function makeMocks() {
   } as unknown as jest.Mocked<Pick<BusinessRepository, 'updateOnboarding'>>;
 
   const service = new OnboardingService(
-    onboardingRepo as OnboardingRepository,
-    businessRepo as BusinessRepository,
+    onboardingRepo as unknown as OnboardingRepository,
+    businessRepo as unknown as BusinessRepository,
   );
 
   return { service, onboardingRepo, businessRepo };

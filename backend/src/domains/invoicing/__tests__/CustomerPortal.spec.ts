@@ -68,6 +68,7 @@ function makeController() {
     customerService,
     customerRepository,
     invoiceRepository,
+    {} as any, // invoiceShareService — not needed for portal tests
   );
 
   return { controller, customerService, customerRepository, invoiceRepository };
