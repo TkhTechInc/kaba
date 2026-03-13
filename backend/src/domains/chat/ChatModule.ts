@@ -9,6 +9,7 @@ import { InvoiceModule } from '@/domains/invoicing/InvoiceModule';
 import { DebtModule } from '@/domains/debts/DebtModule';
 import { TrustModule } from '@/domains/trust/TrustModule';
 import { ReportModule } from '@/domains/reports/ReportModule';
+import { McpModule } from '@/domains/mcp/McpModule';
 import { UserRepository } from '@/nest/modules/auth/repositories/UserRepository';
 import { AccessService } from '@/domains/access/AccessService';
 import { IntentParserService } from './services/IntentParserService';
@@ -18,6 +19,7 @@ import { ChatUserResolver } from './services/ChatUserResolver';
 import { MockChannel } from './providers/MockChannel';
 import { WhatsAppChannel } from './providers/WhatsAppChannel';
 import { TelegramChannel } from './providers/TelegramChannel';
+import { AgentOrchestrator } from '@/domains/mcp/AgentOrchestrator';
 
 export const CONVERSATION_STORE = 'IConversationStore';
 export const INTENT_PARSER = 'IIntentParser';
@@ -33,6 +35,7 @@ export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
     DebtModule,
     TrustModule,
     ReportModule,
+    forwardRef(() => McpModule),
   ],
   providers: [
     IntentParserService,
@@ -75,6 +78,7 @@ export const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
     ChatUserResolver,
     WhatsAppChannel,
     TelegramChannel,
+    AgentOrchestrator,
   ],
 })
 export class ChatModule {}

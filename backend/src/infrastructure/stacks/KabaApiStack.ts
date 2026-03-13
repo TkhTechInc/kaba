@@ -55,6 +55,7 @@ export class KabaApiStack extends cdk.Stack {
     const apiLambdaAsset = path.join(__dirname, '../../../dist/api-lambda');
     const recurringLambdaAsset = path.join(__dirname, '../../../dist/recurring-invoice-lambda');
     const paymentReminderLambdaAsset = path.join(__dirname, '../../../dist/payment-reminder-lambda');
+    const dailySummaryLambdaAsset = path.join(__dirname, '../../../dist/daily-summary-lambda');
 
     this.apiLambda = new lambda.Function(this, 'ApiLambda', {
       functionName: `${resourcePrefix}-handler`,
@@ -159,6 +160,41 @@ export class KabaApiStack extends cdk.Stack {
       description: 'Send payment reminders for overdue/pending debts daily at 8am UTC',
       schedule: events.Schedule.cron({ minute: '0', hour: '8', day: '*', month: '*', year: '*' }),
       targets: [new targets.LambdaFunction(paymentReminderLambda)],
+    });
+
+    // Daily summary Lambda: sends WhatsApp/SMS business summary to opted-in owners daily at 7am UTC
+    const dailySummaryLambda = new lambda.Function(this, 'DailySummaryLambda', {
+      functionName: `${resourcePrefix}-daily-summary`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(dailySummaryLambdaAsset),
+      timeout: Duration.minutes(10),
+      memorySize: 256,
+      environment: {
+        DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        WHATSAPP_TOKEN: process.env['WHATSAPP_TOKEN'] ?? '',
+        WHATSAPP_PHONE_NUMBER_ID: process.env['WHATSAPP_PHONE_NUMBER_ID'] ?? '',
+      },
+    });
+    ledgerTable.grantReadData(dailySummaryLambda);
+
+    // SNS for SMS fallback in daily summary
+    dailySummaryLambda.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ['sns:Publish'],
+        resources: ['*'],
+        conditions: {
+          Null: { 'sns:PhoneNumber': 'false' },
+        },
+      }),
+    );
+
+    // EventBridge rule: daily at 7am UTC
+    new events.Rule(this, 'DailySummaryScheduleRule', {
+      ruleName: `${resourcePrefix}-daily-summary`,
+      description: 'Send daily business summary to opted-in owners at 7am UTC',
+      schedule: events.Schedule.cron({ minute: '0', hour: '7', day: '*', month: '*', year: '*' }),
+      targets: [new targets.LambdaFunction(dailySummaryLambda)],
     });
 
     // Payment event Lambda: triggered by SNS payment.completed events from TKH Payments service

@@ -17,10 +17,11 @@ import { MoMoReconciliationService } from './MoMoReconciliationService';
 import { BusinessTrustScoreService } from './BusinessTrustScoreService';
 import { TrustShareService } from './TrustShareService';
 import { TrustController } from './TrustController';
+import { TrustPartnerController } from './TrustPartnerController';
 
 @Module({
   imports: [BusinessModule, LedgerModule, DebtModule, UsageModule, AccessModule],
-  controllers: [TrustController],
+  controllers: [TrustController, TrustPartnerController],
   providers: [
     {
       provide: MoMoReconciliationService,

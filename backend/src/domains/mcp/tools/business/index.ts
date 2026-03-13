@@ -13,3 +13,8 @@ export { ListSuppliersTool } from './list-suppliers.tool';
 export { PaySupplierTool } from './pay-supplier.tool';
 export { GetLoanReadinessTool } from './get-loan-readiness.tool';
 export { GetCashFlowForecastTool } from './get-cash-flow-forecast.tool';
+export { AddDebtTool } from './add-debt.tool';
+export { UpdateInventoryTool } from './update-inventory.tool';
+export { SendDebtReminderTool } from './send-debt-reminder.tool';
+export { GetTaxEstimateTool } from './get-tax-estimate.tool';
+export { GetDailySummaryTool } from './get-daily-summary.tool';

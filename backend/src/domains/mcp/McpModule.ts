@@ -39,6 +39,13 @@ import {
   GetUsageSummaryTool,
   QueryAuditLogsTool,
 } from './tools/admin';
+import {
+  AddDebtTool,
+  UpdateInventoryTool,
+  SendDebtReminderTool,
+  GetTaxEstimateTool,
+  GetDailySummaryTool,
+} from './tools/business';
 
 const CUSTOMER_TOOL_PROVIDERS = [
   LookupMyInvoicesTool,
@@ -54,6 +61,14 @@ const ADMIN_TOOL_PROVIDERS = [
   SetBusinessTierTool,
   GetUsageSummaryTool,
   QueryAuditLogsTool,
+];
+
+const BUSINESS_TOOL_PROVIDERS = [
+  AddDebtTool,
+  UpdateInventoryTool,
+  SendDebtReminderTool,
+  GetTaxEstimateTool,
+  GetDailySummaryTool,
 ];
 
 @Module({
@@ -105,6 +120,7 @@ const ADMIN_TOOL_PROVIDERS = [
     },
     ...CUSTOMER_TOOL_PROVIDERS,
     ...ADMIN_TOOL_PROVIDERS,
+    ...BUSINESS_TOOL_PROVIDERS,
     {
       provide: MCP_TOOLS,
       useFactory: (
@@ -118,6 +134,11 @@ const ADMIN_TOOL_PROVIDERS = [
         setBusinessTier: SetBusinessTierTool,
         getUsageSummary: GetUsageSummaryTool,
         queryAuditLogs: QueryAuditLogsTool,
+        addDebt: AddDebtTool,
+        updateInventory: UpdateInventoryTool,
+        sendDebtReminder: SendDebtReminderTool,
+        getTaxEstimate: GetTaxEstimateTool,
+        getDailySummary: GetDailySummaryTool,
       ): IMcpTool[] => [
         lookupMyInvoices,
         getInvoiceDetail,
@@ -129,6 +150,11 @@ const ADMIN_TOOL_PROVIDERS = [
         setBusinessTier,
         getUsageSummary,
         queryAuditLogs,
+        addDebt,
+        updateInventory,
+        sendDebtReminder,
+        getTaxEstimate,
+        getDailySummary,
       ],
       inject: [
         LookupMyInvoicesTool,
@@ -141,6 +167,11 @@ const ADMIN_TOOL_PROVIDERS = [
         SetBusinessTierTool,
         GetUsageSummaryTool,
         QueryAuditLogsTool,
+        AddDebtTool,
+        UpdateInventoryTool,
+        SendDebtReminderTool,
+        GetTaxEstimateTool,
+        GetDailySummaryTool,
       ],
     },
   ],

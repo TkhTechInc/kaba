@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger } from '@nestjs/common';
+import { Injectable, Inject, Logger, Optional } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import type { ILLMProvider } from '@/domains/ai/ILLMProvider';
 import { AI_LEDGER_QA_PROVIDER } from '@/nest/modules/ai/ai.tokens';
@@ -8,6 +8,9 @@ import { AgentSessionStore } from './AgentSessionStore';
 import { ToolRegistry } from './ToolRegistry';
 import type { IAgentSession, AgentMessage } from './interfaces/IAgentSession';
 import type { McpScope, McpToolContext } from './interfaces/IMcpTool';
+import type { IMessagingChannel } from '@/domains/chat/interfaces/IMessagingChannel';
+
+const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
 
 export interface AgentChatInput {
   sessionId: string;
@@ -17,6 +20,8 @@ export interface AgentChatInput {
   customerEmail?: string;
   tier: Tier;
   scope: McpScope;
+  channelUserId?: string;
+  channelName?: 'whatsapp' | 'telegram';
 }
 
 export interface AgentChatResponse {
@@ -31,17 +36,45 @@ const MAX_MESSAGES = 30;
 const MAX_ITERATIONS = 5;
 
 function buildSystemPrompt(toolList: string): string {
-  return `You are Kaba AI, a financial assistant for West African small businesses.
-You help business owners track sales, expenses, invoices, debts, inventory, and suppliers.
-You speak naturally and concisely. Support English, French, and common West African expressions.
+  return `You are Kaba AI, the AI CFO for West African small businesses.
+You help merchants track sales, expenses, invoices, debts, inventory, suppliers, and get financial insights.
+You are friendly, concise, and culturally aware. You operate across Francophone and Anglophone West Africa.
 
-When you need data to answer, emit a tool call as JSON on its own line:
+LANGUAGE: Respond in the same language the user writes in. Support English, French, and West African expressions.
+- "CFA" or "francs" = XOF currency
+- "Cedi" = GHS currency
+- "Naira" = NGN currency
+- "Gombo" = profit (slang)
+- "Dettes" = debts
+- "Vente" = sale
+- "Dépense" = expense
+
+COMPOUND TRANSACTIONS: When a user describes multiple actions in one sentence, call multiple tools in sequence.
+Example: "I sold 2 bags of rice to Moussa but he only paid half (7500)"
+→ First call record_sale (amount: 15000, description: "2 bags of rice to Moussa")
+→ Then call add_debt (debtorName: "Moussa", amount: 7500, dueDate: next week's date)
+
+Example: "Vente 3 sacs riz 15000 à Kossi"
+→ call record_sale (amount: 15000, description: "3 sacs de riz à Kossi", currency: "XOF")
+
+Example: "Ajoute une dépense de 2000 pour transport"
+→ call record_expense (amount: 2000, description: "transport", currency: "XOF")
+
+Example: "Relance Moussa" or "Send reminder to Moussa"
+→ First call list_debts to find Moussa's debt ID, then call send_debt_reminder
+
+TOOL USAGE: When you need data or want to perform an action, emit a tool call as a JSON line:
 {"tool_call": {"name": "<tool_name>", "input": {<arguments>}}}
+
+You may emit MULTIPLE tool calls in sequence — emit one, wait for the result, then emit the next if needed.
+Do NOT emit tool calls in your final answer to the user.
 
 Available tools:
 ${toolList}
 
-After getting tool results, provide a clear, friendly answer. Do not emit tool calls in your final answer.`;
+RESPONSE FORMAT: After getting tool results, give a clear, friendly answer. Use the user's currency and language.
+For numbers, format with thousands separators (e.g. 45 000 XOF not 45000).
+Keep responses short — merchants are busy. Use bullet points for lists.`;
 }
 
 function buildPromptFromMessages(messages: AgentMessage[]): string {
@@ -83,10 +116,11 @@ export class AgentOrchestrator {
     private readonly sessionStore: AgentSessionStore,
     private readonly toolRegistry: ToolRegistry,
     private readonly featureService: FeatureService,
+    @Optional() @Inject(MESSAGING_CHANNELS) private readonly messagingChannels?: IMessagingChannel[],
   ) {}
 
   async chat(input: AgentChatInput): Promise<AgentChatResponse> {
-    const { sessionId: inputSessionId, message, businessId, userId, customerEmail, tier, scope } = input;
+    const { sessionId: inputSessionId, message, businessId, userId, customerEmail, tier, scope, channelUserId, channelName } = input;
     const sessionId = inputSessionId || uuidv4();
 
     if (!this.featureService.isEnabled('mcp_agent_basic', tier)) {
@@ -182,6 +216,15 @@ export class AgentOrchestrator {
       await this.sessionStore.save(session);
     } catch (err) {
       this.logger.warn(`Failed to save session ${sessionId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    if (channelUserId && channelName && finalMessage) {
+      const ch = this.messagingChannels?.find(c => c.channelName === channelName);
+      if (ch) {
+        await ch.send({ channelUserId, text: finalMessage }).catch((err: unknown) => {
+          this.logger.warn(`Failed to deliver message via ${channelName}: ${err instanceof Error ? err.message : String(err)}`);
+        });
+      }
     }
 
     return { message: finalMessage, sessionId, toolsUsed };

@@ -33,7 +33,8 @@ export type FeatureKey =
   | 'trust_lookup'
   | 'whatsapp_invoice_delivery'
   | 'mcp_agent_basic'
-  | 'mcp_agent_advanced';
+  | 'mcp_agent_advanced'
+  | 'partner_credit_api';
 
 export interface FeatureConfig {
   enabled: boolean;

@@ -116,4 +116,19 @@ cdk deploy -c environment=staging \
 
 ---
 
-*Last updated: 2026-03-13 — MECeF, PDF modes, POS, business profile, fiscal onboarding, test fixes*
+*Last updated: 2026-03-13 — Kaba AI Business OS phase: unified orchestrators, 5 new MCP tools, multilingual prompt, daily summary Lambda, credit bureau API*
+
+---
+
+## AI Business OS Phase (2026-03-13)
+
+| Item | Status |
+|------|--------|
+| Unified orchestrators — WhatsApp/Telegram now route through `AgentOrchestrator` (all 30 MCP tools via chat) | ✅ |
+| 5 new MCP tools: `add_debt`, `update_inventory`, `send_debt_reminder`, `get_tax_estimate`, `get_daily_summary` | ✅ |
+| Multilingual system prompt — FR/EN/West African expressions, compound transactions, currency aliases | ✅ |
+| Daily summary Lambda (`handlers/daily-summary.ts`) — EventBridge cron 7am UTC, WhatsApp/SMS push | ✅ |
+| Credit bureau API — `GET /api/v1/trust/score/:businessId` — partner API key auth, enterprise tier | ✅ |
+| TypeScript build | ✅ Passes |
+| ESLint | ✅ 0 errors (65 pre-existing warnings) |
+| Jest suite | ✅ 262 passed, 0 new failures (25 pre-existing OpenRouter integration failures, 31 skipped) |

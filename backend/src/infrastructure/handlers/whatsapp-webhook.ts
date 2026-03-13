@@ -2,8 +2,10 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { NestFactory } from '@nestjs/core';
 import { INestApplicationContext } from '@nestjs/common';
 import { AppModule } from '../../nest/app.module';
-import { ChatOrchestrator } from '../../domains/chat/services/ChatOrchestrator';
+import { AgentOrchestrator } from '../../domains/mcp/AgentOrchestrator';
 import { WhatsAppChannel } from '../../domains/chat/providers/WhatsAppChannel';
+import { ChatUserResolver } from '../../domains/chat/services/ChatUserResolver';
+import { DynamoConversationStore } from '../../domains/chat/services/DynamoConversationStore';
 
 let appContext: INestApplicationContext | undefined;
 
@@ -14,6 +16,15 @@ async function getContext(): Promise<INestApplicationContext> {
   return appContext;
 }
 
+const REGISTRATION_PROMPT =
+  'Welcome to Kaba! Your account is not linked to this chat.\n\n' +
+  'To get started:\n' +
+  '1. Create an account at app.kaba.dev\n' +
+  '2. Reply: LINK <your email>\n\n' +
+  'Example: LINK amara@gmail.com';
+
+const LINK_COMMAND = /^link\s+(\S+@\S+\.\S+)$/i;
+
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   // GET — webhook verification handshake
   if (event.httpMethod === 'GET') {
@@ -22,7 +33,6 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const token = params['hub.verify_token'];
     const challenge = params['hub.challenge'];
     const verifyToken = process.env['WHATSAPP_VERIFY_TOKEN'] ?? '';
-
     if (mode === 'subscribe' && token === verifyToken) {
       return { statusCode: 200, body: challenge ?? '' };
     }
@@ -39,18 +49,84 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
     const ctx = await getContext();
     const waChannel = ctx.get(WhatsAppChannel);
 
-    // Verify webhook signature
     if (!waChannel.verifyWebhook(headers, rawBody)) {
       return { statusCode: 401, body: 'Unauthorized' };
     }
 
-    const payload = JSON.parse(rawBody);
+    const payload = JSON.parse(rawBody) as unknown;
     const incoming = waChannel.parseIncoming(payload);
 
-    if (incoming) {
-      const orchestrator = ctx.get(ChatOrchestrator);
-      await orchestrator.handle(incoming);
+    if (!incoming) {
+      return { statusCode: 200, body: 'OK' };
     }
+
+    const conversationStore = ctx.get(DynamoConversationStore);
+    const userResolver = ctx.get(ChatUserResolver);
+    const sessionId = `${incoming.channelUserId}:${incoming.channel}`;
+
+    let session = await conversationStore.get(sessionId);
+
+    // Auto-resolve on first message
+    if (!session) {
+      const resolved = await userResolver.resolveByChannelUserId(incoming.channelUserId, incoming.channel);
+      session = {
+        id: sessionId,
+        businessId: resolved?.businessId ?? '',
+        userId: resolved?.userId ?? '',
+        channel: incoming.channel,
+        channelUserId: incoming.channelUserId,
+        history: [],
+        linked: !!resolved,
+        updatedAt: new Date().toISOString(),
+      };
+      await conversationStore.save(session);
+    }
+
+    // Handle account linking flow
+    if (!session.linked) {
+      const text = (incoming.text ?? '').trim();
+      const match = text.match(LINK_COMMAND);
+      let reply: string;
+
+      if (match) {
+        const email = match[1];
+        const resolved = await userResolver.resolveByEmail(email);
+        if (resolved) {
+          session.businessId = resolved.businessId;
+          session.userId = resolved.userId;
+          session.linked = true;
+          await conversationStore.save(session);
+          reply =
+            'Linked! Your Kaba account is now connected.\n\n' +
+            'You can now ask me:\n' +
+            '• "Check my balance"\n' +
+            '• "I sold 3 bags of rice for 45,000"\n' +
+            '• "Who owes me money?"\n' +
+            '• "Send reminder to Moussa"\n' +
+            '• "My daily summary"';
+        } else {
+          reply = `No Kaba account found for ${email}.\n\nSign up at app.kaba.dev, then try: LINK ${email}`;
+        }
+      } else {
+        reply = REGISTRATION_PROMPT;
+      }
+
+      await waChannel.send({ channelUserId: incoming.channelUserId, text: reply });
+      return { statusCode: 200, body: 'OK' };
+    }
+
+    // Linked — route through AgentOrchestrator
+    const agentOrchestrator = ctx.get(AgentOrchestrator);
+    await agentOrchestrator.chat({
+      sessionId,
+      message: incoming.text ?? '',
+      businessId: session.businessId,
+      userId: session.userId,
+      tier: 'starter', // TODO: load real tier from BusinessRepository
+      scope: 'business',
+      channelUserId: incoming.channelUserId,
+      channelName: 'whatsapp',
+    });
 
     return { statusCode: 200, body: 'OK' };
   } catch (err) {
