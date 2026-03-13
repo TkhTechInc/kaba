@@ -9,7 +9,7 @@ export function AuthCallbackContent({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { completeOAuth } = useAuth();
+  const { completeOAuth, checkAuthFromCookie } = useAuth();
   const router = useRouter();
   const params = use(searchParams);
   const [error, setError] = useState<string | null>(null);
@@ -21,9 +21,11 @@ export function AuthCallbackContent({
         .then(() => router.replace("/"))
         .catch(() => setError("Invalid token. Please try signing in again."));
     } else {
-      setError("No token received. Please try signing in again.");
+      checkAuthFromCookie()
+        .then((ok) => (ok ? router.replace("/") : setError("No token received. Please try signing in again.")))
+        .catch(() => setError("Sign-in failed. Please try again."));
     }
-  }, [params, completeOAuth, router]);
+  }, [params, completeOAuth, checkAuthFromCookie, router]);
 
   if (error) {
     return (

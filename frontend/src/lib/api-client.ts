@@ -44,6 +44,9 @@ async function handleResponse<T>(
     localStorage.removeItem("qb_auth_token");
     localStorage.removeItem("qb_auth_user");
     localStorage.removeItem("qb_business_id");
+    // Call logout to clear HttpOnly cookie
+    const baseUrl = getBaseUrl();
+    fetch(`${baseUrl}/api/v1/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
     window.location.href = "/auth/sign-in";
     throw new ApiError("Unauthorized", 401);
   }
@@ -111,6 +114,7 @@ function request<T>(
   const url = path.startsWith("http") ? path : `${getBaseUrl()}${path}`;
   return fetch(url, {
     method,
+    credentials: "include",
     headers: buildHeaders({ token, apiKey, headers: init.headers }),
     body: body !== undefined ? JSON.stringify(body) : undefined,
     ...init,

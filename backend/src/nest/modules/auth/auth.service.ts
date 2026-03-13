@@ -17,6 +17,7 @@ import type { User } from './entities/User.entity';
 import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
 import type { AuditAction } from '@/domains/audit/models/AuditLog';
+import { AccessService } from '@/domains/access/AccessService';
 
 const SALT_ROUNDS = 10;
 
@@ -43,8 +44,28 @@ export class AuthService {
     private readonly emailVerificationRepo: EmailVerificationRepository,
     private readonly emailService: EmailService,
     private readonly passwordResetRepo: PasswordResetRepository,
+    private readonly accessService: AccessService,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
+
+  async getMe(userId: string): Promise<{ user: AuthResult['user']; businesses: Array<{ businessId: string; role?: string }> }> {
+    const user = await this.userRepo.getById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    const businesses = await this.accessService.listBusinessesForUser(userId);
+    return {
+      user: {
+        id: user.id,
+        phone: user.phone,
+        email: user.email,
+        name: user.name,
+        picture: user.picture,
+        role: user.role ?? 'user',
+        emailVerified: user.emailVerified,
+        phoneVerified: user.phoneVerified,
+      },
+      businesses: businesses.map((b) => ({ businessId: b.businessId, role: b.role })),
+    };
+  }
 
   /**
    * Hash PII (email / phone) before storing in the audit log so raw credentials

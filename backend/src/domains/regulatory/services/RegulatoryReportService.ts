@@ -22,13 +22,14 @@ export class RegulatoryReportService implements IRegulatoryReporter {
     businessId: string,
     period: RegulatoryReportPeriod,
   ): Promise<RegulatoryReport> {
-    const [pl, trustResult, allInvoicesResult, unpaidInvoices, business] =
+    const [pl, trustResult, allInvoicesResult, unpaidInvoices, business, sectorBenchmark] =
       await Promise.all([
         this.reportService.getPL(businessId, period.from, period.to),
         this.trustScoreService.calculate(businessId).catch(() => null),
         this.invoiceService.list(businessId, 1, 1000, undefined, period.from, period.to),
         this.invoiceService.listUnpaid(businessId),
         this.businessRepository.getById(businessId),
+        this.businessRepository.getSectorBenchmark(),
       ]);
 
     const allInvoices = allInvoicesResult.items;
@@ -69,9 +70,12 @@ export class RegulatoryReportService implements IRegulatoryReporter {
         country: business?.countryCode,
       },
       sectorBenchmark: {
-        averageTrustScore: 62,
-        businessCount: 0,
-        note: 'Sector benchmark data is anonymized and aggregated. Full data available in Kaba Enterprise.',
+        averageTrustScore: sectorBenchmark.averageTrustScore,
+        businessCount: sectorBenchmark.businessCount,
+        note:
+          sectorBenchmark.businessCount > 0
+            ? 'Sector benchmark data is anonymized and aggregated. Full data available in Kaba Enterprise.'
+            : 'Sector benchmark will appear once more businesses have trust scores.',
       },
     };
   }

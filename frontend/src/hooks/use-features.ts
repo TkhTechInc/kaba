@@ -1,6 +1,7 @@
 "use client";
 
 import { apiGet } from "@/lib/api-client";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { useAuthOptional } from "@/contexts/auth-context";
 import {
   getCached as getOfflineCached,
@@ -209,8 +210,10 @@ export function useFeatures(businessId: string | null) {
     () => ({
       tier: data?.tier ?? null,
       onboardingComplete: data?.onboardingComplete ?? false,
-      /** null while loading; "NGN" only when loaded but business has no currency set */
-      currency: data ? (data.currency ?? "NGN") : null,
+      /** null while loading; derived from business.currency or country when loaded. Fallback XOF (not NGN). */
+      currency: data
+        ? (data.currency ?? getCurrencyForCountry(data.countryCode ?? ""))
+        : null,
       /** ISO 3166-1 alpha-2 country code (e.g. NG, BJ, GH) from onboarding */
       countryCode: data?.countryCode ?? null,
       enabled: data?.enabled ?? {},

@@ -28,6 +28,7 @@ import { FeatureService } from '@/domains/features/FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { UsageRepository } from '@/domains/usage/UsageRepository';
 import { ReportService } from '@/domains/reports/ReportService';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { ReceiptStorageService } from '@/domains/receipts/ReceiptStorageService';
 import { UserRepository, getUserIdFromPhone } from '@/nest/modules/auth/repositories/UserRepository';
 import type { Tier, FeatureKey } from '@/domains/features/feature.types';
@@ -337,7 +338,7 @@ export class AdminController {
           businessName: business.name,
           totalCount: 0,
           totalAmount: 0,
-          currency: business.currency ?? 'NGN',
+          currency: getBusinessCurrency(business),
           buckets: [],
         });
       }

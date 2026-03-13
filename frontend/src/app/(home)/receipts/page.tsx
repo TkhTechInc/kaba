@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { Price } from "@/components/ui/Price";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";

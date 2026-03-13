@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
 import { usePermissions } from "@/hooks/use-permissions";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import {
@@ -35,12 +36,13 @@ export default function AddProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [queued, setQueued] = useState(false);
 
+  const defaultCurrency = features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? "XOF";
   const [form, setForm] = useState<CreateProductInput>({
     businessId: "",
     name: "",
     brand: "",
     unitPrice: 0,
-    currency: "NGN",
+    currency: defaultCurrency,
     quantityInStock: 0,
     lowStockThreshold: 0,
   });
@@ -52,10 +54,10 @@ export default function AddProductPage() {
       setForm((f) => ({
         ...f,
         businessId,
-        currency: features.currency ?? f.currency,
+        currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? f.currency,
       }));
     }
-  }, [businessId, features.currency]);
+  }, [businessId, features.currency, features.countryCode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

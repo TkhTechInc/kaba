@@ -14,11 +14,16 @@
 
 import { useRef, useState, useCallback } from "react";
 import { createAiApi, type VoiceTransactionResult } from "@/services/ai.service";
+import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 
 interface VoiceEntryButtonProps {
   token: string | null;
   businessId: string;
+  /** Business currency. Callers should pass balance?.currency or features.currency from business (derived from country at onboarding). */
   currency?: string;
+  /** Ledger balance from API; used for currency when available (balance.currency comes from business) */
+  balance?: { currency?: string } | null;
   onSuccess: (entry: VoiceTransactionResult["entry"]) => void;
   onError?: (message: string) => void;
   /** Extra classes for the trigger button */
@@ -37,11 +42,18 @@ type RecordingState =
 export function VoiceEntryButton({
   token,
   businessId,
-  currency = "XOF",
+  currency: currencyProp,
+  balance,
   onSuccess,
   onError,
   className = "",
 }: VoiceEntryButtonProps) {
+  const features = useFeatures(businessId);
+  const currency =
+    currencyProp ??
+    balance?.currency ??
+    features.currency ??
+    getCurrencyForCountry(features.countryCode ?? "");
   const [state, setState] = useState<RecordingState>("idle");
   const [transcript, setTranscript] = useState("");
   const [statusMessage, setStatusMessage] = useState("");

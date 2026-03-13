@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { InvoiceShareRepository } from '../repositories/InvoiceShareRepository';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
@@ -317,7 +318,7 @@ export class InvoiceShareService {
     }
 
     const amount = invoice.amount;
-    const currency = invoice.currency ?? 'XOF';
+    const currency = invoice.currency ?? (business ? getBusinessCurrency(business) : 'XOF');
     const externalId = `qb-${record.businessId}-${record.invoiceId}-${Date.now()}`;
 
     const response = await this.paymentsClient.requestMoMoPayment({

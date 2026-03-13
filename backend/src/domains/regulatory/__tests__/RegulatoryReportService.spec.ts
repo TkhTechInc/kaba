@@ -101,6 +101,7 @@ function buildService(overrides: {
 
   const businessRepository = {
     getById: jest.fn().mockResolvedValue(business),
+    getSectorBenchmark: jest.fn().mockResolvedValue({ businessCount: 0, averageTrustScore: 62 }),
   } as any;
 
   return {

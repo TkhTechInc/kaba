@@ -13,6 +13,7 @@ for (const p of envPaths) {
   }
 }
 import 'reflect-metadata';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -23,6 +24,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   app.set('trust proxy', 1);
+  app.use(cookieParser());
   app.use(helmet({ contentSecurityPolicy: false }));
 
   const configService = app.get(ConfigService);

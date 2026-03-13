@@ -8,6 +8,7 @@ import type {
   OnboardingAnswers,
 } from './models/OnboardingState';
 import { NotFoundError } from '@/shared/errors/DomainError';
+import { getCurrencyForCountry } from '@/shared/utils/country-currency';
 
 const STEPS: OnboardingStep[] = [
   'businessName',
@@ -104,10 +105,13 @@ export class OnboardingService {
     await this.onboardingRepo.upsert(updated);
 
     if (allStepsComplete && !state.completedAt) {
+      const currency =
+        mergedAnswers.currency?.trim() ||
+        (mergedAnswers.country?.trim() ? getCurrencyForCountry(mergedAnswers.country) : undefined);
       await this.businessRepo.updateOnboarding(businessId, {
         name: mergedAnswers.businessName,
         countryCode: mergedAnswers.country,
-        currency: mergedAnswers.currency,
+        currency,
         businessType: mergedAnswers.businessType as import('@/domains/ledger/models/Business').BusinessType | undefined,
         taxRegime: mergedAnswers.taxRegime,
         taxId: mergedAnswers.taxId,
@@ -186,10 +190,13 @@ export class OnboardingService {
     // Always sync to business record when already complete (profile updates) or when completing now.
     const alreadyComplete = !!state.completedAt;
     if (options?.onboardingComplete || alreadyComplete) {
+      const currency =
+        mergedAnswers.currency?.trim() ||
+        (mergedAnswers.country?.trim() ? getCurrencyForCountry(mergedAnswers.country) : undefined);
       await this.businessRepo.updateOnboarding(businessId, {
         name: mergedAnswers.businessName,
         countryCode: mergedAnswers.country,
-        currency: mergedAnswers.currency,
+        currency,
         businessType: mergedAnswers.businessType as BusinessType | undefined,
         taxRegime: mergedAnswers.taxRegime,
         taxId: mergedAnswers.taxId,
@@ -237,10 +244,13 @@ export class OnboardingService {
     };
     await this.onboardingRepo.upsert(completed);
 
+    const currency =
+      state.answers.currency?.trim() ||
+      (state.answers.country?.trim() ? getCurrencyForCountry(state.answers.country) : undefined);
     await this.businessRepo.updateOnboarding(businessId, {
       name: state.answers.businessName,
       countryCode: state.answers.country,
-      currency: state.answers.currency,
+      currency,
       businessType: state.answers.businessType as BusinessType | undefined,
       taxRegime: state.answers.taxRegime,
       taxId: state.answers.taxId,

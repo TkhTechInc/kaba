@@ -177,6 +177,7 @@ export default function LedgerPage() {
                 <VoiceEntryButton
                   token={token}
                   businessId={businessId}
+                  balance={balance}
                   onSuccess={() => {
                     // Refresh list and balance after voice entry is saved
                     setPage(1);

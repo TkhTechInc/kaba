@@ -142,7 +142,10 @@ export function OnboardingWizard({
       setSlug(data.answers.slug ?? "");
       setDescription(data.answers.description ?? "");
       setCountry(data.answers.country ?? "");
-      setCurrency(data.answers.currency ?? "");
+      // Currency is always derived from country; never allow divergence
+      const answersCountry = data.answers.country ?? "";
+      const derivedCurrency = answersCountry ? (COUNTRY_DEFAULT_CURRENCY[answersCountry] ?? "XOF") : (data.answers.currency ?? "");
+      setCurrency(derivedCurrency);
       setTaxRegime(data.answers.taxRegime ?? "");
       setTaxId(data.answers.taxId ?? "");
       setLegalStatus(data.answers.legalStatus ?? "");
@@ -161,13 +164,8 @@ export function OnboardingWizard({
     if (appliedSuggestions.businessType != null) setBusinessType(appliedSuggestions.businessType);
     if (appliedSuggestions.country != null) {
       setCountry(appliedSuggestions.country);
-      // Auto-fill currency from country if AI didn't suggest one
-      if (appliedSuggestions.currency == null) {
-        const defaultCurrency = COUNTRY_DEFAULT_CURRENCY[appliedSuggestions.country];
-        if (defaultCurrency) setCurrency(defaultCurrency);
-      }
+      setCurrency(COUNTRY_DEFAULT_CURRENCY[appliedSuggestions.country] ?? "XOF");
     }
-    if (appliedSuggestions.currency != null) setCurrency(appliedSuggestions.currency);
     if (appliedSuggestions.taxRegime != null) setTaxRegime(appliedSuggestions.taxRegime);
     if (appliedSuggestions.taxId != null) setTaxId(appliedSuggestions.taxId);
     if (appliedSuggestions.businessAddress != null) setBusinessAddress(appliedSuggestions.businessAddress);
@@ -207,11 +205,8 @@ export function OnboardingWizard({
     if (name === "businessType") setBusinessType(value);
     if (name === "country") {
       setCountry(value);
-      // Auto-fill currency when country is selected and currency not yet chosen
-      const defaultCurrency = COUNTRY_DEFAULT_CURRENCY[value];
-      if (defaultCurrency) setCurrency(defaultCurrency);
+      setCurrency(COUNTRY_DEFAULT_CURRENCY[value] ?? "XOF");
     }
-    if (name === "currency") setCurrency(value);
     if (name === "taxRegime") setTaxRegime(value);
     if (name === "taxId") setTaxId(value.replace(/\s/g, ""));
     if (name === "legalStatus") setLegalStatus(value);
@@ -228,7 +223,9 @@ export function OnboardingWizard({
         await update({ businessName, businessType, slug: slug || undefined, description: description || undefined });
         setStep(2);
       } else if (step === 2) {
-        await update({ country, currency });
+        // Currency is always derived from country; never allow divergence
+        const currencyToSave = country ? (COUNTRY_DEFAULT_CURRENCY[country] ?? "XOF") : currency;
+        await update({ country, currency: currencyToSave });
         setStep(3);
       } else if (step === 3) {
         await update({
@@ -280,7 +277,7 @@ export function OnboardingWizard({
     step === 1
       ? businessName.trim().length > 0 && businessType
       : step === 2
-        ? country && currency
+        ? country
         : step === 3 || step === 4
           ? true
           : true;
@@ -408,24 +405,29 @@ export function OnboardingWizard({
             </select>
           </div>
           <div>
-            <label htmlFor="currency" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+            <span className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
               Currency
-            </label>
-            <select
-              id="currency"
-              name="currency"
-              value={currency}
-              onChange={handleChange}
-              className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Currency"
+            </span>
+            <div
+              className="flex items-center rounded-lg border border-stroke bg-gray-1 px-5.5 py-3 text-dark dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6"
+              aria-live="polite"
             >
-              <option value="">Select currency</option>
-              {CURRENCIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
+              {country ? (
+                (() => {
+                  const derived = COUNTRY_DEFAULT_CURRENCY[country] ?? "XOF";
+                  const label = CURRENCIES.find((c) => c.value === derived)?.label ?? derived;
+                  const countryLabel = COUNTRIES.find((c) => c.value === country)?.label ?? country;
+                  return (
+                    <>
+                      <span className="font-medium text-dark dark:text-white">{label}</span>
+                      <span className="ml-2 text-dark-4 dark:text-dark-6">(from {countryLabel})</span>
+                    </>
+                  );
+                })()
+              ) : (
+                <span className="text-dark-4 dark:text-dark-6">Select a country to set your currency</span>
+              )}
+            </div>
           </div>
         </div>
       )}

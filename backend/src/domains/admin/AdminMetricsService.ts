@@ -99,41 +99,45 @@ export class AdminMetricsService {
   async getMetrics(): Promise<AdminMetricsResult> {
     const ledgerTable = this.config?.get<string>('dynamodb.ledgerTable') ?? process.env['DYNAMODB_LEDGER_TABLE'] ?? 'Kaba-Ledger-dev';
     const invoicesTable = this.config?.get<string>('dynamodb.invoicesTable') ?? process.env['DYNAMODB_INVOICES_TABLE'] ?? 'Kaba-Invoices-dev';
-    const scanLimit = 1000;
+
+    const countWithScan = async (
+      tableName: string,
+      filter?: { expr: string; values: Record<string, unknown> },
+    ): Promise<number> => {
+      let total = 0;
+      let lastKey: Record<string, unknown> | undefined;
+      try {
+        do {
+          const result = await this.docClient.send(
+            new ScanCommand({
+              TableName: tableName,
+              Select: 'COUNT',
+              ...(filter && {
+                FilterExpression: filter.expr,
+                ExpressionAttributeValues: filter.values,
+              }),
+              ...(lastKey && { ExclusiveStartKey: lastKey }),
+            }),
+          );
+          total += result.Count ?? 0;
+          lastKey = result.LastEvaluatedKey;
+        } while (lastKey);
+      } catch {
+        // return partial count on error
+      }
+      return total;
+    };
 
     let businessesCount = 0;
     let ledgerEntriesCount = 0;
     let invoicesCount = 0;
 
     try {
-      const [businessesRes, ledgerRes, invoicesRes] = await Promise.all([
-        this.docClient.send(
-          new ScanCommand({
-            TableName: ledgerTable,
-            FilterExpression: 'entityType = :et',
-            ExpressionAttributeValues: { ':et': 'BUSINESS' },
-            Limit: scanLimit,
-          })
-        ),
-        this.docClient.send(
-          new ScanCommand({
-            TableName: ledgerTable,
-            FilterExpression: 'entityType = :et',
-            ExpressionAttributeValues: { ':et': 'LEDGER' },
-            Limit: scanLimit,
-          })
-        ),
-        this.docClient.send(
-          new ScanCommand({
-            TableName: invoicesTable,
-            Limit: scanLimit,
-          })
-        ),
+      [businessesCount, ledgerEntriesCount, invoicesCount] = await Promise.all([
+        countWithScan(ledgerTable, { expr: 'entityType = :et', values: { ':et': 'BUSINESS' } }),
+        countWithScan(ledgerTable, { expr: 'entityType = :et', values: { ':et': 'LEDGER' } }),
+        countWithScan(invoicesTable),
       ]);
-
-      businessesCount = businessesRes.Count ?? 0;
-      ledgerEntriesCount = ledgerRes.Count ?? 0;
-      invoicesCount = invoicesRes.Count ?? 0;
     } catch {
       // return zeros on error
     }
@@ -142,7 +146,7 @@ export class AdminMetricsService {
       businessesCount,
       ledgerEntriesCount,
       invoicesCount,
-      note: `Approximate counts (Scan Limit ${scanLimit}). Use pagination for full counts.`,
+      note: 'Full table counts (paginated Scan with Select: COUNT).',
     };
   }
 

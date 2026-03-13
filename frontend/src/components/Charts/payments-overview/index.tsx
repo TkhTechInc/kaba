@@ -7,14 +7,14 @@ import { PaymentsOverviewChart } from "./chart";
 type PropsType = {
   timeFrame?: string;
   className?: string;
-  /** Business currency from onboarding (e.g. NGN, GHS). Defaults to NGN. */
+  /** Business currency from features.currency or business.currency. Required for correct display. Fallback XOF when omitted. */
   currency?: string;
 };
 
 export async function PaymentsOverview({
   timeFrame = "monthly",
   className,
-  currency = "NGN",
+  currency,
 }: PropsType) {
   const data = await getPaymentsOverviewData(timeFrame);
   return (
@@ -37,14 +37,14 @@ export async function PaymentsOverview({
       <dl className="grid divide-stroke text-center dark:divide-dark-3 sm:grid-cols-2 sm:divide-x [&>div]:flex [&>div]:flex-col-reverse [&>div]:gap-1">
         <div className="dark:border-dark-3 max-sm:mb-3 max-sm:border-b max-sm:pb-3">
           <dt className="text-xl font-bold text-dark dark:text-white">
-            <Price amount={data.received.reduce((acc, { y }) => acc + y, 0)} currency={currency} />
+            <Price amount={data.received.reduce((acc, { y }) => acc + y, 0)} currency={currency ?? data.currency ?? "XOF"} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Received Amount</dd>
         </div>
 
         <div>
           <dt className="text-xl font-bold text-dark dark:text-white">
-            <Price amount={data.due.reduce((acc, { y }) => acc + y, 0)} currency={currency} />
+            <Price amount={data.due.reduce((acc, { y }) => acc + y, 0)} currency={currency ?? data.currency ?? "XOF"} />
           </dt>
           <dd className="font-medium dark:text-dark-6">Due Amount</dd>
         </div>

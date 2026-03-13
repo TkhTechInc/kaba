@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { PeriodPicker } from "@/components/period-picker";
 import { PaymentsOverviewChart } from "@/components/Charts/payments-overview/chart";
 import { ChartEmptyState } from "@/components/Charts/chart-empty-state";
@@ -57,7 +58,10 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
 
   if (!businessId) return null;
 
-  const currency = data?.currency ?? features.currency ?? "NGN";
+  const currency =
+    data?.currency ??
+    features.currency ??
+    getCurrencyForCountry(features.countryCode ?? "");
   const hasData = data && (data.received.some((d) => d.y > 0) || data.due.some((d) => d.y > 0));
   const receivedTotal = data?.received.reduce((acc, { y }) => acc + y, 0) ?? 0;
   const dueTotal = data?.due.reduce((acc, { y }) => acc + y, 0) ?? 0;

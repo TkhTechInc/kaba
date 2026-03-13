@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ReportService, PLReport } from './ReportService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import type { Business } from '@/domains/ledger/models/Business';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 
 export interface BranchPLReport {
   businessId: string;
@@ -95,7 +96,7 @@ export class ConsolidatedReportService {
     const branchReports = await Promise.all(
       businesses.map(async (biz): Promise<BranchPLReport> => {
         const report = await this.reportService.getPL(biz.id, fromDate, toDate);
-        const branchCurrency = biz.currency ?? report.currency ?? 'XOF';
+        const branchCurrency = report.currency ?? getBusinessCurrency(biz);
         return {
           businessId: biz.id,
           businessName: biz.name,

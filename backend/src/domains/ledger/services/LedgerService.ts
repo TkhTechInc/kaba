@@ -3,6 +3,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { LedgerRepository, ListByBusinessResult } from '../repositories/LedgerRepository';
 import { LedgerEntry, CreateLedgerEntryInput } from '../models/LedgerEntry';
 import { ValidationError, NotFoundError } from '@/shared/errors/DomainError';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { SmsService } from '@/domains/notifications/SmsService';
 import { FeatureService } from '@/domains/features/FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
@@ -54,8 +55,10 @@ export class LedgerService {
     if (!['sale', 'expense'].includes(input.type)) {
       throw new ValidationError('type must be "sale" or "expense"');
     }
-    if (!input.currency?.trim()) {
-      throw new ValidationError('currency is required');
+    let currency = input.currency?.trim();
+    if (!currency) {
+      const business = await this.businessRepo.getOrCreate(input.businessId, 'free');
+      currency = getBusinessCurrency(business);
     }
     if (!input.date?.trim()) {
       throw new ValidationError('date is required');
@@ -131,6 +134,7 @@ export class LedgerService {
     const { skipLimitCheck: _, ...createInput } = input;
     const entry = await this.ledgerRepository.create({
       ...createInput,
+      currency,
       amount,
       description,
       productId,
@@ -192,7 +196,7 @@ export class LedgerService {
       const message = this.smsService.formatReceiptMessage(
         input.type,
         amount,
-        input.currency,
+        currency,
         description,
       );
       await this.smsService.sendTransactionReceipt(input.smsPhone.trim(), message);
@@ -239,7 +243,7 @@ export class LedgerService {
     }
 
     const business = await this.businessRepo.getOrCreate(businessId, 'free');
-    const defaultCurrency = business.currency ?? 'NGN';
+    const defaultCurrency = getBusinessCurrency(business);
 
     // O(1) fast path: a dedicated BALANCE item is kept in sync atomically on every
     // entry create/delete via UpdateItem ADD. This avoids scanning all ledger entries.

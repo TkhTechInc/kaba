@@ -36,22 +36,26 @@ interface AuthContextValue {
   inviteRequestOtp: (token: string) => Promise<{ success: boolean; message: string }>;
   inviteVerify: (token: string, emailOrPhone: string, code: string, password: string) => Promise<void>;
   completeOAuth: (token: string) => Promise<void>;
+  checkAuthFromCookie: () => Promise<boolean>;
   logout: () => void;
   refreshBusinesses: () => Promise<void>;
   isLoading: boolean;
 }
 
-function decodeJwtRole(token: string): "admin" | "user" | null {
+function decodeJwt(token: string): { sub?: string; email?: string; name?: string; picture?: string; role?: string } | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 3) return null;
-    const payload = JSON.parse(
-      atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"))
-    ) as { role?: string };
-    return payload.role === "admin" ? "admin" : "user";
+    return JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
   } catch {
     return null;
   }
+}
+
+function decodeJwtRole(token: string): "admin" | "user" | null {
+  const payload = decodeJwt(token);
+  if (!payload) return null;
+  return payload.role === "admin" ? "admin" : "user";
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -146,6 +150,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     await refreshBusinesses();
   }, [refreshBusinesses]);
+
+  const checkAuthFromCookie = useCallback(async (): Promise<boolean> => {
+    try {
+      const res = await api.get<{ data: { user: AuthUser; businesses: Business[] } }>(
+        "/api/v1/auth/me",
+        { skip401Redirect: true }
+      );
+      const data = res?.data;
+      if (!data?.user || !Array.isArray(data.businesses)) return false;
+      setUserState(data.user);
+      setBusinesses(data.businesses);
+      if (data.businesses.length) {
+        const stored = typeof window !== "undefined" ? localStorage.getItem(BUSINESS_KEY) : null;
+        const first = data.businesses[0].businessId;
+        if (!stored || !data.businesses.some((b) => b.businessId === stored)) {
+          setBusinessIdState(first);
+          if (typeof window !== "undefined") localStorage.setItem(BUSINESS_KEY, first);
+        } else {
+          setBusinessIdState(stored);
+        }
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const applyAuthResult = useCallback(
     async (accessToken: string, userData: AuthUser) => {
@@ -272,7 +302,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refreshBusinesses]
   );
 
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     setTokenState(null);
     setUserState(null);
     setBusinessIdState(null);
@@ -281,36 +311,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       localStorage.removeItem(BUSINESS_KEY);
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/api/v1/auth/logout`, {
+          method: "POST",
+          credentials: "include",
+        });
+      } catch { /* ignore */ }
       window.location.href = "/auth/sign-in";
     }
   }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const t = localStorage.getItem(TOKEN_KEY);
-    const b = localStorage.getItem(BUSINESS_KEY);
-    const u = localStorage.getItem(USER_KEY);
-    setTokenState(t);
-    setBusinessIdState(b);
-    if (u) {
-      try {
-        setUserState(JSON.parse(u) as AuthUser);
-      } catch {
-        setUserState(null);
+    (async () => {
+      const t = localStorage.getItem(TOKEN_KEY);
+      const b = localStorage.getItem(BUSINESS_KEY);
+      const u = localStorage.getItem(USER_KEY);
+
+      const fromCookie = await checkAuthFromCookie();
+      if (fromCookie) {
+        setTokenState(null);
+        setIsLoading(false);
+        return;
       }
-    }
-    if (t) {
-      refreshBusinesses().finally(() => setIsLoading(false));
-    } else {
-      // Dev fallback: use env business ID if no token
-      const devId = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID;
-      if (devId) {
-        setBusinessIdState(devId);
-        setBusinesses([{ businessId: devId }]);
+
+      setTokenState(t);
+      setBusinessIdState(b);
+      if (u) {
+        try {
+          const stored = JSON.parse(u) as AuthUser;
+          if (t) {
+            const claims = decodeJwt(t);
+            if (claims) {
+              stored.name = claims.name ?? stored.name;
+              stored.picture = claims.picture ?? stored.picture;
+            }
+            localStorage.setItem(USER_KEY, JSON.stringify(stored));
+          }
+          setUserState(stored);
+        } catch {
+          setUserState(null);
+        }
+      } else if (t) {
+        const claims = decodeJwt(t);
+        if (claims) {
+          const userData: AuthUser = {
+            id: claims.sub ?? "unknown",
+            email: claims.email,
+            name: claims.name,
+            picture: claims.picture,
+            role: claims.role === "admin" ? "admin" : "user",
+          };
+          setUserState(userData);
+          localStorage.setItem(USER_KEY, JSON.stringify(userData));
+        }
       }
-      setIsLoading(false);
-    }
-  // refreshBusinesses is stable (useCallback with no deps) — run only once on mount
+      if (t) {
+        refreshBusinesses().finally(() => setIsLoading(false));
+      } else {
+        const devId = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID;
+        if (devId) {
+          setBusinessIdState(devId);
+          setBusinesses([{ businessId: devId }]);
+        }
+        setIsLoading(false);
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -340,6 +406,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       inviteRequestOtp,
       inviteVerify,
       completeOAuth,
+      checkAuthFromCookie,
       logout,
       refreshBusinesses,
       isLoading,

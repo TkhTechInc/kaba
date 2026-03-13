@@ -7,15 +7,7 @@ import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
 import type { Tier } from '@/domains/features/feature.types';
 import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
-
-const PLAN_PRICES: Record<string, Record<Tier, number | null>> = {
-  NGN: { free: 0, starter: 5000, pro: 15000, enterprise: 50000 },
-  GHS: { free: 0, starter: 50, pro: 150, enterprise: 500 },
-  XOF: { free: 0, starter: 2500, pro: 7500, enterprise: 25000 },
-  XAF: { free: 0, starter: 2500, pro: 7500, enterprise: 25000 },
-  USD: { free: 0, starter: 5, pro: 15, enterprise: 50 },
-  EUR: { free: 0, starter: 5, pro: 15, enterprise: 50 },
-};
+import { getCurrencyForCountry, getPlanPricesForCountry } from '@/shared/utils/country-currency';
 
 const TIER_ORDER: Tier[] = ['free', 'starter', 'pro', 'enterprise'];
 
@@ -42,9 +34,12 @@ export class PlanPaymentService {
     const business = await this.businessRepo.getById(businessId);
     if (!business) throw new NotFoundError('Business', businessId);
 
-    const currency = (business.currency ?? 'XOF').toUpperCase();
-    const prices = PLAN_PRICES[currency] ?? PLAN_PRICES.XOF;
+    const countryCode = business.countryCode ?? '';
+    const prices = getPlanPricesForCountry(countryCode);
     const amount = prices[targetTier] ?? 0;
+    const currency = business.countryCode
+      ? getCurrencyForCountry(business.countryCode)
+      : (business.currency ?? 'XOF');
 
     if (amount <= 0) {
       throw new ValidationError(`Plan ${targetTier} is free. No payment required.`);

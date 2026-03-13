@@ -1040,5 +1040,23 @@
       "last3Months": "3 derniers mois",
       "thisYear": "Cette année"
     }
+  },
+  "pos": {
+    "settingUp": "Configuration du terminal POS…",
+    "error": "Erreur",
+    "backToInvoices": "Retour aux factures",
+    "paymentNotReceived": "Paiement non reçu",
+    "timeoutMessage": "10 minutes écoulées — réessayez ou encaissez en espèces.",
+    "retryQr": "Réessayer (QR)",
+    "collectedCash": "Encaissé en espèces",
+    "paymentConfirmed": "Paiement confirmé",
+    "printDownload": "Imprimer / Télécharger",
+    "receiptA4": "Reçu A4 (PDF)",
+    "thermalTicket": "Ticket thermique (72mm)",
+    "newTransaction": "Nouvelle transaction",
+    "terminal": "Terminal POS",
+    "waitingForPayment": "En attente de paiement…",
+    "clientScansQr": "Le client scanne le QR code pour payer par Mobile Money",
+    "or": "ou"
   }
 }

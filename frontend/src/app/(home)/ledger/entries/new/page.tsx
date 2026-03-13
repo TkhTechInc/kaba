@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
@@ -40,11 +41,12 @@ export default function CreateEntryPage() {
   const [queued, setQueued] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
 
+  const defaultCurrency = features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? "XOF";
   const [form, setForm] = useState<CreateLedgerEntryInput & { smsPhone?: string }>({
     businessId: "",
     type: "sale",
     amount: 0,
-    currency: "NGN",
+    currency: defaultCurrency,
     date: new Date().toISOString().slice(0, 10),
     description: "",
     category: "",
@@ -61,9 +63,9 @@ export default function CreateEntryPage() {
     setForm((f) => ({
       ...f,
       businessId,
-      currency: features.currency ?? f.currency,
+      currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? f.currency,
     }));
-  }, [businessId, features.currency]);
+  }, [businessId, features.currency, features.countryCode]);
 
   useEffect(() => {
     if (!businessId || !features.isEnabled("inventory_lite")) return;

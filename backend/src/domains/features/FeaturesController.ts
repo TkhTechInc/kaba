@@ -1,6 +1,7 @@
 import { BadRequestException, Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { FeatureService } from './FeatureService';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
@@ -40,7 +41,7 @@ export class FeaturesController {
       data: {
         tier: business.tier,
         onboardingComplete: business.onboardingComplete ?? false,
-        currency: business.currency ?? 'NGN',
+        currency: getBusinessCurrency(business),
         countryCode: business.countryCode ?? undefined,
         enabled,
         limits,

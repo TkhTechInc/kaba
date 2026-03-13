@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
@@ -26,7 +27,8 @@ export default function AddDebtPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const { t } = useLocale();
-  const defaultCurrency = features.currency ?? "NGN";
+  const defaultCurrency =
+    features.currency ?? getCurrencyForCountry(features.countryCode ?? "");
   const phonePlaceholder = getPhonePlaceholder(features.countryCode);
 
   const [submitting, setSubmitting] = useState(false);

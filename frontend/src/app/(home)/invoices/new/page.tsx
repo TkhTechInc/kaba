@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { useLocale } from "@/contexts/locale-context";
 import { Price } from "@/components/ui/Price";
 import {
@@ -35,6 +36,7 @@ export default function CreateInvoicePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const defaultCurrency = features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? "XOF";
   const [form, setForm] = useState<
     Omit<CreateInvoiceInput, "earlyPaymentDiscountPercent" | "earlyPaymentDiscountDays"> & {
       itemDesc: string;
@@ -47,7 +49,7 @@ export default function CreateInvoicePage() {
     businessId: "",
     customerId: "",
     amount: 0,
-    currency: "NGN",
+    currency: defaultCurrency,
     dueDate: new Date().toISOString().slice(0, 10),
     items: [],
     status: "draft",
@@ -65,10 +67,10 @@ export default function CreateInvoicePage() {
     setForm((f) => ({
       ...f,
       businessId,
-      currency: features.currency ?? f.currency,
+      currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? f.currency,
     }));
     setLoading(false);
-  }, [businessId, features.currency]);
+  }, [businessId, features.currency, features.countryCode]);
 
   useEffect(() => {
     if (!businessId) return;

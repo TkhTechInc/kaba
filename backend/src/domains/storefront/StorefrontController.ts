@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 import { Public } from '@/nest/common/decorators/auth.decorator';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { StorefrontPaymentService } from './StorefrontPaymentService';
 
 interface InitiatePaymentBody {
@@ -51,7 +52,7 @@ export class StorefrontController {
         name: business.name,
         description: business.description,
         logoUrl: business.logoUrl,
-        currency: business.currency,
+        currency: getBusinessCurrency(business),
         countryCode: business.countryCode,
         address: business.address,
         phone: business.phone,
@@ -73,7 +74,7 @@ export class StorefrontController {
       throw new BadRequestException('Amount must be a positive number');
     }
 
-    const currency = (body.currency ?? business.currency ?? 'XOF').toUpperCase();
+    const currency = (body.currency ?? getBusinessCurrency(business)).toUpperCase();
     const checkoutCurrencies = ['XOF', 'XAF', 'GNF', 'GHS'];
     let useKkiaPay = false;
     let useMomo = false;

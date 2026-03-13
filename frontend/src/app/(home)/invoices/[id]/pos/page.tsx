@@ -2,6 +2,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { apiPost, apiGet } from "@/lib/api-client";
 import { Price } from "@/components/ui/Price";
 import { createInvoicesApi } from "@/services/invoices.service";
@@ -38,6 +39,7 @@ export default function PosTerminalPage() {
   const params     = useParams();
   const invoiceId  = params?.id as string;
   const { token, businessId } = useAuth();
+  const { t } = useLocale();
 
   const [pageState,    setPageState]    = useState<PageState>("loading");
   const [invoice,      setInvoice]      = useState<InvoiceDetail | null>(null);
@@ -189,7 +191,7 @@ export default function PosTerminalPage() {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-6">
         <div className="h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        <p className="text-dark-4 dark:text-dark-6">Setting up POS terminal…</p>
+        <p className="text-dark-4 dark:text-dark-6">{t("pos.settingUp")}</p>
       </div>
     );
   }
@@ -203,11 +205,11 @@ export default function PosTerminalPage() {
           </svg>
         </div>
         <div className="text-center">
-          <h2 className="mb-2 text-xl font-semibold text-dark dark:text-white">Erreur</h2>
+          <h2 className="mb-2 text-xl font-semibold text-dark dark:text-white">{t("pos.error")}</h2>
           <p className="mb-6 text-dark-4 dark:text-dark-6">{errorMsg}</p>
         </div>
         <Link href="/invoices" className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90">
-          Retour aux factures
+          {t("pos.backToInvoices")}
         </Link>
       </div>
     );
@@ -222,8 +224,8 @@ export default function PosTerminalPage() {
           </svg>
         </div>
         <div className="text-center">
-          <h2 className="mb-2 text-xl font-semibold text-dark dark:text-white">Paiement non reçu</h2>
-          <p className="mb-6 text-dark-4 dark:text-dark-6">10 minutes écoulées — réessayez ou encaissez en espèces.</p>
+          <h2 className="mb-2 text-xl font-semibold text-dark dark:text-white">{t("pos.paymentNotReceived")}</h2>
+          <p className="mb-6 text-dark-4 dark:text-dark-6">{t("pos.timeoutMessage")}</p>
         </div>
         <div className="flex flex-wrap gap-3 justify-center">
           <button
@@ -237,7 +239,7 @@ export default function PosTerminalPage() {
             }}
             className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-primary/90"
           >
-            Réessayer (QR)
+            {t("pos.retryQr")}
           </button>
           <button
             type="button"
@@ -245,11 +247,11 @@ export default function PosTerminalPage() {
             disabled={cashLoading}
             className="rounded-lg border border-stroke bg-white px-6 py-2.5 text-sm font-medium text-dark hover:bg-gray-2 dark:border-dark-3 dark:bg-dark-2 dark:text-white disabled:opacity-70"
           >
-            {cashLoading ? "…" : "💵 Encaissé en espèces"}
+            {cashLoading ? "…" : `💵 ${t("pos.collectedCash")}`}
           </button>
         </div>
         <Link href="/invoices" className="text-sm font-medium text-primary hover:underline">
-          Retour aux factures
+          {t("pos.backToInvoices")}
         </Link>
       </div>
     );
@@ -267,7 +269,7 @@ export default function PosTerminalPage() {
         </div>
 
         <div className="text-center">
-          <h2 className="mb-1 text-2xl font-bold text-green-700 dark:text-green-400">Paiement confirmé</h2>
+          <h2 className="mb-1 text-2xl font-bold text-green-700 dark:text-green-400">{t("pos.paymentConfirmed")}</h2>
           {customerName && (
             <p className="text-sm text-dark-4 dark:text-dark-6">{customerName}</p>
           )}
@@ -279,7 +281,7 @@ export default function PosTerminalPage() {
         {/* Receipt options */}
         <div className="w-full max-w-xs rounded-2xl border border-stroke bg-white p-4 shadow-sm dark:border-dark-3 dark:bg-gray-dark">
           <p className="mb-3 text-center text-xs font-semibold uppercase tracking-widest text-dark-4 dark:text-dark-6">
-            Imprimer / Télécharger
+            {t("pos.printDownload")}
           </p>
           <div className="flex flex-col gap-2">
             <button
@@ -295,7 +297,7 @@ export default function PosTerminalPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               )}
-              Reçu A4 (PDF)
+              {t("pos.receiptA4")}
             </button>
 
             <button
@@ -311,7 +313,7 @@ export default function PosTerminalPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
               )}
-              Ticket thermique (72mm)
+              {t("pos.thermalTicket")}
             </button>
           </div>
         </div>
@@ -322,10 +324,10 @@ export default function PosTerminalPage() {
             onClick={() => setPageState("ready")}
             className="text-sm font-medium text-primary hover:underline"
           >
-            Nouvelle transaction
+            {t("pos.newTransaction")}
           </button>
           <Link href="/invoices" className="text-sm font-medium text-dark-4 hover:underline dark:text-dark-6">
-            Retour aux factures
+            {t("pos.backToInvoices")}
           </Link>
         </div>
       </div>
@@ -343,7 +345,7 @@ export default function PosTerminalPage() {
           <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Retour aux factures
+          {t("pos.backToInvoices")}
         </Link>
       </div>
 
@@ -351,7 +353,7 @@ export default function PosTerminalPage() {
         {/* Header */}
         <div className="mb-4 text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-dark-4 dark:text-dark-6">
-            Terminal POS
+            {t("pos.terminal")}
           </p>
           <h1 className="mt-1 text-3xl font-bold text-dark dark:text-white">
             {invoice ? <Price amount={invoice.amount} currency={invoice.currency} /> : "—"}
@@ -378,17 +380,17 @@ export default function PosTerminalPage() {
         <div className="flex flex-col items-center gap-1 text-center">
           <div className="flex items-center gap-2 text-sm text-dark-4 dark:text-dark-6">
             <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            En attente de paiement…
+            {t("pos.waitingForPayment")}
           </div>
           <p className="text-xs text-dark-4 dark:text-dark-6">
-            Le client scanne le QR code pour payer par Mobile Money
+            {t("pos.clientScansQr")}
           </p>
         </div>
 
         {/* Divider */}
         <div className="my-4 flex items-center gap-3">
           <div className="h-px flex-1 bg-stroke dark:bg-dark-3" />
-          <span className="text-xs text-dark-4 dark:text-dark-6">ou</span>
+          <span className="text-xs text-dark-4 dark:text-dark-6">{t("pos.or")}</span>
           <div className="h-px flex-1 bg-stroke dark:bg-dark-3" />
         </div>
 
@@ -406,7 +408,7 @@ export default function PosTerminalPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           )}
-          Encaissé en espèces
+          {t("pos.collectedCash")}
         </button>
       </div>
     </div>

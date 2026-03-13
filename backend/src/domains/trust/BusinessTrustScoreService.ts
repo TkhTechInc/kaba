@@ -70,6 +70,8 @@ export class BusinessTrustScoreService {
 
     const recommendation = this.toRecommendation(trustScore);
 
+    const { businessCount, averageTrustScore } = await this.businessRepository.getSectorBenchmark();
+
     return {
       businessId,
       trustScore,
@@ -84,9 +86,12 @@ export class BusinessTrustScoreService {
       recommendation,
       scoredAt: now.toISOString(),
       sectorBenchmark: {
-        averageTrustScore: 62,
-        businessCount: 0,
-        note: 'Sector benchmark is anonymized aggregate data. Full data in Kaba Enterprise.',
+        averageTrustScore,
+        businessCount,
+        note:
+          businessCount > 0
+            ? 'Sector benchmark is anonymized aggregate data. Full data in Kaba Enterprise.'
+            : 'Sector benchmark will appear once more businesses have trust scores.',
       },
     };
   }

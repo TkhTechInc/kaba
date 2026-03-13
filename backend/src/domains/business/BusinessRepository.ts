@@ -7,6 +7,7 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { DatabaseError, ValidationError } from '@/shared/errors/DomainError';
+import { getCurrencyForCountry } from '@/shared/utils/country-currency';
 import type { Business, BusinessType, LegalStatus, TaxRegime } from '@/domains/ledger/models/Business';
 import type { Tier } from '@/domains/features/feature.types';
 
@@ -205,10 +206,16 @@ export class BusinessRepository {
     }
     const now = new Date().toISOString();
     const slugValue = input.slug != null ? String(input.slug).trim() : existing.slug;
+    const countryCode = input.countryCode ?? existing.countryCode;
+    const currency =
+      input.currency?.trim() ||
+      existing.currency?.trim() ||
+      (countryCode?.trim() ? getCurrencyForCountry(countryCode) : undefined);
     const updated: Business = {
       ...existing,
       ...input,
       slug: slugValue || undefined,
+      currency: currency ?? input.currency ?? existing.currency,
       updatedAt: now,
     };
 
@@ -288,6 +295,45 @@ export class BusinessRepository {
       return null;
     } catch (e) {
       throw new DatabaseError('Get business by slug failed', e);
+    }
+  }
+
+  /**
+   * Get sector benchmark: total business count and average trust score across all businesses.
+   * Used for trust score comparison. Paginates through all businesses.
+   */
+  async getSectorBenchmark(): Promise<{ businessCount: number; averageTrustScore: number }> {
+    let totalCount = 0;
+    let sumTrustScore = 0;
+    let countWithScore = 0;
+    let lastKey: Record<string, unknown> | undefined;
+
+    try {
+      do {
+        const result = await this.docClient.send(
+          new ScanCommand({
+            TableName: this.tableName,
+            FilterExpression: 'sk = :meta',
+            ExpressionAttributeValues: { ':meta': SK_META },
+            ProjectionExpression: 'trustScore',
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
+          }),
+        );
+        const items = result.Items ?? [];
+        totalCount += items.length;
+        for (const item of items) {
+          if (item.trustScore != null && typeof item.trustScore === 'number') {
+            sumTrustScore += item.trustScore;
+            countWithScore += 1;
+          }
+        }
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+
+      const averageTrustScore = countWithScore > 0 ? Math.round(sumTrustScore / countWithScore) : 62;
+      return { businessCount: totalCount, averageTrustScore };
+    } catch (e) {
+      return { businessCount: 0, averageTrustScore: 62 };
     }
   }
 

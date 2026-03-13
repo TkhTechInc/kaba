@@ -1,4 +1,5 @@
 import { api } from "@/lib/api-client";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 
 export interface VoiceTransactionResult {
   success: boolean;
@@ -22,11 +23,12 @@ export function createAiApi(token: string | null) {
     voiceToTransactionFromText: (
       businessId: string,
       text: string,
-      currency = "XOF"
+      /** Business currency from features/balance. Fallback XOF when omitted. */
+      currency?: string
     ) =>
       api.post<VoiceTransactionResult>(
         "/api/v1/ai/voice-to-transaction",
-        { businessId, text, currency },
+        { businessId, text, currency: currency ?? getCurrencyForCountry("") },
         opts
       ),
 
@@ -37,11 +39,12 @@ export function createAiApi(token: string | null) {
     voiceToTransactionFromAudio: (
       businessId: string,
       audioBase64: string,
-      currency = "XOF"
+      /** Business currency from features/balance. Fallback XOF when omitted. */
+      currency?: string
     ) =>
       api.post<VoiceTransactionResult>(
         "/api/v1/ai/voice-to-transaction",
-        { businessId, audioBase64, currency },
+        { businessId, audioBase64, currency: currency ?? getCurrencyForCountry("") },
         opts
       ),
   };

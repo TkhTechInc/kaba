@@ -60,46 +60,58 @@ export class DashboardService {
 
     if (timeFrame === 'yearly') {
       const years = 5;
-      const received: Array<{ x: string; y: number }> = [];
-      const due: Array<{ x: string; y: number }> = [];
       const unpaid = await this.invoiceService.listUnpaid(businessId);
 
-      for (let i = years - 1; i >= 0; i--) {
-        const y = now.getFullYear() - i;
-        const from = `${y}-01-01`;
-        const to = `${y}-12-31`;
-        const cf = await this.reportService.getCashFlow(businessId, from, to);
-        const yearReceived = cf.totalInflows;
-        const yearDue = unpaid
+      const yearRanges = Array.from({ length: years }, (_, i) => {
+        const y = now.getFullYear() - (years - 1 - i);
+        return { y, from: `${y}-01-01`, to: `${y}-12-31` };
+      });
+
+      const cashFlows = await Promise.all(
+        yearRanges.map(({ from, to }) => this.reportService.getCashFlow(businessId, from, to)),
+      );
+
+      const received = yearRanges.map(({ y, from, to }, i) => ({
+        x: String(y),
+        y: cashFlows[i].totalInflows,
+      }));
+      const due = yearRanges.map(({ y, from, to }) => ({
+        x: String(y),
+        y: unpaid
           .filter((inv) => inv.dueDate >= from && inv.dueDate <= to)
-          .reduce((sum, inv) => sum + inv.amount, 0);
-        received.push({ x: String(y), y: yearReceived });
-        due.push({ x: String(y), y: yearDue });
-      }
+          .reduce((sum, inv) => sum + inv.amount, 0),
+      }));
       return { received, due, currency };
     }
 
     const months = 12;
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const received: Array<{ x: string; y: number }> = [];
-    const due: Array<{ x: string; y: number }> = [];
     const unpaid = await this.invoiceService.listUnpaid(businessId);
 
-    for (let i = months - 1; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const monthRanges = Array.from({ length: months }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - (months - 1 - i), 1);
       const y = d.getFullYear();
       const m = d.getMonth();
       const from = `${y}-${String(m + 1).padStart(2, '0')}-01`;
       const lastDay = new Date(y, m + 1, 0).getDate();
       const to = `${y}-${String(m + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
-      const cf = await this.reportService.getCashFlow(businessId, from, to);
-      const monthReceived = cf.totalInflows;
+      return { m, from, to };
+    });
+
+    const cashFlows = await Promise.all(
+      monthRanges.map(({ from, to }) => this.reportService.getCashFlow(businessId, from, to)),
+    );
+
+    const received = monthRanges.map(({ m }, i) => ({
+      x: monthNames[m],
+      y: cashFlows[i].totalInflows,
+    }));
+    const due = monthRanges.map(({ m, from, to }) => {
       const monthDue = unpaid
         .filter((inv) => inv.dueDate >= from && inv.dueDate <= to)
         .reduce((sum, inv) => sum + inv.amount, 0);
-      received.push({ x: monthNames[m], y: monthReceived });
-      due.push({ x: monthNames[m], y: monthDue });
-    }
+      return { x: monthNames[m], y: monthDue };
+    });
     return { received, due, currency };
   }
 

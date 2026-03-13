@@ -10,6 +10,7 @@ import type { Invitation } from './models/Invitation';
 import type { Role } from './role.types';
 import { IAuditLogger } from '@/domains/audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '@/domains/audit/AuditModule';
+import { NotificationService } from '@/domains/notifications/services/NotificationService';
 
 function isEmail(s: string): boolean {
   return s.includes('@');
@@ -25,6 +26,7 @@ export class InvitationService {
     private readonly smsService: SmsService,
     @Optional() @Inject(ConfigService) private readonly config: ConfigService | null,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
+    @Optional() private readonly notificationService?: NotificationService,
   ) {}
 
   async create(input: {
@@ -80,6 +82,8 @@ export class InvitationService {
       }).catch(() => {});
     }
 
+    this.notificationService?.emitTeamMemberInvited(input.businessId, input.emailOrPhone).catch(() => {});
+
     return invitation;
   }
 
@@ -100,6 +104,12 @@ export class InvitationService {
       createdAt: new Date().toISOString(),
     });
     await this.invitationRepo.delete(invitation);
+
+    this.notificationService?.emitTeamMemberJoined(
+      invitation.businessId,
+      invitation.emailOrPhone,
+      input.userId,
+    ).catch(() => {});
 
     if (this.auditLogger) {
       this.auditLogger.log({

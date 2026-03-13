@@ -1040,5 +1040,23 @@
       "last3Months": "Last 3 months",
       "thisYear": "This year"
     }
+  },
+  "pos": {
+    "settingUp": "Setting up POS terminal…",
+    "error": "Error",
+    "backToInvoices": "Back to invoices",
+    "paymentNotReceived": "Payment not received",
+    "timeoutMessage": "10 minutes elapsed — try again or collect cash.",
+    "retryQr": "Retry (QR)",
+    "collectedCash": "Collected cash",
+    "paymentConfirmed": "Payment confirmed",
+    "printDownload": "Print / Download",
+    "receiptA4": "A4 Receipt (PDF)",
+    "thermalTicket": "Thermal ticket (72mm)",
+    "newTransaction": "New transaction",
+    "terminal": "POS Terminal",
+    "waitingForPayment": "Waiting for payment…",
+    "clientScansQr": "Customer scans the QR code to pay via Mobile Money",
+    "or": "or"
   }
 }

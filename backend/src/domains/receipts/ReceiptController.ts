@@ -9,6 +9,7 @@ import { FeatureGuard } from '@/nest/common/guards/feature.guard';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
 import { RequirePermission } from '@/nest/common/decorators/require-permission.decorator';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import type { IReceiptPdfGenerator } from './interfaces/IReceiptPdfGenerator';
 import type { IWhatsAppProvider } from '@/domains/notifications/IWhatsAppProvider';
 import { RECEIPT_PDF_PROVIDER } from './receipt.tokens';
@@ -84,7 +85,7 @@ export class ReceiptController {
       vendor: dto.vendor,
       date: dto.date ?? new Date().toISOString().slice(0, 10),
       total: dto.total,
-      currency: dto.currency ?? business.currency ?? 'NGN',
+      currency: dto.currency ?? getBusinessCurrency(business),
       items: dto.items,
     };
 

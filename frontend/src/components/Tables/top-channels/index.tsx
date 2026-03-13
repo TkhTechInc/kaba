@@ -14,10 +14,10 @@ import { getTopChannels } from "../fetch";
 
 export async function TopChannels({
   className,
-  currency = "NGN",
+  currency,
 }: {
   className?: string;
-  /** Business currency from onboarding. Defaults to NGN. */
+  /** Business currency from features.currency or business.currency. Required for correct display. Fallback XOF when omitted. */
   currency?: string;
 }) {
   const data = await getTopChannels();
@@ -64,7 +64,7 @@ export async function TopChannels({
               <TableCell>{compactFormat(channel.visitors)}</TableCell>
 
               <TableCell className="!text-right text-green-light-1">
-                <Price amount={channel.revenues} currency={currency} />
+                <Price amount={channel.revenues} currency={currency ?? "XOF"} />
               </TableCell>
 
               <TableCell>{channel.sales}</TableCell>

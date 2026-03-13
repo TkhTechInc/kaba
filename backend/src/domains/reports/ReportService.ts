@@ -4,6 +4,7 @@ import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 import { Debt } from '@/domains/debts/models/Debt';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { ValidationError } from '@/shared/errors/DomainError';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 
 export interface AgingBucket {
   label: string;
@@ -105,7 +106,7 @@ export class ReportService {
     }));
 
     const business = await this.businessRepository.getById(businessId);
-    const currency = entries[0]?.currency ?? business?.currency ?? 'NGN';
+    const currency = entries[0]?.currency ?? (business ? getBusinessCurrency(business) : 'XOF');
 
     return {
       period: { start: fromDate, end: toDate },
@@ -163,7 +164,7 @@ export class ReportService {
     const closingBalance = openingBalance + totalInflows - totalOutflows;
 
     const business = await this.businessRepository.getById(businessId);
-    const currency = entries[0]?.currency ?? business?.currency ?? 'NGN';
+    const currency = entries[0]?.currency ?? (business ? getBusinessCurrency(business) : 'XOF');
 
     return {
       period: { start: fromDate, end: toDate },
@@ -192,7 +193,7 @@ export class ReportService {
 
     const debts = await this.debtRepository.listByBusinessForAging(businessId);
     const business = await this.businessRepository.getById(businessId);
-    const currency = debts[0]?.currency ?? business?.currency ?? 'NGN';
+    const currency = debts[0]?.currency ?? (business ? getBusinessCurrency(business) : 'XOF');
 
     const bucketDefs: Array<{ label: string; daysMin: number; daysMax: number }> = [
       { label: 'Current (not yet due)', daysMin: -999999, daysMax: -1 },
@@ -284,7 +285,7 @@ export class ReportService {
 
     const business = await this.businessRepository.getById(businessId);
     const currency =
-      entries[0]?.currency ?? debts[0]?.currency ?? business?.currency ?? 'NGN';
+      entries[0]?.currency ?? debts[0]?.currency ?? (business ? getBusinessCurrency(business) : 'XOF');
 
     return {
       asOfDate: asOfStr,

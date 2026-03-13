@@ -5,6 +5,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { Price } from "@/components/ui/Price";
 import {
   createInvoicesApi,
@@ -48,7 +49,7 @@ export default function InvoiceEditPage() {
     earlyPaymentDiscountDays: string;
   }>({
     customerId: "",
-    currency: "NGN",
+    currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? "") ?? "XOF", // Overwritten from invoice data when loaded
     dueDate: "",
     items: [],
     itemDesc: "",

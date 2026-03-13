@@ -11,6 +11,7 @@ import { InvoicePdfService } from './InvoicePdfService';
 import { ReceiptStorageService } from '@/domains/receipts/ReceiptStorageService';
 import { LedgerService } from '@/domains/ledger/services/LedgerService';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { IAuditLogger } from '../../audit/interfaces/IAuditLogger';
 import { AUDIT_LOGGER } from '../../audit/AuditModule';
 import type { IMECeFProvider } from '@/domains/tax/interfaces/IMECeFProvider';
@@ -18,6 +19,7 @@ import type { IFNEProvider } from '@/domains/tax/interfaces/IFNEProvider';
 import type { IWhatsAppProvider } from '@/domains/notifications/IWhatsAppProvider';
 import { MECEF_PROVIDER, FNE_PROVIDER } from '@/nest/modules/tax/tax.tokens';
 import { WHATSAPP_PROVIDER } from '@/domains/notifications/notification.tokens';
+import { NotificationService } from '@/domains/notifications/services/NotificationService';
 
 @Injectable()
 export class InvoiceService {
@@ -36,6 +38,7 @@ export class InvoiceService {
     @Optional() @Inject(MECEF_PROVIDER) private readonly mecefProvider?: IMECeFProvider,
     @Optional() @Inject(FNE_PROVIDER) private readonly fneProvider?: IFNEProvider,
     @Optional() @Inject(WHATSAPP_PROVIDER) private readonly whatsappProvider?: IWhatsAppProvider,
+    @Optional() private readonly notificationService?: NotificationService,
   ) {}
 
   async create(
@@ -54,6 +57,7 @@ export class InvoiceService {
     }
 
     const business = await this.businessRepository.getById(input.businessId);
+    const currency = input.currency?.trim() || (business ? getBusinessCurrency(business) : 'XOF');
 
     // Sales role creates invoices as pending_approval unless explicitly overridden
     let status = input.status ?? 'draft';
@@ -66,6 +70,7 @@ export class InvoiceService {
 
     const invoice = await this.invoiceRepository.create({
       ...input,
+      currency,
       status,
       earlyPaymentDiscountPercent: input.earlyPaymentDiscountPercent,
       earlyPaymentDiscountDays: input.earlyPaymentDiscountDays,
@@ -80,6 +85,14 @@ export class InvoiceService {
         customerId: invoice.customerId,
         status: invoice.status,
       });
+
+      this.notificationService?.emitInvoiceCreated(
+        invoice.businessId,
+        invoice.id,
+        customer.name,
+        invoice.amount,
+        invoice.currency,
+      ).catch(() => {});
 
       // Fiscal certification: Benin (e-MECeF) or Côte d'Ivoire (FNE)
       if (business?.countryCode === 'BJ' && this.mecefProvider?.getSupportedCountries().includes('BJ')) {
@@ -478,6 +491,14 @@ export class InvoiceService {
         currency: updated.currency,
         customerId: updated.customerId,
       });
+
+      this.notificationService?.emitInvoicePaid(
+        businessId,
+        updated.id,
+        updated.customerId,
+        updated.amount,
+        updated.currency,
+      ).catch(() => {});
       // Create ledger sale entry so paid invoice appears in reports and balance
       if (this.ledgerService) {
         try {

@@ -13,7 +13,41 @@ import Link from "next/link";
 import { useState } from "react";
 import { LogOutIcon, SettingsIcon, UserIcon } from "./icons";
 
-const DEFAULT_AVATAR = "/images/user/user-03.png";
+const AVATAR_COLORS = [
+  ["#4F46E5", "#EEF2FF"], // indigo
+  ["#0891B2", "#ECFEFF"], // cyan
+  ["#059669", "#ECFDF5"], // emerald
+  ["#D97706", "#FFFBEB"], // amber
+  ["#DC2626", "#FEF2F2"], // red
+  ["#7C3AED", "#F5F3FF"], // violet
+];
+
+function InitialsAvatar({ name, size = 48 }: { name: string; size?: number }) {
+  const initial = (name?.[0] ?? "?").toUpperCase();
+  const code = name.charCodeAt(0) % AVATAR_COLORS.length;
+  const [fg, bg] = AVATAR_COLORS[code];
+  return (
+    <span
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: bg,
+        color: fg,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontSize: size * 0.4,
+        fontWeight: 700,
+        flexShrink: 0,
+        userSelect: "none",
+      }}
+      aria-hidden
+    >
+      {initial}
+    </span>
+  );
+}
 
 export function UserInfo() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,9 +66,24 @@ export function UserInfo() {
       : auth?.user?.phone
         ? `ID: ${auth.user.id}`
         : "";
-  const avatarSrc =
-    auth?.user?.picture && !avatarError ? auth.user.picture : DEFAULT_AVATAR;
-  const isExternalAvatar = !!auth?.user?.picture && !avatarError;
+  const pictureUrl = auth?.user?.picture && !avatarError ? auth.user.picture : null;
+
+  const Avatar = ({ size = 48 }: { size?: number }) =>
+    pictureUrl ? (
+      <Image
+        src={pictureUrl}
+        className="rounded-full object-cover"
+        style={{ width: size, height: size }}
+        alt={`Avatar of ${displayName}`}
+        role="presentation"
+        width={size}
+        height={size}
+        unoptimized
+        onError={() => setAvatarError(true)}
+      />
+    ) : (
+      <InitialsAvatar name={displayName} size={size} />
+    );
 
   return (
     <Dropdown isOpen={isOpen} setIsOpen={setIsOpen}>
@@ -42,16 +91,7 @@ export function UserInfo() {
         <span className="sr-only">My Account</span>
 
         <figure className="flex items-center gap-3">
-          <Image
-            src={avatarSrc}
-            className="size-12 rounded-full object-cover"
-            alt={`Avatar of ${displayName}`}
-            role="presentation"
-            width={48}
-            height={48}
-            unoptimized={isExternalAvatar}
-            onError={() => setAvatarError(true)}
-          />
+          <Avatar size={48} />
           <figcaption className="flex items-center gap-1 font-medium text-dark dark:text-dark-6 max-[1024px]:sr-only">
             <span>{displayName}</span>
 
@@ -74,16 +114,7 @@ export function UserInfo() {
         <h2 className="sr-only">User information</h2>
 
         <figure className="flex items-center gap-2.5 px-5 py-3.5">
-          <Image
-            src={avatarSrc}
-            className="size-12 rounded-full object-cover"
-            alt={`Avatar for ${displayName}`}
-            role="presentation"
-            width={48}
-            height={48}
-            unoptimized={isExternalAvatar}
-            onError={() => setAvatarError(true)}
-          />
+          <Avatar size={48} />
 
           <figcaption className="space-y-1 text-base font-medium">
             <div className="mb-2 leading-none text-dark dark:text-white">

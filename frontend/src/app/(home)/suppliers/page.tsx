@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
 import { ApiError } from "@/lib/api-client";
 import { createSuppliersApi, type Supplier, type CreateSupplierInput, type PaySupplierInput } from "@/services/suppliers.service";
@@ -16,10 +17,13 @@ type ModalState =
   | { type: "edit"; supplier: Supplier }
   | { type: "pay"; supplier: Supplier };
 
-const EMPTY_FORM: CreateSupplierInput = {
+const EMPTY_FORM_BASE: Omit<CreateSupplierInput, "currency"> = {
   name: "",
-  currency: "NGN",
   countryCode: "NG",
+  phone: "",
+  momoPhone: "",
+  bankAccount: "",
+  notes: "",
   phone: "",
   momoPhone: "",
   bankAccount: "",
@@ -35,8 +39,16 @@ export default function SuppliersPage() {
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [modal, setModal] = useState<ModalState>({ type: "none" });
-  const [form, setForm] = useState<CreateSupplierInput>(EMPTY_FORM);
-  const [payForm, setPayForm] = useState<PaySupplierInput>({ amount: 0, currency: "NGN", description: "" });
+  const [form, setForm] = useState<CreateSupplierInput>(() => ({
+    ...EMPTY_FORM_BASE,
+    currency:
+      features.currency ?? getCurrencyForCountry(features.countryCode ?? ""),
+  }));
+  const [payForm, setPayForm] = useState<PaySupplierInput>({
+    amount: 0,
+    currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? ""),
+    description: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -62,7 +74,11 @@ export default function SuppliersPage() {
   }, [businessId]);
 
   const openCreate = () => {
-    setForm(EMPTY_FORM);
+    setForm({
+      ...EMPTY_FORM_BASE,
+      currency:
+        features.currency ?? getCurrencyForCountry(features.countryCode ?? ""),
+    });
     setModal({ type: "create" });
   };
 

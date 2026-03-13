@@ -3,6 +3,8 @@ import type { IReceiptExtractor } from '@/domains/ai/IReceiptExtractor';
 import type { ILLMProvider } from '@/domains/ai/ILLMProvider';
 import type { ReceiptExtractionResult } from '@/domains/ai/IReceiptExtractor';
 import { AI_RECEIPT_EXTRACTOR, AI_LLM_PROVIDER } from '@/nest/modules/ai/ai.tokens';
+import { BusinessRepository } from '@/domains/business/BusinessRepository';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 
 export const EXPENSE_CATEGORIES = [
   'Supplies',
@@ -26,16 +28,20 @@ export class ReceiptService {
   constructor(
     @Inject(AI_RECEIPT_EXTRACTOR) private readonly receiptExtractor: IReceiptExtractor,
     @Inject(AI_LLM_PROVIDER) private readonly llmProvider: ILLMProvider,
+    private readonly businessRepository: BusinessRepository,
   ) {}
 
   async processReceipt(imageBuffer: Buffer, businessId: string): Promise<ProcessReceiptResult> {
     const extracted = await this.receiptExtractor.extract(imageBuffer);
-    const suggestedCategory = await this.suggestCategory(extracted);
+    const suggestedCategory = await this.suggestCategory(extracted, businessId);
     return { extracted, suggestedCategory };
   }
 
-  private async suggestCategory(extracted: ReceiptExtractionResult): Promise<ExpenseCategory> {
-    const prompt = `Given this receipt: vendor="${extracted.vendor ?? 'unknown'}", total=${extracted.total ?? 0}, currency=${extracted.currency ?? 'NGN'}, rawText="${(extracted.rawText ?? '').slice(0, 200)}". Map to exactly one expense category.`;
+  private async suggestCategory(extracted: ReceiptExtractionResult, businessId: string): Promise<ExpenseCategory> {
+    const business = await this.businessRepository.getById(businessId);
+    const effectiveCurrency = business ? getBusinessCurrency(business) : 'XOF';
+    const currencyForPrompt = extracted.currency ?? effectiveCurrency;
+    const prompt = `Given this receipt: vendor="${extracted.vendor ?? 'unknown'}", total=${extracted.total ?? 0}, currency=${currencyForPrompt}, rawText="${(extracted.rawText ?? '').slice(0, 200)}". Map to exactly one expense category.`;
     const result = await this.llmProvider.generateStructured<{ category: ExpenseCategory }>({
       prompt,
       systemPrompt: `You are an expense categorizer. Return JSON with a single "category" field. Valid categories: ${EXPENSE_CATEGORIES.join(', ')}. Default to "Other" if unclear.`,

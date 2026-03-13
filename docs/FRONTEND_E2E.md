@@ -35,6 +35,8 @@ npx playwright test e2e/auth.spec.ts
 | `e2e/auth.spec.ts` | Sign-in page load, invalid login error, login redirect |
 | `e2e/dashboard.spec.ts` | Dashboard overview, invoices, customers, products (uses saved auth) |
 | `e2e/journeys.spec.ts` | User journeys: customer, invoice, product, debt create→list flows (skips if feature not on plan) |
+| `e2e/payment-cash-flow.spec.ts` | Cash payment flow: create invoice → POS page → "Collected cash" → payment confirmed (no TKH Payments required) |
+| `e2e/kkiapay-payment.spec.ts` | KkiaPay widget flow: XOF invoice → pay page → KkiaPay sandbox → payment confirmed (requires TKH Payments + KkiaPay) |
 | `e2e/public.spec.ts` | Sign-in, sign-up, forgot-password, store 404 |
 
 ## Config
@@ -43,6 +45,30 @@ npx playwright test e2e/auth.spec.ts
 - `webServer` — runs `npm run dev` if no server on baseURL
 - Browsers: Chromium only (add Firefox/WebKit in config if needed)
 - **Auth setup**: Runs first, saves state to `playwright/.auth/user.json`; dashboard tests reuse it
+
+## Cash Payment Flow
+
+`e2e/payment-cash-flow.spec.ts` covers the POS cash payment path that **bypasses the real payment gateway**:
+
+1. Creates a customer and invoice via UI
+2. Navigates to `/invoices/[id]/pos`
+3. Clicks "Collected cash" (or French equivalent)
+4. Asserts "Payment confirmed" is shown
+5. Optionally verifies invoice status is "paid" on the invoices list
+
+This test works **without TKH Payments** — it uses the cash-only path (`mark-paid` API).
+
+## KkiaPay Payment Flow
+
+`e2e/kkiapay-payment.spec.ts` covers the **KkiaPay widget** flow (primary payment method via TKH Payments):
+
+1. Creates a customer and XOF invoice via UI
+2. Shares invoice and opens pay page
+3. Clicks "Pay with KkiaPay" → widget opens
+4. Enters sandbox test phone `61000000` (MTN Benin success)
+5. Asserts redirect to success page and "Payment confirmed"
+
+Requires: `PAYMENTS_SERVICE_URL`, `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY`, `E2E_TEST_EMAIL`, `E2E_TEST_PASSWORD`. See [backend/docs/KKIAPAY_LIVE_TEST.md](../backend/docs/KKIAPAY_LIVE_TEST.md).
 
 ## Install Browsers
 

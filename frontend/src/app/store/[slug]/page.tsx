@@ -1,6 +1,7 @@
 "use client";
 
 import { Logo } from "@/components/logo";
+import { getCurrencyForCountry } from "@/lib/country-currency";
 import { apiGet, apiPost } from "@/lib/api-client";
 import Image from "next/image";
 import Link from "next/link";
@@ -172,7 +173,8 @@ function StorefrontContent() {
     );
   }
 
-  const currency = business.currency ?? "XOF";
+  const currency =
+    business.currency ?? getCurrencyForCountry(business.countryCode ?? "");
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-2 px-4 py-8 dark:bg-[#020d1a]">

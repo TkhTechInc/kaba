@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { StorefrontPaymentRepository } from './StorefrontPaymentRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
+import { getBusinessCurrency } from '@/shared/utils/country-currency';
 import { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { NotFoundError, ValidationError } from '@/shared/errors/DomainError';
@@ -33,7 +34,7 @@ export class StorefrontPaymentService {
     const business = await this.businessRepo.getBySlug(slug);
     if (!business) throw new NotFoundError('Business', slug);
 
-    const normalizedCurrency = (currency ?? business.currency ?? 'XOF').toUpperCase();
+    const normalizedCurrency = (currency ?? getBusinessCurrency(business)).toUpperCase();
 
     if (!amount || amount <= 0) {
       throw new ValidationError('Amount must be a positive number');
