@@ -124,12 +124,26 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid credentials');
     await this.ensureDefaultBusiness(user.id);
     const role = user.role ?? this.resolveRole(undefined, phone);
-    const payload = { sub: user.id, phone, role, phoneVerified: true };
+    const payload = {
+      sub: user.id,
+      phone,
+      role,
+      phoneVerified: true,
+      ...(user.name && { name: user.name }),
+      ...(user.picture && { picture: user.picture }),
+    };
     const accessToken = this.jwtService.sign(payload);
     await this.auditAuth('login', user.id, { method: 'phone' });
     return {
       accessToken,
-      user: { id: user.id, phone, phoneVerified: true, ...(role && { role }) },
+      user: {
+        id: user.id,
+        phone,
+        phoneVerified: true,
+        ...(role && { role }),
+        ...(user.name && { name: user.name }),
+        ...(user.picture && { picture: user.picture }),
+      },
     };
   }
 
@@ -471,12 +485,26 @@ export class AuthService {
 
     const role = user.role ?? (this.resolveRole(normalizedEmail) ? 'admin' : 'user');
     const emailVerified = user.emailVerified ?? true;
-    const payload = { sub: user.id, email: user.email, role, emailVerified };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role,
+      emailVerified,
+      ...(user.name && { name: user.name }),
+      ...(user.picture && { picture: user.picture }),
+    };
     const accessToken = this.jwtService.sign(payload);
     await this.auditAuth('login', user.id, { method: 'email' });
     return {
       accessToken,
-      user: { id: user.id, email: user.email, emailVerified, ...(role && { role }) },
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified,
+        ...(role && { role }),
+        ...(user.name && { name: user.name }),
+        ...(user.picture && { picture: user.picture }),
+      },
     };
   }
 
