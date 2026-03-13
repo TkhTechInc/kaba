@@ -7,7 +7,7 @@ import { Price } from "@/components/ui/Price";
 import { createInvoicesApi, type Invoice, type Customer } from "@/services/invoices.service";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -24,6 +24,9 @@ export default function InvoiceDetailPage() {
   const [whatsappShareLoading, setWhatsappShareLoading] = useState(false);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
   const [whatsappSent, setWhatsappSent] = useState(false);
+  const mecefPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mecefPollCount = useRef(0);
+  const [mecefPolling, setMecefPolling] = useState(false);
 
   const id = params?.id as string | undefined;
   const api = createInvoicesApi(token);
@@ -116,6 +119,39 @@ export default function InvoiceDetailPage() {
       .then((r) => setCustomers(r.data.items))
       .catch(() => setCustomers([]));
   }, [businessId]);
+
+  // Poll for MECeF certification — runs after invoice loads, stops when confirmed/rejected or after 30s (10 × 3s)
+  useEffect(() => {
+    if (!invoice || !businessId || !isValidId) return;
+    const alreadyDone = invoice.mecefStatus === 'confirmed' || invoice.mecefStatus === 'rejected';
+    if (alreadyDone) return;
+
+    mecefPollCount.current = 0;
+    setMecefPolling(true);
+    mecefPollRef.current = setInterval(async () => {
+      mecefPollCount.current += 1;
+      if (mecefPollCount.current > 10) {
+        clearInterval(mecefPollRef.current!);
+        setMecefPolling(false);
+        return;
+      }
+      try {
+        const r = await api.getById(id!, businessId);
+        const updated = r.data;
+        if (updated.mecefStatus === 'confirmed' || updated.mecefStatus === 'rejected') {
+          setInvoice(updated);
+          clearInterval(mecefPollRef.current!);
+          setMecefPolling(false);
+        }
+      } catch { /* silent — don't disrupt the page */ }
+    }, 3000);
+
+    return () => {
+      if (mecefPollRef.current) clearInterval(mecefPollRef.current);
+      setMecefPolling(false);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice?.id, invoice?.mecefStatus]);
 
   if (!businessId) {
     return (
@@ -289,6 +325,54 @@ export default function InvoiceDetailPage() {
               <p className="text-dark dark:text-white">{invoice.currency}</p>
             </div>
           </div>
+
+          {/* MECeF / DGI fiscal certification badge */}
+          {invoice.mecefStatus === 'confirmed' && invoice.mecefSerialNumber && (
+            <div className="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 dark:border-blue-800 dark:bg-blue-950/30">
+              <span className="mt-0.5 text-base">🔵</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                  Certifié DGI — e-MECeF (Bénin)
+                </p>
+                <p className="mt-0.5 font-mono text-xs text-blue-700 dark:text-blue-400 break-all">
+                  {invoice.mecefSerialNumber}
+                </p>
+                {invoice.mecefQrCode && (
+                  <p className="mt-0.5 text-xs text-blue-600 dark:text-blue-500 break-all">
+                    {invoice.mecefQrCode}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                ✓ Certifié
+              </span>
+            </div>
+          )}
+
+          {invoice.mecefStatus === 'pending' && (
+            <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/30">
+              <span className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-amber-500 border-t-transparent" />
+              <p className="text-sm text-amber-800 dark:text-amber-300">
+                Certification DGI en cours…
+              </p>
+            </div>
+          )}
+
+          {invoice.mecefStatus === 'rejected' && (
+            <div className="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-950/30">
+              <span className="shrink-0 text-base">⚠️</span>
+              <p className="text-sm text-red-700 dark:text-red-400">
+                La certification DGI a échoué. Le QR code ne sera pas disponible sur ce document.
+              </p>
+            </div>
+          )}
+
+          {!invoice.mecefStatus && mecefPolling && (
+            <div className="flex items-center gap-2 text-xs text-dark-4 dark:text-dark-6">
+              <span className="h-3 w-3 animate-spin rounded-full border border-dark-4 border-t-transparent dark:border-dark-6" />
+              Vérification certification DGI…
+            </div>
+          )}
 
           <div>
             <p className="mb-2 text-sm font-medium text-dark-6">Line items</p>
