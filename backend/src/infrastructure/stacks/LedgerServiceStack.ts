@@ -32,7 +32,8 @@ export class LedgerServiceStack extends cdk.Stack {
     const resourcePrefix = `Kaba-LedgerService-${environment}`;
 
     const useOnDemand = config.database?.useOnDemand ?? true;
-    const enablePITR = config.database?.enablePITR ?? (environment === 'prod');
+    // Enable PITR for all environments (dev/staging/prod) for data protection
+    const enablePITR = config.database?.enablePITR ?? true;
 
     this.ledgerTable = new dynamodb.Table(this, 'LedgerTable', {
       tableName: `${resourcePrefix}-ledger`,
@@ -41,9 +42,14 @@ export class LedgerServiceStack extends cdk.Stack {
       billingMode: useOnDemand
         ? dynamodb.BillingMode.PAY_PER_REQUEST
         : dynamodb.BillingMode.PROVISIONED,
-      removalPolicy: environment === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
+      // RETAIN for prod and staging to prevent accidental data loss
+      removalPolicy: environment === 'prod' || environment === 'staging'
+        ? cdk.RemovalPolicy.RETAIN
+        : cdk.RemovalPolicy.DESTROY,
       pointInTimeRecovery: enablePITR,
       timeToLiveAttribute: 'ttl',
+      // Enable deletion protection in production
+      deletionProtection: environment === 'prod',
     });
 
     // GSI for querying by businessId sorted by createdAt

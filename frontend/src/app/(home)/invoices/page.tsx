@@ -65,6 +65,19 @@ export default function InvoicesPage() {
       .catch(() => setCustomers([]));
   }, [businessId]);
 
+  // Refresh customer names when page becomes visible (e.g., after creating customer elsewhere)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && businessId) {
+        api.listCustomers(businessId, 1, 100)
+          .then((r) => setCustomers(r.data.items))
+          .catch(() => null);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [businessId]);
+
   const generatePaymentLink = (id: string) => {
     if (!businessId) return;
     api

@@ -5,6 +5,7 @@ import {
   QueryCommand,
   ScanCommand,
   UpdateCommand,
+  TransactWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { LedgerEntry, CreateLedgerEntryInput } from '../models/LedgerEntry';
 import { DatabaseError } from '@/shared/errors/DomainError';
@@ -49,19 +50,35 @@ export class LedgerRepository {
     };
 
     const item = this.mapToDynamoDB(entry);
+    const delta = entry.type === 'sale' ? entry.amount : -entry.amount;
 
     try {
+      // ATOMIC TRANSACTION: Both operations succeed or both fail
+      // This prevents race conditions and financial data corruption
       await this.docClient.send(
-        new PutCommand({
-          TableName: this.tableName,
-          Item: item,
-          ConditionExpression: 'attribute_not_exists(sk)',
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Put: {
+                TableName: this.tableName,
+                Item: item,
+                ConditionExpression: 'attribute_not_exists(sk)',
+              },
+            },
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { pk: entry.businessId, sk: LedgerRepository.BALANCE_SK },
+                UpdateExpression: 'ADD balance :delta SET currency = :currency',
+                ExpressionAttributeValues: {
+                  ':delta': delta,
+                  ':currency': entry.currency,
+                },
+              },
+            },
+          ],
         }),
       );
-
-      // Keep the running balance in sync atomically.
-      const delta = entry.type === 'sale' ? entry.amount : -entry.amount;
-      await this.updateRunningBalance(entry.businessId, delta, entry.currency);
 
       return entry;
     } catch (e) {
@@ -300,28 +317,42 @@ export class LedgerRepository {
     const entry = await this.getById(businessId, id);
     if (!entry || entry.deletedAt) return false;
 
+    const delta = entry.type === 'sale' ? -entry.amount : entry.amount;
+
     try {
+      // ATOMIC TRANSACTION: Soft delete + balance reversal
       await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
-          UpdateExpression: 'SET deletedAt = :deletedAt',
-          ExpressionAttributeValues: { ':deletedAt': now },
-          ConditionExpression: 'attribute_exists(sk) AND attribute_not_exists(deletedAt)',
+        new TransactWriteCommand({
+          TransactItems: [
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { pk: businessId, sk: `${SK_PREFIX}${id}` },
+                UpdateExpression: 'SET deletedAt = :deletedAt',
+                ExpressionAttributeValues: { ':deletedAt': now },
+                ConditionExpression: 'attribute_exists(sk) AND attribute_not_exists(deletedAt)',
+              },
+            },
+            {
+              Update: {
+                TableName: this.tableName,
+                Key: { pk: businessId, sk: LedgerRepository.BALANCE_SK },
+                UpdateExpression: 'ADD balance :delta',
+                ExpressionAttributeValues: { ':delta': delta },
+              },
+            },
+          ],
         }),
       );
+      return true;
     } catch (e: unknown) {
-      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
-        // Another concurrent request already deleted this entry and reversed the balance
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException' ||
+          (e as { name?: string })?.name === 'TransactionCanceledException') {
+        // Another concurrent request already deleted this entry
         return false;
       }
       throw new DatabaseError('Soft-delete ledger entry failed', e);
     }
-
-    // We won the race — only we should reverse the balance
-    const delta = entry.type === 'sale' ? -entry.amount : entry.amount;
-    await this.updateRunningBalance(businessId, delta, entry.currency);
-    return true;
   }
 
   /**

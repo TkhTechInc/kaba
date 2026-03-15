@@ -19,6 +19,10 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { initSentry, flushSentry } from '@/shared/sentry';
+
+// Initialize Sentry before app creation
+initSentry();
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -58,6 +62,18 @@ async function bootstrap() {
 
   console.log(`🚀 NestJS server running on http://localhost:${port}`);
   console.log(`💚 Health check:  http://localhost:${port}/health`);
+
+  // Graceful shutdown
+  process.on('SIGTERM', async () => {
+    console.log('SIGTERM received, flushing Sentry and closing app...');
+    await flushSentry();
+    await app.close();
+    process.exit(0);
+  });
 }
 
-bootstrap();
+bootstrap().catch(async (error) => {
+  console.error('Failed to bootstrap application:', error);
+  await flushSentry();
+  process.exit(1);
+});

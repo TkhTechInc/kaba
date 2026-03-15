@@ -344,7 +344,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const b = localStorage.getItem(BUSINESS_KEY);
       const u = localStorage.getItem(USER_KEY);
 
-      const fromCookie = await checkAuthFromCookie();
+      // Skip checkAuthFromCookie if we already have a token from OAuth callback
+      // This prevents race condition where checkAuthFromCookie clears the OAuth token
+      const fromCookie = t ? false : await checkAuthFromCookie();
       if (fromCookie) {
         setTokenState(null);
         setIsLoading(false);

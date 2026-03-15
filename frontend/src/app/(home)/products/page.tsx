@@ -75,6 +75,17 @@ export default function ProductsPage() {
     load();
   }, [businessId, page, limit]);
 
+  // Refresh when page becomes visible (e.g., after creating/editing product)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && businessId) {
+        load();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [businessId, page, limit]);
+
   const handleDelete = (id: string) => {
     if (!businessId || !confirm(t("products.action.deleteConfirm"))) return;
     api

@@ -16,14 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-const CURRENCIES = [
-  { value: "NGN", label: "NGN" },
-  { value: "GHS", label: "GHS" },
-  { value: "XOF", label: "XOF" },
-  { value: "XAF", label: "XAF" },
-  { value: "USD", label: "USD" },
-  { value: "EUR", label: "EUR" },
-];
+// Currency locked to business default - change in Settings > Business Profile
 
 export default function AddProductPage() {
   const router = useRouter();
@@ -197,19 +190,15 @@ export default function AddProductPage() {
               <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
                 {t("products.new.currency")}
               </label>
-              <select
-                value={form.currency}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, currency: e.target.value }))
-                }
-                className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2"
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <div className="flex items-center justify-between rounded-lg border border-stroke bg-gray-2 px-5.5 py-3 dark:border-dark-3 dark:bg-dark-2">
+                <span className="text-dark dark:text-white">{form.currency}</span>
+                <Link
+                  href="/settings/profile"
+                  className="text-xs text-primary hover:underline"
+                >
+                  Settings
+                </Link>
+              </div>
             </div>
             <InputGroup
               label={t("products.new.quantityInStock")}

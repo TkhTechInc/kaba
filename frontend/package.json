@@ -18,6 +18,7 @@
     "vercel:deploy:prod": "npx vercel deploy --prod"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.43.0",
     "@swc/helpers": "^0.5.19",
     "apexcharts": "^4.5.0",
     "class-variance-authority": "^0.7.1",

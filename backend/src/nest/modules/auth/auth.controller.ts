@@ -26,7 +26,7 @@ function setAuthCookie(res: Response, token: string, isProd: boolean) {
 }
 
 @Controller('api/v1/auth')
-@Throttle({ default: { limit: 5, ttl: 60000 } })
+// Rate limiting now handled by EnhancedRateLimitGuard with endpoint-specific limits
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

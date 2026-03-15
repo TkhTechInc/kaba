@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaba - Feature Overview for Stakeholders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-number {
+            font-size: 3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .filter-btn {
+            padding: 12px 24px;
+            border: none;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .filter-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+
+        .filter-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+
+        .feature-icon {
+            font-size: 2.5em;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .feature-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .feature-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        .tag {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag.core { background: #e3f2fd; color: #1976d2; }
+        .tag.financial { background: #fff3e0; color: #f57c00; }
+        .tag.payments { background: #f3e5f5; color: #7b1fa2; }
+        .tag.ai { background: #e8f5e9; color: #388e3c; }
+        .tag.compliance { background: #fce4ec; color: #c2185b; }
+        .tag.reporting { background: #e0f2f1; color: #00796b; }
+        .tag.integration { background: #fff9c4; color: #f57f17; }
+        .tag.security { background: #ffebee; color: #c62828; }
+        .tag.infrastructure { background: #e8eaf6; color: #3949ab; }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.7em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-live { background: #4caf50; color: white; }
+        .status-beta { background: #ff9800; color: white; }
+        .status-new { background: #2196f3; color: white; }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 40px;
+            border-radius: 20px;
+            position: relative;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 2em;
+            cursor: pointer;
+            color: #999;
+            line-height: 1;
+        }
+
+        .close-modal:hover {
+            color: #333;
+        }
+
+        .tech-stack {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .tech-stack h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+        }
+
+        .tech-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .tech-category {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .tech-category h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .tech-list {
+            list-style: none;
+        }
+
+        .tech-list li {
+            padding: 5px 0;
+            color: #555;
+        }
+
+        .tech-list li:before {
+            content: "✓ ";
+            color: #667eea;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 15px 20px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2em; }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Kaba</h1>
+            <p class="subtitle">MSME Accounting SaaS for West Africa</p>
+            <p style="margin-top: 15px; font-size: 0.95em;">Full-Stack Platform: NestJS + Next.js + AWS Serverless</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">35+</div>
+                <div class="stat-label">Domain Modules</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">60+</div>
+                <div class="stat-label">Features</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">255+</div>
+                <div class="stat-label">Unit Tests</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">8.5/10</div>
+                <div class="stat-label">Production Ready</div>
+            </div>
+        </div>
+
+        <input type="text" class="search-box" id="searchBox" placeholder="🔍 Search features...">
+
+        <div class="filter-bar">
+            <button class="filter-btn active" data-filter="all">All Features</button>
+            <button class="filter-btn" data-filter="core">Core</button>
+            <button class="filter-btn" data-filter="financial">Financial</button>
+            <button class="filter-btn" data-filter="payments">Payments</button>
+            <button class="filter-btn" data-filter="ai">AI-Powered</button>
+            <button class="filter-btn" data-filter="compliance">Compliance</button>
+            <button class="filter-btn" data-filter="integration">Integrations</button>
+        </div>
+
+        <div class="features-grid" id="featuresGrid"></div>
+
+        <div class="tech-stack">
+            <h2>🛠️ Technology Stack</h2>
+            <div class="tech-grid">
+                <div class="tech-category">
+                    <h3>Backend</h3>
+                    <ul class="tech-list">
+                        <li>NestJS (Node.js)</li>
+                        <li>TypeScript</li>
+                        <li>AWS Lambda + API Gateway</li>
+                        <li>DynamoDB</li>
+                        <li>S3, SES, SNS</li>
+                    </ul>
+                </div>
+                <div class="tech-category">
+                    <h3>Frontend</h3>
+                    <ul class="tech-list">
+                        <li>Next.js 16</li>
+                        <li>React 19</li>
+                        <li>TypeScript</li>
+                        <li>Tailwind CSS</li>
+                        <li>ApexCharts</li>
+                    </ul>
+                </div>
+                <div class="tech-category">
+                    <h3>AI & ML</h3>
+                    <ul class="tech-list">
+                        <li>Google Gemini</li>
+                        <li>OpenAI (optional)</li>
+                        <li>Receipt OCR</li>
+                        <li>Voice-to-Text</li>
+                        <li>Loan Scoring</li>
+                    </ul>
+                </div>
+                <div class="tech-category">
+                    <h3>Payments</h3>
+                    <ul class="tech-list">
+                        <li>Mobile Money (MTN, Moov)</li>
+                        <li>KkiaPay</li>
+                        <li>Stripe</li>
+                        <li>TKH Payments Widget</li>
+                    </ul>
+                </div>
+                <div class="tech-category">
+                    <h3>Infrastructure</h3>
+                    <ul class="tech-list">
+                        <li>AWS CDK</li>
+                        <li>CloudWatch Monitoring</li>
+                        <li>Sentry Error Tracking</li>
+                        <li>Circuit Breakers</li>
+                        <li>Rate Limiting</li>
+                    </ul>
+                </div>
+                <div class="tech-category">
+                    <h3>Compliance</h3>
+                    <ul class="tech-list">
+                        <li>e-MECeF (Benin)</li>
+                        <li>Tax Automation</li>
+                        <li>RBAC (5 roles, 38 perms)</li>
+                        <li>Audit Logs (7-year)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="featureModal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeModal()">&times;</span>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script>
+        const features = [
+            {
+                icon: "📊",
+                title: "Ledger & Accounting",
+                description: "Double-entry bookkeeping with atomic transactions, real-time balance tracking, multi-currency support",
+                category: ["core", "financial"],
+                status: "live",
+                details: "Full-featured accounting ledger with DynamoDB TransactWriteCommand for atomic operations, preventing race conditions and ensuring financial data integrity. Supports multiple currencies with running balance tracking."
+            },
+            {
+                icon: "🧾",
+                title: "Smart Invoicing",
+                description: "Create, send, and track invoices with PDF generation, payment links, and automatic reminders",
+                category: ["core", "financial"],
+                status: "live",
+                details: "Comprehensive invoicing system with PDF generation, payment tracking, automated reminders, and multi-currency support. Integrates with payment providers for seamless collection."
+            },
+            {
+                icon: "💳",
+                title: "Mobile Money Integration",
+                description: "MTN Mobile Money, Moov Africa payments with automatic reconciliation",
+                category: ["payments", "integration"],
+                status: "live",
+                details: "Direct integration with MTN Mobile Money and Moov Africa for collections and disbursements. Includes webhook handling, automatic reconciliation, and transaction status tracking."
+            },
+            {
+                icon: "💰",
+                title: "Multi-Payment Gateway",
+                description: "KkiaPay, Stripe, TKH Payments integration with unified API",
+                category: ["payments", "integration"],
+                status: "live",
+                details: "Unified payment interface supporting KkiaPay (Benin), Stripe (international), and TKH Payments widget. Circuit breaker pattern ensures reliability even during provider outages."
+            },
+            {
+                icon: "🤖",
+                title: "AI Receipt Scanner",
+                description: "OCR-powered receipt scanning that extracts amounts, merchants, dates automatically",
+                category: ["ai", "core"],
+                status: "live",
+                details: "Google Gemini-powered receipt scanning with automatic extraction of transaction details. Supports multiple languages and formats common in West Africa."
+            },
+            {
+                icon: "🎯",
+                title: "AI Business Insights",
+                description: "Natural language queries like 'Show my best customers' or 'What did I spend on inventory?'",
+                category: ["ai", "reporting"],
+                status: "live",
+                details: "Conversational AI that translates natural language questions into database queries and generates actionable insights. Powered by MCP (Model Context Protocol) tools."
+            },
+            {
+                icon: "🏦",
+                title: "Loan Readiness Scoring",
+                description: "AI-powered creditworthiness assessment based on transaction history",
+                category: ["ai", "financial"],
+                status: "live",
+                details: "Analyzes business financial health using transaction patterns, revenue trends, and payment behavior to generate credit scores suitable for lenders."
+            },
+            {
+                icon: "🎤",
+                title: "Voice-to-Transaction",
+                description: "Record transactions by voice: 'Sold 10 bags of rice for 50,000 naira'",
+                category: ["ai", "core"],
+                status: "beta",
+                details: "Voice recognition that converts spoken transactions into ledger entries. Supports multiple local languages and currencies."
+            },
+            {
+                icon: "📱",
+                title: "USSD Banking",
+                description: "Record transactions via *XXX# codes on any phone (no smartphone needed)",
+                category: ["integration", "core"],
+                status: "live",
+                details: "USSD integration via Africa's Talking for feature phone access. Users can check balances, record sales, and view summaries without internet."
+            },
+            {
+                icon: "☎️",
+                title: "Voice OTP",
+                description: "Phone call-based authentication for low-literacy users",
+                category: ["security", "integration"],
+                status: "live",
+                details: "Alternative authentication method using voice calls for OTP delivery, serving users who can't read SMS or have limited literacy."
+            },
+            {
+                icon: "💸",
+                title: "Debt Management",
+                description: "Track customer debts, payment plans, automated WhatsApp reminders",
+                category: ["core", "financial"],
+                status: "live",
+                details: "Complete accounts receivable system with payment plan support, automated reminders via WhatsApp, and aging reports."
+            },
+            {
+                icon: "📦",
+                title: "Inventory Management",
+                description: "Stock tracking, low-stock alerts, reorder automation",
+                category: ["core"],
+                status: "live",
+                details: "Full inventory system with product catalog, stock level tracking, low-stock alerts, and automated reorder suggestions."
+            },
+            {
+                icon: "💼",
+                title: "Supplier Management",
+                description: "Track supplier invoices, payments, and purchase history",
+                category: ["core", "financial"],
+                status: "live",
+                details: "Accounts payable system for managing supplier relationships, tracking purchase orders, and scheduling payments."
+            },
+            {
+                icon: "🔄",
+                title: "Bank Reconciliation",
+                description: "Auto-match bank statements with ledger entries using AI",
+                category: ["financial", "ai"],
+                status: "live",
+                details: "Import bank statements (CSV/PDF) and automatically match transactions with ledger entries using fuzzy matching and AI."
+            },
+            {
+                icon: "📈",
+                title: "Financial Reports",
+                description: "P&L, Balance Sheet, Cash Flow, Tax reports with export to PDF/Excel",
+                category: ["reporting", "financial"],
+                status: "live",
+                details: "Comprehensive financial reporting suite with customizable date ranges, multi-currency support, and export capabilities."
+            },
+            {
+                icon: "🧾",
+                title: "Tax Automation",
+                description: "Auto-calculate VAT, WHT, sales tax per West African regulations",
+                category: ["compliance", "financial"],
+                status: "live",
+                details: "Automated tax calculation for multiple West African countries with support for VAT, withholding tax, and other local requirements."
+            },
+            {
+                icon: "🇧🇯",
+                title: "e-MECeF Integration",
+                description: "Benin electronic fiscal receipts - legally compliant invoicing",
+                category: ["compliance", "integration"],
+                status: "live",
+                details: "Full integration with Benin's e-MECeF system for fiscalized receipts, including QR code generation and real-time submission."
+            },
+            {
+                icon: "📄",
+                title: "Digital Receipts",
+                description: "WhatsApp/SMS receipts with QR codes for verification",
+                category: ["core", "integration"],
+                status: "live",
+                details: "Generate and send digital receipts via WhatsApp or SMS with QR codes for authenticity verification."
+            },
+            {
+                icon: "🛒",
+                title: "Online Storefront",
+                description: "Create a payment page for your business with QR codes",
+                category: ["payments", "core"],
+                status: "live",
+                details: "No-code storefront builder for accepting payments online. Includes QR code generation for in-person payments."
+            },
+            {
+                icon: "🔐",
+                title: "OAuth Authentication",
+                description: "Sign in with Google, Facebook + email/phone/OTP",
+                category: ["security", "core"],
+                status: "live",
+                details: "Multiple authentication methods including OAuth (Google, Facebook), email/password, and phone number with OTP verification."
+            },
+            {
+                icon: "👥",
+                title: "Multi-User Access",
+                description: "5 roles (Owner, Admin, Manager, Accountant, Cashier) with 38 permissions",
+                category: ["security", "core"],
+                status: "live",
+                details: "Granular role-based access control with invitations, role management, and detailed permission system."
+            },
+            {
+                icon: "🔑",
+                title: "API Keys",
+                description: "Generate API keys for third-party integrations",
+                category: ["integration", "security"],
+                status: "live",
+                details: "RESTful API with key-based authentication for building custom integrations and automations."
+            },
+            {
+                icon: "📋",
+                title: "Audit Logs",
+                description: "7-year retention of all financial changes with anomaly detection",
+                category: ["compliance", "security"],
+                status: "live",
+                details: "Complete audit trail of all system activities with AI-powered anomaly detection for fraud prevention."
+            },
+            {
+                icon: "🛡️",
+                title: "Rate Limiting & Security",
+                description: "IP-based rate limiting, JWT authentication, circuit breakers",
+                category: ["security", "infrastructure"],
+                status: "live",
+                details: "Enterprise-grade security with endpoint-specific rate limits (5 login/min), IP lockout after failed attempts, and circuit breakers for external services."
+            },
+            {
+                icon: "📊",
+                title: "Real-Time Dashboard",
+                description: "Revenue, expenses, cash flow, top customers - all in real-time",
+                category: ["reporting", "core"],
+                status: "live",
+                details: "Interactive dashboard with ApexCharts showing key business metrics, trends, and KPIs updated in real-time."
+            },
+            {
+                icon: "💬",
+                title: "WhatsApp Notifications",
+                description: "Payment confirmations, debt reminders, low stock alerts",
+                category: ["integration", "core"],
+                status: "live",
+                details: "Automated WhatsApp notifications via Meta Cloud API for transactional messages and business alerts."
+            },
+            {
+                icon: "📱",
+                title: "SMS Notifications",
+                description: "Multi-provider SMS (AWS SNS, Twilio, Africa's Talking)",
+                category: ["integration", "core"],
+                status: "live",
+                details: "Flexible SMS delivery with automatic fallback across multiple providers for reliability."
+            },
+            {
+                icon: "📧",
+                title: "Email Notifications",
+                description: "AWS SES for invoices, receipts, reports",
+                category: ["integration", "core"],
+                status: "live",
+                details: "Transactional email delivery for invoices, statements, and notifications via AWS SES."
+            },
+            {
+                icon: "🌐",
+                title: "Multi-Language Support",
+                description: "English, French + local language support via next-intl",
+                category: ["core"],
+                status: "live",
+                details: "Internationalization for English and French with extensibility for local languages."
+            },
+            {
+                icon: "💱",
+                title: "Multi-Currency",
+                description: "XOF, NGN, GHS, USD with automatic conversion",
+                category: ["financial", "core"],
+                status: "live",
+                details: "Support for West African currencies (CFA Franc, Naira, Cedi) plus international currencies."
+            },
+            {
+                icon: "🎨",
+                title: "Country-Based Pricing",
+                description: "Dynamic pricing per market (Benin, Nigeria, Ghana, etc.)",
+                category: ["core", "payments"],
+                status: "live",
+                details: "Automatic pricing adjustment based on user's country with currency conversion."
+            },
+            {
+                icon: "💎",
+                title: "Subscription Plans",
+                description: "Free, Starter, Pro, Enterprise with feature gating",
+                category: ["core", "payments"],
+                status: "live",
+                details: "Tiered subscription system with automatic feature access control and upgrade flows."
+            },
+            {
+                icon: "🎁",
+                title: "Launch Promo",
+                description: "Enable all features free for first 6 months",
+                category: ["core"],
+                status: "new",
+                details: "Promotional feature flag system to unlock all enterprise features during launch period."
+            },
+            {
+                icon: "🔍",
+                title: "Trust Verification",
+                description: "QR-code based receipt verification for customers",
+                category: ["compliance", "core"],
+                status: "live",
+                details: "Public verification portal where customers can scan QR codes to verify receipt authenticity."
+            },
+            {
+                icon: "📞",
+                title: "Admin AI Query",
+                description: "Platform admins can query any business data via natural language",
+                category: ["ai", "reporting"],
+                status: "live",
+                details: "Super-admin tool for querying platform-wide metrics and business data using natural language."
+            },
+            {
+                icon: "📊",
+                title: "Platform Metrics",
+                description: "DAU, MAU, revenue, churn tracking for platform admins",
+                category: ["reporting"],
+                status: "live",
+                details: "Comprehensive platform analytics for business intelligence and growth tracking."
+            },
+            {
+                icon: "🔧",
+                title: "Idempotency",
+                description: "Prevent duplicate payments/transactions with idempotency keys",
+                category: ["infrastructure", "financial"],
+                status: "live",
+                details: "Request deduplication system ensuring financial transactions are never processed twice."
+            },
+            {
+                icon: "🌐",
+                title: "Webhook System",
+                description: "Receive real-time events from payment providers",
+                category: ["integration", "infrastructure"],
+                status: "live",
+                details: "Webhook handler for processing payment notifications, reconciliation events, and third-party integrations."
+            },
+            {
+                icon: "🔄",
+                title: "MoMo Reconciliation",
+                description: "Daily auto-reconciliation of Mobile Money transactions",
+                category: ["financial", "integration"],
+                status: "live",
+                details: "Automated reconciliation service that matches mobile money provider statements with ledger entries."
+            },
+            {
+                icon: "💼",
+                title: "Restock Loans",
+                description: "AI-powered inventory loan recommendations based on sales velocity",
+                category: ["ai", "financial"],
+                status: "beta",
+                details: "Analyzes inventory turnover and suggests optimal loan amounts for restocking popular items."
+            },
+            {
+                icon: "🎯",
+                title: "MCP Tools (5+)",
+                description: "Business OS tools: search_ledger, get_summary, top_customers, etc.",
+                category: ["ai", "integration"],
+                status: "new",
+                details: "Model Context Protocol tools for AI agents to query business data, generate insights, and automate workflows."
+            },
+            {
+                icon: "🏢",
+                title: "Credit Bureau Integration",
+                description: "Query external credit bureaus for supplier/customer vetting",
+                category: ["integration", "financial"],
+                status: "new",
+                details: "Integration with African credit bureaus for KYC and credit risk assessment."
+            },
+            {
+                icon: "📡",
+                title: "CloudWatch Monitoring",
+                description: "Real-time alerts for Lambda errors, DynamoDB throttling, API 5xx",
+                category: ["infrastructure"],
+                status: "live",
+                details: "Comprehensive AWS CloudWatch monitoring with SNS alerts for operational issues."
+            },
+            {
+                icon: "🐛",
+                title: "Sentry Error Tracking",
+                description: "Full-stack error tracking with PII filtering and performance monitoring",
+                category: ["infrastructure"],
+                status: "live",
+                details: "Production error tracking with automatic context capture, session replay, and performance profiling."
+            },
+            {
+                icon: "🔄",
+                title: "Circuit Breakers",
+                description: "Auto-failover for payment providers with exponential backoff",
+                category: ["infrastructure", "payments"],
+                status: "live",
+                details: "Opossum circuit breakers on external services ensuring graceful degradation during outages."
+            },
+            {
+                icon: "💾",
+                title: "Disaster Recovery",
+                description: "35-day point-in-time recovery for all DynamoDB tables",
+                category: ["infrastructure"],
+                status: "live",
+                details: "Automated backups with point-in-time recovery, deletion protection for production."
+            },
+            {
+                icon: "🚀",
+                title: "CI/CD Pipeline",
+                description: "GitHub Actions auto-deploy to dev/staging/prod",
+                category: ["infrastructure"],
+                status: "live",
+                details: "Automated testing, linting, and deployment pipeline with AWS OIDC authentication."
+            },
+            {
+                icon: "📱",
+                title: "Mobile-First UI",
+                description: "Responsive Next.js frontend optimized for smartphones",
+                category: ["core"],
+                status: "live",
+                details: "Progressive web app with offline capabilities, optimized for low-bandwidth connections."
+            },
+            {
+                icon: "🎨",
+                title: "Dark Mode",
+                description: "Theme switching with user preference persistence",
+                category: ["core"],
+                status: "live",
+                details: "System-wide dark mode support with automatic theme detection and manual override."
+            },
+            {
+                icon: "🔒",
+                title: "Regulatory Reports",
+                description: "Auto-generate compliance reports for tax authorities",
+                category: ["compliance", "reporting"],
+                status: "live",
+                details: "Pre-built report templates for West African tax authorities and regulatory bodies."
+            },
+            {
+                icon: "💬",
+                title: "AI Chat Assistant",
+                description: "Conversational interface for business queries and actions",
+                category: ["ai", "core"],
+                status: "beta",
+                details: "Natural language interface for querying data, generating reports, and executing actions."
+            },
+            {
+                icon: "📦",
+                title: "S3 File Storage",
+                description: "Secure storage for receipts, invoices, bank statements",
+                category: ["infrastructure"],
+                status: "live",
+                details: "AWS S3 integration for document storage with presigned URLs for secure access."
+            },
+            {
+                icon: "🎯",
+                title: "Feature Flags",
+                description: "Dynamic feature toggling per plan/user/promo",
+                category: ["infrastructure"],
+                status: "live",
+                details: "Flexible feature management system supporting plan-based access, user overrides, and promotional campaigns."
+            },
+            {
+                icon: "🌍",
+                title: "Onboarding Wizard",
+                description: "Guided setup for new businesses with smart defaults",
+                category: ["core"],
+                status: "live",
+                details: "Multi-step onboarding flow with business type detection and auto-configuration."
+            },
+            {
+                icon: "📊",
+                title: "Usage Analytics",
+                description: "Track feature usage, API calls, storage per business",
+                category: ["reporting"],
+                status: "live",
+                details: "Per-tenant usage tracking for billing, capacity planning, and feature adoption analysis."
+            },
+            {
+                icon: "🔐",
+                title: "Email Verification",
+                description: "AWS SES-based email confirmation with magic links",
+                category: ["security", "core"],
+                status: "live",
+                details: "Email verification flow with magic link authentication and resend capabilities."
+            },
+            {
+                icon: "🎯",
+                title: "Intent Parser",
+                description: "AI understands user intent from chat messages",
+                category: ["ai"],
+                status: "beta",
+                details: "NLP-based intent classification routing user requests to appropriate handlers."
+            },
+            {
+                icon: "⚡",
+                title: "Real-Time Events",
+                description: "EventBridge integration for event-driven workflows",
+                category: ["infrastructure", "integration"],
+                status: "live",
+                details: "AWS EventBridge for decoupled event processing and cross-service communication."
+            }
+        ];
+
+        function renderFeatures(filter = 'all', searchTerm = '') {
+            const grid = document.getElementById('featuresGrid');
+            const filtered = features.filter(f => {
+                const matchesCategory = filter === 'all' || f.category.includes(filter);
+                const matchesSearch = !searchTerm ||
+                    f.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    f.description.toLowerCase().includes(searchTerm.toLowerCase());
+                return matchesCategory && matchesSearch;
+            });
+
+            grid.innerHTML = filtered.map(f => `
+                <div class="feature-card" onclick='showDetails(${JSON.stringify(f)})'>
+                    <div class="feature-icon">${f.icon}</div>
+                    <div class="feature-title">
+                        ${f.title}
+                        ${f.status ? `<span class="status-badge status-${f.status}">${f.status}</span>` : ''}
+                    </div>
+                    <div class="feature-description">${f.description}</div>
+                    <div class="feature-tags">
+                        ${f.category.map(c => `<span class="tag ${c}">${c}</span>`).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showDetails(feature) {
+            const modal = document.getElementById('featureModal');
+            const body = document.getElementById('modalBody');
+
+            body.innerHTML = `
+                <div style="font-size: 3em; margin-bottom: 20px;">${feature.icon}</div>
+                <h2 style="margin-bottom: 10px;">${feature.title}</h2>
+                <div style="margin-bottom: 20px;">
+                    ${feature.category.map(c => `<span class="tag ${c}">${c}</span>`).join(' ')}
+                    ${feature.status ? `<span class="status-badge status-${feature.status}">${feature.status}</span>` : ''}
+                </div>
+                <p style="font-size: 1.1em; line-height: 1.8; color: #555;">${feature.details}</p>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('featureModal').style.display = 'none';
+        }
+
+        // Event listeners
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                renderFeatures(this.dataset.filter, document.getElementById('searchBox').value);
+            });
+        });
+
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+            renderFeatures(activeFilter, e.target.value);
+        });
+
+        // Close modal on background click
+        document.getElementById('featureModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        // Initial render
+        renderFeatures();
+    </script>
+</body>
+</html>

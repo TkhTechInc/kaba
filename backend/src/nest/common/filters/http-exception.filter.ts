@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { DomainError } from '@/shared/errors/DomainError';
+import { captureException } from '@/shared/sentry';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -42,6 +43,20 @@ export class HttpExceptionFilter implements ExceptionFilter {
       this.logger.error(exception.message, exception.stack);
       if (process.env['NODE_ENV'] !== 'production') {
         message = exception.message;
+      }
+
+      // Capture unexpected errors to Sentry (5xx only)
+      if (status >= 500) {
+        captureException(exception, {
+          userId: (request as any).user?.sub,
+          businessId: (request as any).user?.businessId,
+          operation: `${request.method} ${request.path}`,
+          metadata: {
+            statusCode: status,
+            query: request.query,
+            body: request.body,
+          },
+        });
       }
     }
 

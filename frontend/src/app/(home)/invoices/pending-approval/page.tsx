@@ -40,6 +40,17 @@ export default function PendingApprovalsPage() {
     load();
   }, [businessId]);
 
+  // Refresh when page becomes visible (e.g., tab switch after approval in another tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && businessId) {
+        load();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [businessId]);
+
   const handleApprove = async (invoiceId: string) => {
     if (!businessId) return;
     setApprovingId(invoiceId);

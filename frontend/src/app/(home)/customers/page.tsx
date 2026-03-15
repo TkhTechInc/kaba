@@ -90,6 +90,17 @@ export default function CustomersPage() {
     load();
   }, [businessId, page, limit, dateRange]);
 
+  // Refresh customer list when page becomes visible (e.g., after creating customer in invoice form)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && businessId) {
+        load();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [businessId, page, limit, dateRange]);
+
   if (!businessId) {
     return (
       <>
