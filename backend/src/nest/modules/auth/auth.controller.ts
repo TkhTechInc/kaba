@@ -1,6 +1,6 @@
 import { BadRequestException, Body, Controller, Get, Post, Req, Res, UseGuards, Optional, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { Request, Response } from 'express';
 import { Public, Auth } from '../../common/decorators/auth.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -11,6 +11,7 @@ import { LoginEmailDto } from './dto/login-email.dto';
 import { SignUpDto } from './dto/signup.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { AUTH_COOKIE_NAME } from '../../common/strategies/jwt.strategy';
+import { GoogleOAuthConfiguredGuard } from '../../common/guards/oauth-configured.guard';
 
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
@@ -53,6 +54,7 @@ export class AuthController {
 
   @Get('me')
   @Auth()
+  @SkipThrottle()
   async getMe(@CurrentUser('sub') userId: string) {
     const { user, businesses } = await this.authService.getMe(userId);
     return { success: true, data: { user, businesses } };
@@ -159,14 +161,14 @@ export class AuthController {
 
   @Get('google')
   @Public()
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthConfiguredGuard, AuthGuard('google'))
   async googleAuth() {
     // Guard redirects to Google
   }
 
   @Get('google/callback')
   @Public()
-  @UseGuards(AuthGuard('google'))
+  @UseGuards(GoogleOAuthConfiguredGuard, AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const user = req.user as { id: string; email?: string; providerId: string; name?: string; picture?: string };
     const result = await this.authService.loginOrCreateOAuth(
@@ -179,8 +181,10 @@ export class AuthController {
     const isProd = this.config?.get<string>('environment') === 'production';
     setAuthCookie(res, result.accessToken, isProd);
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    const separator = frontendUrl.includes('://') ? '' : '://';
-    res.redirect(`${frontendUrl}${separator}auth/callback`);
+    const base = frontendUrl.replace(/\/$/, '');
+    // Pass token in URL so frontend receives it reliably (cookie may not be sent cross-origin)
+    const tokenParam = encodeURIComponent(result.accessToken);
+    res.redirect(`${base}/auth/callback?token=${tokenParam}`);
   }
 
   @Get('facebook')
@@ -205,7 +209,8 @@ export class AuthController {
     const isProd = this.config?.get<string>('environment') === 'production';
     setAuthCookie(res, result.accessToken, isProd);
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    const separator = frontendUrl.includes('://') ? '' : '://';
-    res.redirect(`${frontendUrl}${separator}auth/callback`);
+    const base = frontendUrl.replace(/\/$/, '');
+    const tokenParam = encodeURIComponent(result.accessToken);
+    res.redirect(`${base}/auth/callback?token=${tokenParam}`);
   }
 }

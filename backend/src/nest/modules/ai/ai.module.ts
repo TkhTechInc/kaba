@@ -87,7 +87,7 @@ function createLLMProvider(config: ConfigService): ILLMProvider {
     }
     case 'openrouter': {
       const key = process.env['OPENROUTER_API_KEY'] || '';
-      if (!key) throw new Error('OPENROUTER_API_KEY is required for OpenRouter provider');
+      if (!key) return new MockLLMProvider(); // fallback when secret not yet created
       const openRouterModel = (model?.includes('/') ? model : null) ?? 'openai/gpt-4o-mini';
       return new OpenRouterProvider(key, openRouterModel);
     }

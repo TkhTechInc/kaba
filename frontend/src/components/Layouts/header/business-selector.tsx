@@ -6,8 +6,12 @@ import { ChevronUp } from "@/components/Layouts/sidebar/icons";
 import { useState } from "react";
 import { useClickOutside } from "@/hooks/use-click-outside";
 
+function displayName(b: { businessId: string; name?: string }) {
+  return b.name?.trim() || b.businessId;
+}
+
 export function BusinessSelector() {
-  const { businesses, businessId, setBusinessId } = useAuth();
+  const { businesses, businessId, setBusinessId, updateUserPreferences } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useClickOutside<HTMLDivElement>(() => setOpen(false));
 
@@ -15,12 +19,20 @@ export function BusinessSelector() {
   if (businesses.length === 1) {
     return (
       <span className="text-sm font-medium text-dark-4 dark:text-dark-6">
-        {businesses[0].businessId}
+        {displayName(businesses[0])}
       </span>
     );
   }
 
   const current = businesses.find((b) => b.businessId === businessId) ?? businesses[0];
+
+  const handleSelect = (b: (typeof businesses)[0]) => {
+    setBusinessId(b.businessId);
+    setOpen(false);
+    updateUserPreferences({ defaultBusinessId: b.businessId }).catch(() => {
+      // Silently ignore — local state is updated; chat/USSD may use previous default
+    });
+  };
 
   return (
     <div className="relative" ref={ref}>
@@ -33,7 +45,7 @@ export function BusinessSelector() {
           "hover:bg-gray-100 dark:hover:bg-[#FFFFFF1A]"
         )}
       >
-        <span className="truncate max-w-[140px]">{current.businessId}</span>
+        <span className="truncate max-w-[140px]">{displayName(current)}</span>
         <ChevronUp
           className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")}
         />
@@ -47,10 +59,7 @@ export function BusinessSelector() {
             <li key={b.businessId} role="option">
               <button
                 type="button"
-                onClick={() => {
-                  setBusinessId(b.businessId);
-                  setOpen(false);
-                }}
+                onClick={() => handleSelect(b)}
                 className={cn(
                   "w-full px-3 py-2 text-left text-sm",
                   b.businessId === businessId
@@ -58,7 +67,7 @@ export function BusinessSelector() {
                     : "hover:bg-gray-100 dark:hover:bg-[#FFFFFF1A]"
                 )}
               >
-                {b.businessId}
+                {displayName(b)}
               </button>
             </li>
           ))}

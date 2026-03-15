@@ -8,24 +8,14 @@ const path = require('path');
 const rootDir = path.join(__dirname, '..');
 const apiLambdaDir = path.join(rootDir, 'dist/api-lambda');
 const recurringLambdaDir = path.join(rootDir, 'dist/recurring-invoice-lambda');
+const paymentReminderLambdaDir = path.join(rootDir, 'dist/payment-reminder-lambda');
+const dailySummaryLambdaDir = path.join(rootDir, 'dist/daily-summary-lambda');
 const paymentEventLambdaDir = path.join(rootDir, 'dist/payment-event-lambda');
 const whatsappWebhookDir = path.join(rootDir, 'dist/lambda/whatsapp-webhook');
 const telegramWebhookDir = path.join(rootDir, 'dist/lambda/telegram-webhook');
-if (!fs.existsSync(apiLambdaDir)) {
-  fs.mkdirSync(apiLambdaDir, { recursive: true });
-}
-if (!fs.existsSync(recurringLambdaDir)) {
-  fs.mkdirSync(recurringLambdaDir, { recursive: true });
-}
-if (!fs.existsSync(paymentEventLambdaDir)) {
-  fs.mkdirSync(paymentEventLambdaDir, { recursive: true });
-}
-if (!fs.existsSync(whatsappWebhookDir)) {
-  fs.mkdirSync(whatsappWebhookDir, { recursive: true });
-}
-if (!fs.existsSync(telegramWebhookDir)) {
-  fs.mkdirSync(telegramWebhookDir, { recursive: true });
-}
+[apiLambdaDir, recurringLambdaDir, paymentReminderLambdaDir, dailySummaryLambdaDir, paymentEventLambdaDir, whatsappWebhookDir, telegramWebhookDir].forEach((d) => {
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+});
 
 // Remove leftover trace files from previous debug builds
 if (fs.existsSync(apiLambdaDir)) {
@@ -88,6 +78,30 @@ esbuild
   })
   .then(() => {
     console.log('Recurring invoice Lambda bundled: dist/recurring-invoice-lambda/handler.js');
+    return esbuild.build({
+      entryPoints: [path.join(rootDir, 'src/infrastructure/handlers/payment-reminder.ts')],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/payment-reminder-lambda/handler.js'),
+      external: externals,
+    });
+  })
+  .then(() => {
+    console.log('Payment reminder Lambda bundled: dist/payment-reminder-lambda/handler.js');
+    return esbuild.build({
+      entryPoints: [path.join(rootDir, 'src/infrastructure/handlers/daily-summary.ts')],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/daily-summary-lambda/handler.js'),
+      external: externals,
+    });
+  })
+  .then(() => {
+    console.log('Daily summary Lambda bundled: dist/daily-summary-lambda/handler.js');
     return esbuild.build({
       entryPoints: [
         path.join(rootDir, 'src/infrastructure/handlers/payment-event.ts'),

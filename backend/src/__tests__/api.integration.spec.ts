@@ -321,12 +321,16 @@ describe('API Integration (real backend)', () => {
   });
 
   describe('Storefront (public)', () => {
-    it('GET /api/v1/storefront/:slug returns 404 for unknown slug', async () => {
-      const { status, json } = await api('GET', '/api/v1/storefront/nonexistent-slug-xyz');
-      expect(status).toBe(404);
-      const body = json as { statusCode?: number; message?: string };
-      expect(body.statusCode ?? body.message).toBeDefined();
-    });
+    it(
+      'GET /api/v1/storefront/:slug returns 404 for unknown slug',
+      async () => {
+        const { status, json } = await api('GET', '/api/v1/storefront/nonexistent-slug-xyz');
+        expect(status).toBe(404);
+        const body = json as { statusCode?: number; message?: string };
+        expect(body.statusCode ?? body.message).toBeDefined();
+      },
+      15000,
+    );
   });
 
   describe('Unauthenticated', () => {

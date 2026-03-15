@@ -49,6 +49,8 @@ export class KabaApiStack extends cdk.Stack {
     // Create secret: kaba/{environment}/jwt-secret with key 'jwt_secret'
     const jwtSecretName = `kaba/${environment}/jwt-secret`;
     const jwtSecret = secretsmanager.Secret.fromSecretNameV2(this, 'JwtSecret', jwtSecretName);
+    const googleOAuthSecretName = `kaba/${environment}/google-oauth`;
+    const googleOAuthSecret = secretsmanager.Secret.fromSecretNameV2(this, 'GoogleOAuthSecret', googleOAuthSecretName);
 
     // Lambda assets: pre-bundled NestJS (npm run bundle -> dist/api-lambda)
     // __dirname is src/infrastructure/stacks (ts-node) or dist/infrastructure/stacks (compiled)
@@ -83,6 +85,7 @@ export class KabaApiStack extends cdk.Stack {
         SMS_SENDER_ID: config.sms?.senderId ?? 'Kaba',
         ...(config.googleClientId && { GOOGLE_CLIENT_ID: config.googleClientId }),
         ...(config.googleClientSecret && { GOOGLE_CLIENT_SECRET: config.googleClientSecret }),
+        GOOGLE_OAUTH_SECRET_NAME: googleOAuthSecretName,
         FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
         API_URL: config.apiUrl ?? '',
         // AI: base provider + per-task model overrides. OPENROUTER_API_KEY loaded from secret.
@@ -114,6 +117,7 @@ export class KabaApiStack extends cdk.Stack {
     });
 
     jwtSecret.grantRead(this.apiLambda);
+    googleOAuthSecret.grantRead(this.apiLambda);
 
     // Recurring invoice Lambda: runs daily at 6am UTC to process due schedules
     const recurringInvoiceLambda = new lambda.Function(this, 'RecurringInvoiceLambda', {
@@ -406,8 +410,10 @@ export class KabaApiStack extends cdk.Stack {
       authorizationType: apigateway.AuthorizationType.NONE,
     });
 
-    // OAuth callback URL for Lambda (must match Google Console authorized redirect URIs)
-    const callbackUrl = `https://${restApi.restApiId}.execute-api.${this.region}.amazonaws.com/${environment}/api/v1/auth/google/callback`;
+    // OAuth callback URL (real domain for dev/staging/prod; API Gateway URL only for local)
+    const callbackUrl = config.apiUrl
+      ? `${config.apiUrl}/api/v1/auth/google/callback`
+      : `https://${restApi.restApiId}.execute-api.${this.region}.amazonaws.com/${environment}/api/v1/auth/google/callback`;
     this.apiLambda.addEnvironment('GOOGLE_CALLBACK_URL', callbackUrl);
 
     // AWS WAF v2 - only in prod (REGIONAL scope for API Gateway)

@@ -110,7 +110,9 @@ export class PlanPaymentService {
       const intent = await this.paymentsClient.createIntent({
         amount: record.amount,
         currency: record.currency,
-        country: business?.countryCode,
+        country: business?.countryCode ?? 'BJ',
+        gatewayOverride: 'kkiapay',
+        useWidget: true,
         metadata: {
           appId: 'kaba',
           referenceId: `plan-${record.token}`,

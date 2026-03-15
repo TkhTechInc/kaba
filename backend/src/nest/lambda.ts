@@ -42,10 +42,30 @@ async function ensureOpenRouterApiKey(): Promise<void> {
   }
 }
 
+async function ensureGoogleOAuth(): Promise<void> {
+  if (process.env['GOOGLE_CLIENT_ID'] && process.env['GOOGLE_CLIENT_SECRET']) return;
+  const secretName = process.env['GOOGLE_OAUTH_SECRET_NAME'];
+  if (!secretName) return;
+  try {
+    const client = new SecretsManagerClient({ region: process.env['AWS_REGION'] || 'af-south-1' });
+    const res = await client.send(new GetSecretValueCommand({ SecretId: secretName }));
+    const raw = res.SecretString;
+    if (!raw) return;
+    const data = JSON.parse(raw) as { client_id?: string; client_secret?: string } | Record<string, string>;
+    const clientId = data.client_id ?? (data as Record<string, string>)['clientId'];
+    const clientSecret = data.client_secret ?? (data as Record<string, string>)['clientSecret'];
+    if (clientId) process.env['GOOGLE_CLIENT_ID'] = clientId;
+    if (clientSecret) process.env['GOOGLE_CLIENT_SECRET'] = clientSecret;
+  } catch {
+    // Secret may not exist; Google OAuth will be disabled (returns 503)
+  }
+}
+
 async function bootstrap(): Promise<Handler> {
   try {
     await ensureJwtSecret();
     await ensureOpenRouterApiKey();
+    await ensureGoogleOAuth();
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { abortOnError: false });
 
     app.set('trust proxy', 1);

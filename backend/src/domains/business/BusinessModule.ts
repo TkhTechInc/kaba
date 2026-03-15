@@ -6,6 +6,7 @@ import { AuditModule } from '../audit/AuditModule';
 import { AccessModule } from '@/domains/access/AccessModule';
 import { TeamMemberRepository } from '@/domains/access/repositories/TeamMemberRepository';
 import { BusinessRepository } from './BusinessRepository';
+import { BusinessMemoryRepository } from './BusinessMemoryRepository';
 import { BusinessController } from './BusinessController';
 import { BranchController } from './BranchController';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
@@ -23,6 +24,14 @@ import { PermissionGuard } from '@/nest/common/guards/permission.guard';
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
     },
     {
+      provide: BusinessMemoryRepository,
+      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
+        const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
+        return new BusinessMemoryRepository(docClient, tableName);
+      },
+      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
+    },
+    {
       provide: TeamMemberRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
         const tableName = config.get<string>('dynamodb.ledgerTable') ?? 'Kaba-Ledger-dev';
@@ -32,6 +41,6 @@ import { PermissionGuard } from '@/nest/common/guards/permission.guard';
     },
     PermissionGuard,
   ],
-  exports: [BusinessRepository],
+  exports: [BusinessRepository, BusinessMemoryRepository],
 })
 export class BusinessModule {}

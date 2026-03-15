@@ -1,6 +1,11 @@
 /**
  * Environment Configuration for Kaba CDK Stacks
  *
+ * Four environments: local, dev, staging, prod.
+ * - local: localhost only (npm run dev)
+ * - dev, staging, prod: MUST use real domains (not API Gateway URLs).
+ *   Override via: cdk deploy -c apiUrl=... -c frontendUrl=...
+ *
  * Usage:
  *   cdk deploy -c environment=dev
  *   cdk deploy -c environment=staging
@@ -30,9 +35,9 @@ export interface EnvironmentConfig {
     provider?: 'aws_sns' | 'twilio' | 'africastalking';
     senderId?: string;
   };
-  /** Frontend URL for CORS (e.g. https://dev.kaba.example.com). Localhost is always allowed. */
+  /** Frontend URL for CORS. Dev/staging/prod must use real domain (not API Gateway URL). */
   frontendUrl?: string;
-  /** Public API URL for trust share links, webhooks, etc. (e.g. https://api.kabasika.com). Set via cdk deploy -c apiUrl=... */
+  /** Public API URL for trust share links, webhooks, OAuth callbacks. Dev/staging/prod must use real domain. */
   apiUrl?: string;
   /** Google OAuth — pass via cdk deploy -c googleClientId=... -c googleClientSecret=... */
   googleClientId?: string;
@@ -79,7 +84,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     name: 'Development',
     stage: 'dev',
     region: 'ca-central-1',
-    awsAccountId: '110044886269',
+    // awsAccountId omitted: uses current credentials (CDK_DEFAULT_ACCOUNT). Override: cdk deploy -c account=110044886269
     apiVersion: 'v1',
     scaling: {
       minCapacity: 1,
@@ -93,14 +98,16 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       logRetentionDays: 7,
     },
     sms: { enabled: false, provider: 'aws_sns', senderId: 'Kaba' },
-    frontendUrl: 'http://localhost:3000',
+    frontendUrl: 'https://dev.kabasika.com',
+    apiUrl: 'https://api.dev.kabasika.com',
     database: {
       useOnDemand: true,
       enablePITR: false,
     },
-    paymentsServiceUrl: 'https://hfy53j9rjc.execute-api.ca-central-1.amazonaws.com/dev/api/v1',
+    paymentsServiceUrl: 'https://dev-payments.tkhtech.com/api/v1',
     tkhPaymentsApiKey: undefined,
-    paymentsSnsTopicArn: 'arn:aws:sns:ca-central-1:497172038983:tkhtech-payment-events-dev',
+    // Cross-account SNS requires topic owner to add resource policy. Omit for deploy without org role.
+    paymentsSnsTopicArn: undefined,
     ai: {
       provider: 'openrouter',
       model: 'deepseek/deepseek-chat-v3-0324',
@@ -130,15 +137,26 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       logRetentionDays: 14,
     },
     sms: { enabled: true, provider: 'aws_sns', senderId: 'Kaba' },
-    frontendUrl: undefined, // Set via: cdk deploy -c frontendUrl=https://staging.example.com
+    frontendUrl: 'https://staging.kabasika.com',
+    apiUrl: 'https://api.staging.kabasika.com',
     database: {
       useOnDemand: true,
       enablePITR: true,
     },
-    // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
     paymentsServiceUrl: undefined,
     tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: undefined,
+    ai: {
+      provider: 'openrouter',
+      model: 'deepseek/deepseek-chat-v3-0324',
+      mobileMoneyParserProvider: 'llm',
+      intentModel: 'google/gemma-3-27b-it',
+      voiceModel: 'qwen/qwen3.5-flash-02-23',
+      loanModel: 'deepseek/deepseek-r1-0528',
+      ledgerQaModel: 'meta-llama/llama-3.3-70b-instruct',
+      visionModel: 'qwen/qwen3-vl-235b-a22b-instruct',
+      embeddingModel: 'qwen/qwen3-embedding-8b',
+    },
   },
   prod: {
     name: 'Production',
@@ -157,12 +175,12 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       logRetentionDays: 30,
     },
     sms: { enabled: true, provider: 'aws_sns', senderId: 'Kaba' },
-    frontendUrl: undefined, // Set via: cdk deploy -c frontendUrl=https://app.example.com
+    frontendUrl: 'https://app.kabasika.com',
+    apiUrl: 'https://api.kabasika.com',
     database: {
       useOnDemand: true,
       enablePITR: true,
     },
-    // Set via: cdk deploy -c paymentsServiceUrl=https://... -c paymentsSnsTopicArn=arn:...
     paymentsServiceUrl: undefined,
     tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: undefined,
@@ -176,14 +194,14 @@ export function getEnvironmentConfig(environment: string, contextOverrides?: Rec
       `Unknown environment: ${environment}. Valid options: ${Object.keys(ENVIRONMENTS).join(', ')}`
     );
   }
-  // Allow CDK context to override payments URLs at deploy time:
-  // cdk deploy -c paymentsServiceUrl=https://... -c tkhPaymentsApiKey=... -c paymentsSnsTopicArn=arn:...
+  // CDK context overrides: cdk deploy -c apiUrl=... -c frontendUrl=... -c paymentsServiceUrl=...
   return {
     ...config,
+    apiUrl: contextOverrides?.['apiUrl'] ?? config.apiUrl,
+    frontendUrl: contextOverrides?.['frontendUrl'] ?? config.frontendUrl,
     paymentsServiceUrl: contextOverrides?.['paymentsServiceUrl'] ?? config.paymentsServiceUrl,
     tkhPaymentsApiKey: contextOverrides?.['tkhPaymentsApiKey'] ?? config.tkhPaymentsApiKey,
     paymentsSnsTopicArn: contextOverrides?.['paymentsSnsTopicArn'] ?? config.paymentsSnsTopicArn,
-    apiUrl: contextOverrides?.['apiUrl'] ?? config.apiUrl,
   };
 }
 
@@ -196,5 +214,17 @@ export function validateEnvironmentConfig(config: EnvironmentConfig): void {
   }
   if (!config.stage) {
     throw new Error('Environment config is missing stage');
+  }
+  // Dev/staging/prod must use real domains (not API Gateway URLs)
+  if (['dev', 'staging', 'prod'].includes(config.stage)) {
+    if (!config.apiUrl) throw new Error(`${config.stage}: apiUrl is required (real domain)`);
+    if (!config.frontendUrl) throw new Error(`${config.stage}: frontendUrl is required (real domain)`);
+    const bad = (url: string) => url.includes('execute-api') || url.includes('amazonaws.com');
+    if (bad(config.apiUrl)) {
+      throw new Error(`${config.stage}: apiUrl must be a real domain, not API Gateway URL: ${config.apiUrl}`);
+    }
+    if (bad(config.frontendUrl)) {
+      throw new Error(`${config.stage}: frontendUrl must be a real domain, not API Gateway URL: ${config.frontendUrl}`);
+    }
   }
 }

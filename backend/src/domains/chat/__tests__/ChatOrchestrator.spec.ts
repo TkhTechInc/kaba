@@ -499,6 +499,34 @@ describe('ChatUserResolver', () => {
     expect(result).toEqual({ userId: 'usr-42', businessId: 'biz-42' });
   });
 
+  it('16b. resolveByEmail — uses preferredBusinessId when provided and valid', async () => {
+    const userRepo = makeMockUserRepository(dummyUser);
+    const accessService = {
+      listBusinessesForUser: jest.fn().mockResolvedValue([
+        { businessId: 'biz-a', role: 'owner' },
+        { businessId: 'biz-b', role: 'owner' },
+      ]),
+    } as unknown as import('@/domains/access/AccessService').AccessService;
+    const resolver = new ChatUserResolver(userRepo, accessService);
+
+    const result = await resolver.resolveByEmail('amara@gmail.com', 'biz-b');
+    expect(result).toEqual({ userId: 'usr-42', businessId: 'biz-b' });
+  });
+
+  it('16c. resolveByEmail — ignores invalid preferredBusinessId, uses default logic', async () => {
+    const userRepo = makeMockUserRepository(dummyUser);
+    const accessService = {
+      listBusinessesForUser: jest.fn().mockResolvedValue([
+        { businessId: 'biz-a', role: 'owner' },
+        { businessId: 'biz-b', role: 'owner' },
+      ]),
+    } as unknown as import('@/domains/access/AccessService').AccessService;
+    const resolver = new ChatUserResolver(userRepo, accessService);
+
+    const result = await resolver.resolveByEmail('amara@gmail.com', 'biz-nonexistent');
+    expect(result).toEqual({ userId: 'usr-42', businessId: 'biz-a' });
+  });
+
   it('17. resolveByChannelUserId — whatsapp calls resolveByPhone; telegram returns null', async () => {
     const userRepo = makeMockUserRepository(dummyUser);
     const accessService = makeMockAccessService('biz-42');

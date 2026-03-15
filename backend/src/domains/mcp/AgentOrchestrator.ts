@@ -9,6 +9,8 @@ import { ToolRegistry } from './ToolRegistry';
 import type { IAgentSession, AgentMessage } from './interfaces/IAgentSession';
 import type { McpScope, McpToolContext } from './interfaces/IMcpTool';
 import type { IMessagingChannel } from '@/domains/chat/interfaces/IMessagingChannel';
+import type { AgentMemory } from '@/domains/business/BusinessMemoryRepository';
+import { BusinessMemoryRepository } from '@/domains/business/BusinessMemoryRepository';
 
 const MESSAGING_CHANNELS = 'MESSAGING_CHANNELS';
 
@@ -31,11 +33,31 @@ export interface AgentChatResponse {
   upgradeRequired?: { feature: string; requiredTier: Tier };
 }
 
-const WRITE_TOOLS = new Set(['record_sale', 'record_expense', 'create_invoice', 'pay_supplier']);
+const WRITE_TOOLS = new Set([
+  'record_sale',
+  'record_expense',
+  'create_invoice',
+  'pay_supplier',
+  'add_debt',
+  'update_inventory',
+  'send_debt_reminder',
+]);
 const MAX_MESSAGES = 30;
 const MAX_ITERATIONS = 5;
 
-function buildSystemPrompt(toolList: string): string {
+function buildMemorySection(memory: AgentMemory | null): string {
+  if (!memory) return '';
+  const parts: string[] = [];
+  if (memory.defaultCurrency) parts.push(`Default currency: ${memory.defaultCurrency}`);
+  if (memory.frequentProducts?.length)
+    parts.push(`Frequent products: ${memory.frequentProducts.join(', ')}`);
+  if (memory.topCustomers?.length) parts.push(`Top customers: ${memory.topCustomers.join(', ')}`);
+  if (parts.length === 0) return '';
+  return `\nMERCHANT PREFERENCES (use this to auto-suggest):\n${parts.join('\n')}\n`;
+}
+
+function buildSystemPrompt(toolList: string, memory?: AgentMemory | null): string {
+  const memorySection = buildMemorySection(memory ?? null);
   return `You are Kaba AI, the AI CFO for West African small businesses.
 You help merchants track sales, expenses, invoices, debts, inventory, suppliers, and get financial insights.
 You are friendly, concise, and culturally aware. You operate across Francophone and Anglophone West Africa.
@@ -63,6 +85,9 @@ Example: "Ajoute une dépense de 2000 pour transport"
 Example: "Relance Moussa" or "Send reminder to Moussa"
 → First call list_debts to find Moussa's debt ID, then call send_debt_reminder
 
+Example: "Pourquoi mes ventes ont baissé?" or "Why did my sales drop?"
+→ call analyze_trends (periodType: "week" or "month") to get period comparison, then explain the results
+
 TOOL USAGE: When you need data or want to perform an action, emit a tool call as a JSON line:
 {"tool_call": {"name": "<tool_name>", "input": {<arguments>}}}
 
@@ -71,7 +96,7 @@ Do NOT emit tool calls in your final answer to the user.
 
 Available tools:
 ${toolList}
-
+${memorySection}
 RESPONSE FORMAT: After getting tool results, give a clear, friendly answer. Use the user's currency and language.
 For numbers, format with thousands separators (e.g. 45 000 XOF not 45000).
 Keep responses short — merchants are busy. Use bullet points for lists.`;
@@ -116,8 +141,13 @@ export class AgentOrchestrator {
     private readonly sessionStore: AgentSessionStore,
     private readonly toolRegistry: ToolRegistry,
     private readonly featureService: FeatureService,
+    private readonly memoryRepo: BusinessMemoryRepository,
     @Optional() @Inject(MESSAGING_CHANNELS) private readonly messagingChannels?: IMessagingChannel[],
   ) {}
+
+  private async getMemory(businessId: string): Promise<AgentMemory | null> {
+    return this.memoryRepo.get(businessId);
+  }
 
   async chat(input: AgentChatInput): Promise<AgentChatResponse> {
     const { sessionId: inputSessionId, message, businessId, userId, customerEmail, tier, scope, channelUserId, channelName } = input;
@@ -152,7 +182,8 @@ export class AgentOrchestrator {
       .map(t => `- ${t.name}: ${t.description}`)
       .join('\n');
 
-    const systemPrompt = buildSystemPrompt(toolList);
+    const memory = await this.getMemory(businessId);
+    const systemPrompt = buildSystemPrompt(toolList, memory);
     const toolsUsed: string[] = [];
     let finalMessage = '';
 

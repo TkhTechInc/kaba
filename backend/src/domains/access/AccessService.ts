@@ -12,6 +12,8 @@ import { AUDIT_LOGGER } from '@/domains/audit/interfaces/IAuditLogger';
 export interface BusinessAccess {
   businessId: string;
   role: Role;
+  /** Business name for display (e.g. in selector) */
+  name?: string;
 }
 
 export interface OrganizationAccess {
@@ -70,12 +72,21 @@ export class AccessService {
 
   /**
    * List all businesses the user has access to.
+   * Enriches with business name for display (e.g. in selector).
    */
   async listBusinessesForUser(userId: string): Promise<BusinessAccess[]> {
     const members = await this.teamMemberRepo.listBusinessesForUser(userId);
-    return members
-      .filter((m) => m.businessId)
-      .map((m) => ({ businessId: m.businessId!, role: m.role }));
+    const result: BusinessAccess[] = [];
+    for (const m of members) {
+      if (!m.businessId) continue;
+      const business = await this.businessRepo.getById(m.businessId);
+      result.push({
+        businessId: m.businessId,
+        role: m.role,
+        name: business?.name,
+      });
+    }
+    return result;
   }
 
   /**

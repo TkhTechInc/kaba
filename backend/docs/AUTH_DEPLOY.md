@@ -38,23 +38,36 @@ Google allows multiple redirect URIs per client, so you can have both localhost 
 
 ## Google OAuth (Lambda)
 
-For localhost frontend → AWS backend, pass Google credentials at deploy time:
+**Option A: Secrets Manager (recommended)**
+
+1. Create the secret (same region as deployment, e.g. ca-central-1 for dev):
+
+```bash
+aws secretsmanager create-secret \
+  --name kaba/dev/google-oauth \
+  --secret-string '{"client_id":"YOUR_CLIENT_ID.apps.googleusercontent.com","client_secret":"YOUR_CLIENT_SECRET"}' \
+  --region ca-central-1
+```
+
+2. Deploy. The Lambda loads credentials from Secrets Manager at startup.
+
+**Option B: Pass at deploy time**
 
 ```bash
 cdk deploy -c environment=dev \
-  -c frontendUrl=http://localhost:3000 \
   -c googleClientId=YOUR_CLIENT_ID.apps.googleusercontent.com \
   -c googleClientSecret=YOUR_CLIENT_SECRET \
   --all --require-approval never
 ```
 
-Then add the **deployed callback URL** to Google Cloud Console → Credentials → OAuth client → Authorized redirect URIs:
+**Google Cloud Console**
 
-```
-https://YOUR_API_ID.execute-api.ca-central-1.amazonaws.com/dev/api/v1/auth/google/callback
-```
+Add the callback URL to Credentials → OAuth client → Authorized redirect URIs:
 
-(Replace `YOUR_API_ID` with your actual API Gateway ID, e.g. `gvjyf5lixl` from your URL.)
+- Custom domain: `https://api.dev.kabasika.com/api/v1/auth/google/callback`
+- Or API Gateway URL: `https://YOUR_API_ID.execute-api.ca-central-1.amazonaws.com/dev/api/v1/auth/google/callback`
+
+If credentials are missing, `/api/v1/auth/google` returns 503 with instructions.
 
 ## Auth Flows
 

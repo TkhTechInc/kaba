@@ -24,10 +24,6 @@ const EMPTY_FORM_BASE: Omit<CreateSupplierInput, "currency"> = {
   momoPhone: "",
   bankAccount: "",
   notes: "",
-  phone: "",
-  momoPhone: "",
-  bankAccount: "",
-  notes: "",
 };
 
 export default function SuppliersPage() {

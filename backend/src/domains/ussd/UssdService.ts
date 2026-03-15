@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { UserRepository } from '@/nest/modules/auth/repositories/UserRepository';
 import { AccessService } from '@/domains/access/AccessService';
+import { pickBusinessForUser } from '@/domains/access/user-business-resolver';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 
@@ -62,7 +63,7 @@ export class UssdService {
     const businesses = await this.accessService.listBusinessesForUser(user.id);
     if (!businesses.length) return null;
 
-    return businesses[0].businessId;
+    return pickBusinessForUser(user, businesses);
   }
 
   async getBalance(phoneNumber: string): Promise<string> {

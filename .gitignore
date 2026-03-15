@@ -10,6 +10,9 @@ frontend/out/
 # CDK
 backend/cdk.out/
 
+# Vercel
+frontend/.vercel/
+
 # Environment (secrets)
 .env
 .env.local

@@ -6,6 +6,9 @@ import { AgentOrchestrator } from '../../domains/mcp/AgentOrchestrator';
 import { TelegramChannel } from '../../domains/chat/providers/TelegramChannel';
 import { ChatUserResolver } from '../../domains/chat/services/ChatUserResolver';
 import { DynamoConversationStore } from '../../domains/chat/services/DynamoConversationStore';
+import { BusinessRepository } from '../../domains/business/BusinessRepository';
+import { AI_SPEECH_TO_TEXT } from '../../nest/modules/ai/ai.tokens';
+import type { ISpeechToText } from '../../domains/ai/ISpeechToText';
 
 let appContext: INestApplicationContext | undefined;
 
@@ -20,10 +23,11 @@ const REGISTRATION_PROMPT =
   'Welcome to Kaba! Your account is not linked to this chat.\n\n' +
   'To get started:\n' +
   '1. Create an account at app.kaba.dev\n' +
-  '2. Reply: LINK <your email>\n\n' +
+  '2. Reply: LINK <your email>\n' +
+  '   (If you have multiple businesses: LINK <email> <businessId>)\n\n' +
   'Example: LINK amara@gmail.com';
 
-const LINK_COMMAND = /^link\s+(\S+@\S+\.\S+)$/i;
+const LINK_COMMAND = /^link\s+(\S+@\S+\.\S+)(?:\s+(\S+))?$/i;
 
 export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
   try {
@@ -76,7 +80,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
       if (match) {
         const email = match[1];
-        const resolved = await userResolver.resolveByEmail(email);
+        const businessId = match[2];
+        const resolved = await userResolver.resolveByEmail(email, businessId);
         if (resolved) {
           session.businessId = resolved.businessId;
           session.userId = resolved.userId;
@@ -101,14 +106,36 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return { statusCode: 200, body: 'OK' };
     }
 
+    // Resolve message: text or transcribe voice note
+    let messageText = incoming.text ?? '';
+    if (!messageText && incoming.audioUrl?.startsWith('telegram-voice:')) {
+      try {
+        const fileId = incoming.audioUrl.replace(/^telegram-voice:/, '');
+        const audioBuffer = await tgChannel.fetchVoiceToBuffer(fileId);
+        const speechToText = ctx.get(AI_SPEECH_TO_TEXT) as ISpeechToText;
+        const { text } = await speechToText.transcribe(audioBuffer);
+        messageText = text?.trim() || '';
+      } catch (err) {
+        console.error('Telegram voice transcription failed', err);
+        await tgChannel.send({
+          channelUserId: incoming.channelUserId,
+          text: 'Sorry, I could not understand the voice message. Please try typing your message.',
+        });
+        return { statusCode: 200, body: 'OK' };
+      }
+    }
+    if (!messageText) return { statusCode: 200, body: 'OK' };
+
     // Linked — route through AgentOrchestrator
+    const businessRepo = ctx.get(BusinessRepository);
+    const business = await businessRepo.getOrCreate(session.businessId, 'free');
     const agentOrchestrator = ctx.get(AgentOrchestrator);
     await agentOrchestrator.chat({
       sessionId,
-      message: incoming.text ?? '',
+      message: messageText,
       businessId: session.businessId,
       userId: session.userId,
-      tier: 'starter', // TODO: load real tier from BusinessRepository
+      tier: business.tier,
       scope: 'business',
       channelUserId: incoming.channelUserId,
       channelName: 'telegram',

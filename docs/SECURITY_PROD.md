@@ -19,14 +19,16 @@ Zero-cost security measures enforced when `NODE_ENV=production`. See `backend/.e
 
 ## Deploy (CDK)
 
+`apiUrl` and `frontendUrl` have defaults in `environments.ts`; override if needed:
+
 ```bash
 cdk deploy -c environment=prod \
-  -c frontendUrl=https://app.kabasika.com \
   -c apiUrl=https://api.kabasika.com \
+  -c frontendUrl=https://app.kabasika.com \
   --all --require-approval broadening
 ```
 
-CDK sets `CORS_ORIGINS` from `frontendUrl`. Ensure `frontendUrl` is passed for prod.
+See [ENVIRONMENTS.md](./ENVIRONMENTS.md) for the 4-env domain convention.
 
 ## What's enforced
 

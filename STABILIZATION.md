@@ -37,6 +37,16 @@
 | Customer portal | ✅ `/portal/[businessId]` — public invoice lookup by email |
 | Error / not-found pages | ✅ App-level `error.tsx`, `not-found.tsx`, auth error page |
 | Playwright e2e setup | ✅ `auth.setup.ts` bug fixed (`bizRes.ok()` method call); test files exist |
+| Multi-business user support | ✅ One user can own multiple separate businesses. Default business for chat/USSD. `PATCH /users/me/preferences` with `defaultBusinessId`. See `docs/MULTI_BUSINESS.md`. |
+
+---
+
+## Multi-business (one user, multiple businesses)
+
+- **Web**: BusinessSelector shows all businesses; switching updates `defaultBusinessId` via `PATCH /users/me/preferences`.
+- **Chat/USSD**: `pickBusinessForUser` uses `user.preferences.defaultBusinessId` when set and valid; else `businesses[0]`.
+- **LINK command**: `LINK email` or `LINK email businessId` when linking WhatsApp/Telegram.
+- **fix-dev**: `SEED_KEEP_EXISTING=true` adds target business without removing others.
 
 ---
 
@@ -106,7 +116,8 @@ cdk deploy -c environment=staging \
 
 | Item | Notes |
 |------|-------|
-| **WhatsApp providers** | Only Meta Cloud API supported. Twilio and Africa's Talking providers are stub TODO. |
+| **WhatsApp providers** | Only Meta Cloud API supported. Twilio and Africa's Talking are for SMS, not WhatsApp. |
+| **SMS (Twilio / Africa's Talking)** | Set SMS_PROVIDER=twilio (or africastalking), plus TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER. SMS auto-enables when credentials are present. |
 | **Staging/prod payments config** | `paymentsServiceUrl` and `paymentsSnsTopicArn` must be supplied via CDK context at deploy time — no hardcoded staging/prod URLs yet. |
 | **KkiaPay webhook** | Payment webhook verification uses `KKIAPAY_PRIVATE_KEY` — must be set in Lambda environment for prod. |
 | **Reconciliation** | Mobile money SMS parsing requires `MOBILE_MONEY_PARSER_PROVIDER=llm` and AI config for real parsing; mock returns empty. |

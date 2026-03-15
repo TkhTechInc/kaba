@@ -17,10 +17,21 @@ export class SmsService {
     twilioProvider: TwilioSmsProvider,
     africastalkingProvider: AfricasTalkingSmsProvider,
   ) {
-    this.enabled = config?.get<boolean>('sms.enabled') ?? process.env['SMS_ENABLED'] === 'true';
+    const providerName = config?.get<string>('sms.provider') || process.env['SMS_PROVIDER'] || 'aws_sns';
+    const explicitEnabled = config?.get<boolean>('sms.enabled') ?? process.env['SMS_ENABLED'] === 'true';
+    // Auto-enable when Twilio or Africa's Talking is configured (credentials present)
+    const twilioReady =
+      providerName === 'twilio' &&
+      process.env['TWILIO_ACCOUNT_SID'] &&
+      process.env['TWILIO_AUTH_TOKEN'] &&
+      process.env['TWILIO_PHONE_NUMBER'];
+    const atReady =
+      providerName === 'africastalking' &&
+      process.env['AFRICASTALKING_USERNAME'] &&
+      process.env['AFRICASTALKING_API_KEY'];
+    this.enabled = Boolean(explicitEnabled || twilioReady || atReady);
     this.senderId = config?.get<string>('sms.senderId') || process.env['SMS_SENDER_ID'] || 'Kaba';
 
-    const providerName = config?.get<string>('sms.provider') || process.env['SMS_PROVIDER'] || 'aws_sns';
     switch (providerName) {
       case 'twilio':
         this.provider = twilioProvider;

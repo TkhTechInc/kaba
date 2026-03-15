@@ -1,5 +1,15 @@
-import { BadRequestException, Body, Controller, Patch, UseGuards, Inject, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Param,
+  Patch,
+  UseGuards,
+  Inject,
+  Optional,
+} from '@nestjs/common';
 import { BusinessRepository } from './BusinessRepository';
+import { BusinessMemoryRepository } from './BusinessMemoryRepository';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { AuditUserId } from '@/nest/common/decorators/audit-user-id.decorator';
 import { PermissionGuard } from '@/nest/common/guards/permission.guard';
@@ -14,6 +24,7 @@ import { AUDIT_LOGGER } from '../audit/AuditModule';
 export class BusinessController {
   constructor(
     private readonly businessRepo: BusinessRepository,
+    private readonly memoryRepo: BusinessMemoryRepository,
     @Optional() @Inject(AUDIT_LOGGER) private readonly auditLogger?: IAuditLogger,
   ) {}
 
@@ -58,5 +69,24 @@ export class BusinessController {
     }
 
     return { success: true, data: business };
+  }
+
+  @Patch(':id/settings')
+  @RequirePermission('business:settings')
+  async updateSettings(
+    @Param('id') businessId: string,
+    @Body() body: {
+      dailySummaryEnabled?: boolean;
+      agentMemory?: { defaultCurrency?: string; frequentProducts?: string[]; topCustomers?: string[] };
+    },
+  ) {
+    const business = await this.businessRepo.updateSettings(businessId.trim(), {
+      dailySummaryEnabled: body?.dailySummaryEnabled,
+    });
+    if (body?.agentMemory !== undefined) {
+      await this.memoryRepo.update(businessId.trim(), body.agentMemory);
+    }
+    const memory = await this.memoryRepo.get(businessId.trim());
+    return { success: true, data: { ...business, agentMemory: memory ?? undefined } };
   }
 }

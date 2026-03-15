@@ -31,6 +31,7 @@ export interface UpdateOnboardingInput {
   slug?: string;
   logoUrl?: string;
   description?: string;
+  dailySummaryEnabled?: boolean;
 }
 
 const SK_META = 'META';
@@ -337,6 +338,52 @@ export class BusinessRepository {
     }
   }
 
+  /**
+   * Update business settings (e.g. daily summary opt-in).
+   * Uses UpdateCommand to SET only the provided fields.
+   */
+  async updateSettings(
+    businessId: string,
+    input: { dailySummaryEnabled?: boolean },
+  ): Promise<Business> {
+    const updates: string[] = [];
+    const values: Record<string, unknown> = { ':now': new Date().toISOString() };
+
+    if (input.dailySummaryEnabled !== undefined) {
+      updates.push('dailySummaryEnabled = :dailySummaryEnabled');
+      values[':dailySummaryEnabled'] = input.dailySummaryEnabled;
+    }
+
+    if (updates.length === 0) {
+      const existing = await this.getById(businessId);
+      if (!existing) throw new Error(`Business ${businessId} not found`);
+      return existing;
+    }
+
+    updates.push('updatedAt = :now');
+
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: SK_META },
+          UpdateExpression: `SET ${updates.join(', ')}`,
+          ExpressionAttributeValues: values,
+          ConditionExpression: 'attribute_exists(pk)',
+        }),
+      );
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === 'ConditionalCheckFailedException') {
+        throw new Error(`Business ${businessId} not found`);
+      }
+      throw new DatabaseError('Update settings failed', e);
+    }
+
+    const updated = await this.getById(businessId);
+    if (!updated) throw new DatabaseError('Business not found after settings update', null);
+    return updated;
+  }
+
   async updateTrustScore(businessId: string, score: number): Promise<Business> {
     const now = new Date().toISOString();
     try {
@@ -390,6 +437,7 @@ export class BusinessRepository {
       slug: b.slug ?? undefined,
       logoUrl: b.logoUrl ?? undefined,
       description: b.description ?? undefined,
+      dailySummaryEnabled: b.dailySummaryEnabled ?? undefined,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
       ...(b.lockedPeriods?.length ? { lockedPeriods: b.lockedPeriods } : {}),
@@ -433,6 +481,12 @@ export class BusinessRepository {
       slug: item.slug != null ? String(item.slug) : undefined,
       logoUrl: item.logoUrl != null ? String(item.logoUrl) : undefined,
       description: item.description != null ? String(item.description) : undefined,
+      dailySummaryEnabled:
+        item.dailySummaryEnabled === true
+          ? true
+          : item.dailySummaryEnabled === false
+            ? false
+            : undefined,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
     };

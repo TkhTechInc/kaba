@@ -13,7 +13,9 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:kkiapay:live": "playwright test e2e/kkiapay-payment.spec.ts"
+    "test:kkiapay:live": "playwright test e2e/kkiapay-payment.spec.ts",
+    "vercel:deploy": "npx vercel deploy",
+    "vercel:deploy:prod": "npx vercel deploy --prod"
   },
   "dependencies": {
     "@swc/helpers": "^0.5.19",

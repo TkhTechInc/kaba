@@ -6,6 +6,8 @@ export interface UserPreferences {
   emailNotifications?: boolean;
   inAppNotifications?: boolean;
   smsReminders?: boolean;
+  /** Default business for chat/USSD when user has multiple businesses */
+  defaultBusinessId?: string;
 }
 
 export interface User {

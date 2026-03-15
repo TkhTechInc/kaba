@@ -5,6 +5,7 @@ import { CACHE_KEYS } from "@/lib/offline-cache";
 export type BusinessAccess = {
   businessId: string;
   role: "owner" | "manager" | "accountant" | "viewer" | "sales";
+  name?: string;
 };
 
 export type OrganizationAccess = {

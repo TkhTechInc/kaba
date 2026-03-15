@@ -110,6 +110,26 @@ export class WhatsAppChannel implements IMessagingChannel {
     }
   }
 
+  /**
+   * Fetch WhatsApp media (e.g. voice note) by Meta media ID.
+   * Returns the raw file buffer for transcription.
+   */
+  async fetchMediaToBuffer(mediaId: string): Promise<Buffer> {
+    if (!this.token) throw new Error('WhatsApp token not configured');
+    const metaUrl = `${WA_API_BASE}/${mediaId}`;
+    const res = await fetch(metaUrl, { headers: { Authorization: `Bearer ${this.token}` } });
+    if (!res.ok) {
+      const err = await res.text();
+      throw new Error(`Failed to get WhatsApp media URL: ${res.status} ${err}`);
+    }
+    const json = (await res.json()) as { url?: string };
+    const downloadUrl = json.url;
+    if (!downloadUrl) throw new Error('No url in WhatsApp media response');
+    const fileRes = await fetch(downloadUrl, { headers: { Authorization: `Bearer ${this.token}` } });
+    if (!fileRes.ok) throw new Error(`Failed to download WhatsApp media: ${fileRes.status}`);
+    return Buffer.from(await fileRes.arrayBuffer());
+  }
+
   verifyWebhook(headers: Record<string, string>, rawBody: string): boolean {
     const signature = headers['x-hub-signature-256'] ?? '';
     if (!this.appSecret || !signature) return false;

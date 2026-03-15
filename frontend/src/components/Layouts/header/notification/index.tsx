@@ -88,14 +88,19 @@ export function Notification() {
     };
   }, [fetch]);
 
-  const handleOpen = async (open: boolean) => {
-    setIsOpen(open);
-    if (open) {
-      setLoading(true);
-      await fetch();
-      setLoading(false);
-    }
-  };
+  const handleOpen = useCallback(
+    (value: React.SetStateAction<boolean>) => {
+      setIsOpen((prev) => {
+        const next = typeof value === "function" ? value(prev) : value;
+        if (next) {
+          setLoading(true);
+          fetch().finally(() => setLoading(false));
+        }
+        return next;
+      });
+    },
+    [fetch]
+  );
 
   const handleMarkRead = async (notif: Notification) => {
     if (notif.read || !auth?.token || !auth?.businessId) return;

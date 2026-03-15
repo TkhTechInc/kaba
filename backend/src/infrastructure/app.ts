@@ -20,17 +20,19 @@ const account =
   app.node.tryGetContext('account') ||
   process.env['CDK_DEPLOY_ACCOUNT'] ||
   process.env['CDK_DEFAULT_ACCOUNT'];
-const frontendUrlFromContext = app.node.tryGetContext('frontendUrl') as string | undefined;
+
+const contextOverrides: Record<string, string> = {};
+for (const key of ['apiUrl', 'frontendUrl', 'paymentsServiceUrl', 'tkhPaymentsApiKey', 'paymentsSnsTopicArn']) {
+  const v = app.node.tryGetContext(key) as string | undefined;
+  if (v) contextOverrides[key] = v;
+}
+const envConfig = getEnvironmentConfig(environment, contextOverrides);
+
 const googleClientId = app.node.tryGetContext('googleClientId') as string | undefined;
 const googleClientSecret = app.node.tryGetContext('googleClientSecret') as string | undefined;
 const aiProvider = app.node.tryGetContext('aiProvider') as string | undefined;
 const aiModel = app.node.tryGetContext('aiModel') as string | undefined;
 const mobileMoneyParserProvider = app.node.tryGetContext('mobileMoneyParserProvider') as 'mock' | 'llm' | undefined;
-
-const envConfig = getEnvironmentConfig(environment);
-if (frontendUrlFromContext) {
-  envConfig.frontendUrl = frontendUrlFromContext;
-}
 if (googleClientId) (envConfig as any).googleClientId = googleClientId;
 if (googleClientSecret) (envConfig as any).googleClientSecret = googleClientSecret;
 if (aiProvider || aiModel || mobileMoneyParserProvider) {
@@ -46,11 +48,15 @@ validateEnvironmentConfig(envConfig);
 console.log(`🚀 Kaba - Deploying to ${environment}`);
 console.log(`📍 Region: ${envConfig.region}`);
 
+const bootstrapQualifier =
+  (app.node.tryGetContext('@aws-cdk/core:bootstrapQualifier') as string) || 'tkh';
+
 const commonProps: cdk.StackProps = {
   env: {
     account: envConfig.awsAccountId || account,
     region: envConfig.region,
   },
+  synthesizer: new cdk.DefaultStackSynthesizer({ qualifier: bootstrapQualifier }),
 };
 
 const ledgerStack = new LedgerServiceStack(app, `Kaba-LedgerService-${environment}`, {

@@ -4,7 +4,7 @@ import { useAuthOptional } from "@/contexts/auth-context";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
-const PUBLIC_PATHS = ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/reset-password"];
+const PUBLIC_PATHS = ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/reset-password", "/auth/callback"];
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const auth = useAuthOptional();

@@ -21,4 +21,10 @@ export class UpdatePreferencesDto {
   @IsOptional()
   @IsBoolean()
   smsReminders?: boolean;
+
+  /** Default business for chat/USSD when user has multiple businesses */
+  @IsOptional()
+  @IsString()
+  @MaxLength(128)
+  defaultBusinessId?: string;
 }

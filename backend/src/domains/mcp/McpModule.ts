@@ -45,6 +45,7 @@ import {
   SendDebtReminderTool,
   GetTaxEstimateTool,
   GetDailySummaryTool,
+  AnalyzeTrendsTool,
 } from './tools/business';
 
 const CUSTOMER_TOOL_PROVIDERS = [
@@ -69,6 +70,7 @@ const BUSINESS_TOOL_PROVIDERS = [
   SendDebtReminderTool,
   GetTaxEstimateTool,
   GetDailySummaryTool,
+  AnalyzeTrendsTool,
 ];
 
 @Module({
@@ -139,6 +141,7 @@ const BUSINESS_TOOL_PROVIDERS = [
         sendDebtReminder: SendDebtReminderTool,
         getTaxEstimate: GetTaxEstimateTool,
         getDailySummary: GetDailySummaryTool,
+        analyzeTrends: AnalyzeTrendsTool,
       ): IMcpTool[] => [
         lookupMyInvoices,
         getInvoiceDetail,
@@ -155,6 +158,7 @@ const BUSINESS_TOOL_PROVIDERS = [
         sendDebtReminder,
         getTaxEstimate,
         getDailySummary,
+        analyzeTrends,
       ],
       inject: [
         LookupMyInvoicesTool,
@@ -172,6 +176,7 @@ const BUSINESS_TOOL_PROVIDERS = [
         SendDebtReminderTool,
         GetTaxEstimateTool,
         GetDailySummaryTool,
+        AnalyzeTrendsTool,
       ],
     },
   ],

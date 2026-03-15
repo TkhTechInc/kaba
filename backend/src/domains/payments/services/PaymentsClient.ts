@@ -207,6 +207,8 @@ export class PaymentsClient {
     };
     returnUrl?: string;
     gatewayOverride?: string;
+    /** Use KkiaPay JS widget (Mode B) instead of REST push. Required for widget flow. */
+    useWidget?: boolean;
   }): Promise<{
     paymentUrl?: string;
     clientSecret?: string;
@@ -234,6 +236,7 @@ export class PaymentsClient {
         metadata,
         returnUrl: request.returnUrl,
         gatewayOverride: request.gatewayOverride,
+        useWidget: request.useWidget,
       };
 
       const data = (await this.fetch(

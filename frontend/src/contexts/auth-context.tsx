@@ -1,12 +1,13 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
-import { api, apiPost, apiGetWithOfflineCache } from "@/lib/api-client";
+import { api, apiPost, apiPatch, apiGetWithOfflineCache } from "@/lib/api-client";
 import { CACHE_KEYS } from "@/lib/offline-cache";
 
 export interface Business {
   businessId: string;
   role?: string;
+  name?: string;
 }
 
 export type AuthUser = {
@@ -26,6 +27,7 @@ interface AuthContextValue {
   isAdmin: boolean;
   setToken: (t: string | null) => void;
   setBusinessId: (id: string | null) => void;
+  updateUserPreferences: (prefs: { defaultBusinessId?: string }) => Promise<void>;
   sendOtp: (phone: string) => Promise<{ success: boolean; message: string }>;
   sendVoiceOtp: (phone: string, locale?: "en" | "fr") => Promise<{ success: boolean; message: string }>;
   login: (phone: string, otp?: string, password?: string) => Promise<void>;
@@ -84,6 +86,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id ? localStorage.setItem(BUSINESS_KEY, id) : localStorage.removeItem(BUSINESS_KEY);
     }
   }, []);
+
+  const updateUserPreferences = useCallback(
+    async (prefs: { defaultBusinessId?: string }) => {
+      const t = typeof window !== "undefined" ? localStorage.getItem(TOKEN_KEY) : null;
+      if (!t) return;
+      const res = await apiPatch<{ success: boolean; data?: Record<string, unknown> }>(
+        "/api/v1/users/me/preferences",
+        prefs,
+        { token: t }
+      );
+      if (!res?.success) throw new Error("Failed to update preferences");
+    },
+    []
+  );
 
   const sendOtp = useCallback(async (phone: string) => {
     const res = await apiPost<{ success: boolean; message: string }>(
@@ -153,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthFromCookie = useCallback(async (): Promise<boolean> => {
     try {
-      const res = await api.get<{ data: { user: AuthUser; businesses: Business[] } }>(
+      const res = await api.get<{ user: AuthUser; businesses: Business[] }>(
         "/api/v1/auth/me",
         { skip401Redirect: true }
       );
@@ -164,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data.businesses.length) {
         const stored = typeof window !== "undefined" ? localStorage.getItem(BUSINESS_KEY) : null;
         const first = data.businesses[0].businessId;
-        if (!stored || !data.businesses.some((b) => b.businessId === stored)) {
+        if (!stored || !data.businesses.some((b: Business) => b.businessId === stored)) {
           setBusinessIdState(first);
           if (typeof window !== "undefined") localStorage.setItem(BUSINESS_KEY, first);
         } else {
@@ -335,13 +351,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      setTokenState(t);
+      // Re-read token in case completeOAuth stored it during OAuth callback (race)
+      const effectiveToken = localStorage.getItem(TOKEN_KEY) ?? t;
+      setTokenState(effectiveToken);
       setBusinessIdState(b);
       if (u) {
         try {
           const stored = JSON.parse(u) as AuthUser;
-          if (t) {
-            const claims = decodeJwt(t);
+          if (effectiveToken) {
+            const claims = decodeJwt(effectiveToken);
             if (claims) {
               stored.name = claims.name ?? stored.name;
               stored.picture = claims.picture ?? stored.picture;
@@ -352,8 +370,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {
           setUserState(null);
         }
-      } else if (t) {
-        const claims = decodeJwt(t);
+      } else if (effectiveToken) {
+        const claims = decodeJwt(effectiveToken);
         if (claims) {
           const userData: AuthUser = {
             id: claims.sub ?? "unknown",
@@ -366,7 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem(USER_KEY, JSON.stringify(userData));
         }
       }
-      if (t) {
+      if (effectiveToken) {
         refreshBusinesses().finally(() => setIsLoading(false));
       } else {
         const devId = process.env.NEXT_PUBLIC_DEMO_BUSINESS_ID;
@@ -396,6 +414,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin,
       setToken,
       setBusinessId,
+      updateUserPreferences,
       sendOtp,
       sendVoiceOtp,
       login,

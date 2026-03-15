@@ -213,7 +213,10 @@ export async function apiDelete<T = unknown>(
 
 /** Legacy api object for backward compatibility */
 export const api = {
-  get<T>(path: string, opts?: { token?: string; params?: Record<string, string> }) {
+  get<T>(
+    path: string,
+    opts?: { token?: string; params?: Record<string, string>; skip401Redirect?: boolean }
+  ) {
     const url = opts?.params
       ? `${path}${path.includes("?") ? "&" : "?"}${new URLSearchParams(
           Object.fromEntries(
@@ -225,7 +228,7 @@ export const api = {
       : path;
     return apiGet<ApiResponse<T>>(url, {
       token: opts?.token ?? undefined,
-      skip401Redirect: false,
+      skip401Redirect: opts?.skip401Redirect ?? false,
     });
   },
   post<T>(path: string, body?: unknown, opts?: { token?: string }) {

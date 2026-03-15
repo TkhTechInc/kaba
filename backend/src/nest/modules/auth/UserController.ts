@@ -1,15 +1,19 @@
-import { Controller, Patch, Get, Body, Req, NotFoundException } from '@nestjs/common';
+import { Controller, Patch, Get, Body, Req, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdatePreferencesDto } from './dto/update-preferences.dto';
 import { UserRepository } from './repositories/UserRepository';
+import { AccessService } from '@/domains/access/AccessService';
 import type { JwtPayload } from '@/nest/common/types/auth.types';
 import type { Request } from 'express';
 
 @Controller('api/v1/users')
 @Auth()
 export class UserController {
-  constructor(private readonly userRepository: UserRepository) {}
+  constructor(
+    private readonly userRepository: UserRepository,
+    private readonly accessService: AccessService,
+  ) {}
 
   @Patch('me')
   async updateProfile(@Body() dto: UpdateProfileDto, @Req() req: Request) {
@@ -53,6 +57,18 @@ export class UserController {
     const user = await this.userRepository.getById(jwtUser.sub);
     if (!user) throw new NotFoundException('User not found');
 
+    if (dto.defaultBusinessId !== undefined) {
+      if (dto.defaultBusinessId === '') {
+        // Allow clearing
+      } else {
+        const businesses = await this.accessService.listBusinessesForUser(user.id);
+        const hasAccess = businesses.some((b) => b.businessId === dto.defaultBusinessId);
+        if (!hasAccess) {
+          throw new BadRequestException('defaultBusinessId must be a business you have access to');
+        }
+      }
+    }
+
     const merged = {
       ...(user.preferences ?? {}),
       ...(dto.locale !== undefined && { locale: dto.locale }),
@@ -60,6 +76,7 @@ export class UserController {
       ...(dto.emailNotifications !== undefined && { emailNotifications: dto.emailNotifications }),
       ...(dto.inAppNotifications !== undefined && { inAppNotifications: dto.inAppNotifications }),
       ...(dto.smsReminders !== undefined && { smsReminders: dto.smsReminders }),
+      ...(dto.defaultBusinessId !== undefined && { defaultBusinessId: dto.defaultBusinessId || undefined }),
     };
 
     const updated = await this.userRepository.update({

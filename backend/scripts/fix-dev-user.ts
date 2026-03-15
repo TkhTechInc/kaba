@@ -8,6 +8,7 @@
  * Usage:
  *   SEED_EMAIL=you@example.com npm run fix-dev
  *   SEED_EMAIL=you@example.com SEED_BUSINESS_ID=biz_xxx npm run fix-dev  # force specific bizId
+ *   SEED_KEEP_EXISTING=true  # add/link target without removing other businesses (multi-business support)
  *
  * After running, paste this in the browser console and reload:
  *   localStorage.setItem('qb_business_id', '<printed businessId>'); location.reload();
@@ -30,8 +31,9 @@ const USERS_TABLE  = process.env['DYNAMODB_USERS_TABLE']  || 'Kaba-UsersService-
 const LEDGER_TABLE = process.env['DYNAMODB_LEDGER_TABLE'] || 'Kaba-LedgerService-dev-ledger';
 const REGION       = process.env['AWS_REGION'] || 'ca-central-1';
 
-const seedEmail  = (process.env['SEED_EMAIL'] || '').toLowerCase().trim();
-const forceBizId = process.env['SEED_BUSINESS_ID'] || '';
+const seedEmail       = (process.env['SEED_EMAIL'] || '').toLowerCase().trim();
+const forceBizId      = process.env['SEED_BUSINESS_ID'] || '';
+const keepExisting    = process.env['SEED_KEEP_EXISTING'] === 'true';
 
 if (!seedEmail) {
   console.error('SEED_EMAIL is required. Usage: SEED_EMAIL=you@example.com npm run fix-dev');
@@ -100,17 +102,22 @@ async function run() {
   }
 
   // ── 3. Remove stray businesses (keep only target) ─────────────────────────
-  const stray = existingBizIds.filter(b => b !== targetBizId);
-  for (const bid of stray) {
-    await doc.send(new DeleteCommand({
-      TableName: LEDGER_TABLE,
-      Key: { pk: `USER#${userId}`, sk: `BUSINESS#${bid}` },
-    }));
-    await doc.send(new DeleteCommand({
-      TableName: LEDGER_TABLE,
-      Key: { pk: `BUSINESS#${bid}`, sk: `MEMBER#${userId}` },
-    }));
-    console.log(`  🗑  Removed stray business: ${bid}`);
+  // Skip when SEED_KEEP_EXISTING=true — add target without removing others (multi-business)
+  if (!keepExisting) {
+    const stray = existingBizIds.filter(b => b !== targetBizId);
+    for (const bid of stray) {
+      await doc.send(new DeleteCommand({
+        TableName: LEDGER_TABLE,
+        Key: { pk: `USER#${userId}`, sk: `BUSINESS#${bid}` },
+      }));
+      await doc.send(new DeleteCommand({
+        TableName: LEDGER_TABLE,
+        Key: { pk: `BUSINESS#${bid}`, sk: `MEMBER#${userId}` },
+      }));
+      console.log(`  🗑  Removed stray business: ${bid}`);
+    }
+  } else {
+    console.log(`  📌 SEED_KEEP_EXISTING=true — keeping all existing businesses`);
   }
 
   // ── 4. Upsert business META ────────────────────────────────────────────────

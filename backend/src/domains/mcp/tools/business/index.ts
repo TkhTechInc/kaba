@@ -18,3 +18,4 @@ export { UpdateInventoryTool } from './update-inventory.tool';
 export { SendDebtReminderTool } from './send-debt-reminder.tool';
 export { GetTaxEstimateTool } from './get-tax-estimate.tool';
 export { GetDailySummaryTool } from './get-daily-summary.tool';
+export { AnalyzeTrendsTool } from './analyze-trends.tool';

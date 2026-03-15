@@ -64,6 +64,8 @@ export interface Business {
   logoUrl?: string;
   /** Short public description of the business */
   description?: string;
+  /** Opt-in for daily summary notifications (e.g. WhatsApp/Telegram) */
+  dailySummaryEnabled?: boolean;
   createdAt: string;
   updatedAt: string;
 }

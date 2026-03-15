@@ -100,6 +100,21 @@ export class TelegramChannel implements IMessagingChannel {
     }
   }
 
+  /**
+   * Fetch Telegram voice note by file_id. Returns the raw audio buffer for transcription.
+   */
+  async fetchVoiceToBuffer(fileId: string): Promise<Buffer> {
+    if (!this.botToken) throw new Error('Telegram bot token not configured');
+    const res = await fetch(`${this.apiBase}/getFile?file_id=${encodeURIComponent(fileId)}`);
+    if (!res.ok) throw new Error(`Telegram getFile failed: ${res.status}`);
+    const json = (await res.json()) as { ok?: boolean; result?: { file_path?: string } };
+    if (!json.ok || !json.result?.file_path) throw new Error('Invalid Telegram getFile response');
+    const fileUrl = `https://api.telegram.org/file/bot${this.botToken}/${json.result.file_path}`;
+    const fileRes = await fetch(fileUrl);
+    if (!fileRes.ok) throw new Error(`Telegram file download failed: ${fileRes.status}`);
+    return Buffer.from(await fileRes.arrayBuffer());
+  }
+
   verifyWebhook(headers: Record<string, string>, _rawBody: string): boolean {
     const token = headers['x-telegram-bot-api-secret-token'] ?? '';
     const expected = process.env['TELEGRAM_WEBHOOK_SECRET'] ?? '';
