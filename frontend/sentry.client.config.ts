@@ -16,7 +16,7 @@ Sentry.init({
   replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
 
   integrations: [
-    new Sentry.Replay({
+    Sentry.replayIntegration({
       maskAllText: true,
       blockAllMedia: true,
     }),
