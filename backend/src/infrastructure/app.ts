@@ -22,7 +22,7 @@ const account =
   process.env['CDK_DEFAULT_ACCOUNT'];
 
 const contextOverrides: Record<string, string> = {};
-for (const key of ['apiUrl', 'frontendUrl', 'paymentsServiceUrl', 'tkhPaymentsApiKey', 'paymentsSnsTopicArn']) {
+for (const key of ['apiUrl', 'frontendUrl', 'paymentsServiceUrl', 'tkhPaymentsApiKey', 'paymentsSnsTopicArn', 'kkiapayPublicKey']) {
   const v = app.node.tryGetContext(key) as string | undefined;
   if (v) contextOverrides[key] = v;
 }

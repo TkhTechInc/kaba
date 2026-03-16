@@ -44,9 +44,24 @@ const externals = [
   '@anthropic-ai/sdk',
   'openai',
   '@google/generative-ai',
+  '@sentry/node',
   '@sentry/profiling-node',
   '@sentry-internal/node-cpu-profiler',
 ];
+
+// Copy Sentry packages for Lambda (marked as external in bundle)
+function copySentryToLambda() {
+  const dest = path.join(apiLambdaDir, 'node_modules');
+  if (!fs.existsSync(dest)) fs.mkdirSync(dest, { recursive: true });
+  const nm = path.join(rootDir, 'node_modules');
+  for (const pkg of ['@sentry', '@sentry-internal']) {
+    const src = path.join(nm, pkg);
+    const dst = path.join(dest, pkg);
+    if (fs.existsSync(src)) {
+      fs.cpSync(src, dst, { recursive: true });
+    }
+  }
+}
 
 esbuild
   .build({
@@ -66,6 +81,7 @@ esbuild
   })
   .then(() => {
     console.log('Nest API Lambda bundled: dist/api-lambda/handler.js');
+    copySentryToLambda();
     return esbuild.build({
       entryPoints: [
         path.join(rootDir, 'src/infrastructure/handlers/recurring-invoice.ts'),

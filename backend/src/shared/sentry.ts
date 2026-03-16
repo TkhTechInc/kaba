@@ -7,13 +7,31 @@
  * - HTTP errors from controllers
  * - Performance traces for critical operations
  */
-import * as Sentry from '@sentry/node';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
+let Sentry: {
+  init: (opts: unknown) => void;
+  withScope: (cb: (scope: unknown) => void) => void;
+  captureException: (err: Error) => void;
+  captureMessage: (msg: string, level?: string) => void;
+  startSpan: (opts: unknown, cb: (span?: unknown) => unknown) => unknown;
+  close: (timeout?: number) => Promise<boolean>;
+  httpIntegration: () => unknown;
+} | null = null;
+let nodeProfilingIntegration: () => unknown = () => ({});
+
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require('@sentry/node');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const profiling = require('@sentry/profiling-node');
+  nodeProfilingIntegration = profiling.nodeProfilingIntegration ?? (() => ({}));
+} catch {
+  console.log('[Sentry] Optional: @sentry/node not available, error tracking disabled');
+}
 
 let sentryInitialized = false;
 
 export function initSentry() {
-  if (sentryInitialized) return;
+  if (sentryInitialized || !Sentry) return;
 
   const dsn = process.env['SENTRY_DSN'];
   if (!dsn || !dsn.trim()) {
@@ -39,7 +57,7 @@ export function initSentry() {
     ],
 
     // Filter out sensitive data
-    beforeSend(event, hint) {
+    beforeSend(event: { request?: { headers?: Record<string, string>; data?: unknown } }, _hint: unknown) {
       // Remove sensitive headers
       if (event.request?.headers) {
         delete event.request.headers['authorization'];
@@ -83,35 +101,24 @@ export function captureException(error: Error | unknown, context?: {
   operation?: string;
   metadata?: Record<string, unknown>;
 }) {
-  if (!sentryInitialized) return;
+  if (!sentryInitialized || !Sentry) return;
 
-  Sentry.withScope((scope) => {
-    if (context?.userId) {
-      scope.setUser({ id: context.userId });
-    }
-    if (context?.businessId) {
-      scope.setTag('businessId', context.businessId);
-    }
-    if (context?.operation) {
-      scope.setTag('operation', context.operation);
-    }
-    if (context?.metadata) {
-      scope.setContext('metadata', context.metadata);
-    }
-
-    if (error instanceof Error) {
-      Sentry.captureException(error);
-    } else {
-      Sentry.captureException(new Error(String(error)));
-    }
+  Sentry!.withScope((scope: unknown) => {
+    const s = scope as { setUser: (u: unknown) => void; setTag: (k: string, v: string) => void; setContext: (k: string, v: unknown) => void };
+    if (context?.userId) s.setUser({ id: context.userId });
+    if (context?.businessId) s.setTag('businessId', context.businessId);
+    if (context?.operation) s.setTag('operation', context.operation);
+    if (context?.metadata) s.setContext('metadata', context.metadata);
+    if (error instanceof Error) Sentry!.captureException(error);
+    else Sentry!.captureException(new Error(String(error)));
   });
 }
 
 /**
  * Capture message to Sentry (non-error events)
  */
-export function captureMessage(message: string, level: Sentry.SeverityLevel = 'info') {
-  if (!sentryInitialized) return;
+export function captureMessage(message: string, level: 'info' | 'warning' | 'error' | 'debug' = 'info') {
+  if (!sentryInitialized || !Sentry) return;
   Sentry.captureMessage(message, level);
 }
 
@@ -119,16 +126,14 @@ export function captureMessage(message: string, level: Sentry.SeverityLevel = 'i
  * Start a performance trace
  */
 export function startTrace(name: string, op: string) {
-  if (!sentryInitialized) return null;
+  if (!sentryInitialized || !Sentry) return null;
 
-  return Sentry.startSpan({
-    name,
-    op,
-  }, (span) => {
+  return Sentry.startSpan({ name, op }, (span?: unknown) => {
+    const s = span as { setAttribute: (k: string, v: string) => void } | undefined;
     return {
-      setTag: (key: string, value: string) => span?.setAttribute(key, value),
-      setData: (key: string, value: unknown) => span?.setAttribute(key, String(value)),
-      finish: () => {}, // Span finishes automatically when callback returns
+      setTag: (key: string, value: string) => s?.setAttribute(key, value),
+      setData: (key: string, value: unknown) => s?.setAttribute(key, String(value)),
+      finish: () => {},
     };
   });
 }
@@ -137,6 +142,6 @@ export function startTrace(name: string, op: string) {
  * Flush Sentry events (useful before Lambda shutdown)
  */
 export async function flushSentry(timeout: number = 2000): Promise<boolean> {
-  if (!sentryInitialized) return true;
+  if (!sentryInitialized || !Sentry) return true;
   return Sentry.close(timeout);
 }

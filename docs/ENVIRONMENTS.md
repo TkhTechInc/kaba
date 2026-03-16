@@ -31,7 +31,7 @@ cdk deploy -c environment=dev -c apiUrl=https://api.dev.example.com -c frontendU
 2. **API Gateway custom domain**: Map the custom domain to your REST API stage.
 3. **GitHub secrets** (per environment):
    - `NEXT_PUBLIC_API_URL` — must match the real API domain (e.g. `https://api.dev.kabasika.com`)
-   - `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY`, `NEXT_PUBLIC_KKIAPAY_SANDBOX` — for payments
+   - `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY`, `NEXT_PUBLIC_KKIAPAY_SANDBOX` — for payments (frontend build + backend Lambda via CDK context)
 4. **Google OAuth**: Add redirect URI `https://api.<env>.kabasika.com/api/v1/auth/google/callback` in Google Console.
 
 ## Validation

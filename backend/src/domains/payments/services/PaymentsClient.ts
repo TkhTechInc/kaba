@@ -2,11 +2,6 @@
  * HTTP client for the TKH Payments microservice.
  * All payment operations from Kaba go through TKH Payments (payment gateway aggregator).
  *
- * Features:
- * - Circuit breaker pattern to fail fast when TKH Payments is down
- * - Automatic retry with exponential backoff for transient failures
- * - Comprehensive error handling with specific error types
- *
  * Requires PAYMENTS_SERVICE_URL. No local gateway fallback.
  *
  * TKH Payments API contract (implement in payments service):
@@ -17,9 +12,6 @@
  * - POST /disbursements - disburse to mobile money
  */
 import { Injectable, Logger } from '@nestjs/common';
-import CircuitBreaker from 'opossum';
-import pRetry, { AbortError } from 'p-retry';
-import { ExternalServiceError, ConfigurationError, BusinessRuleError } from '@/shared/errors/DomainError';
 
 export interface PaymentsIntentResponse {
   id: string;
@@ -38,8 +30,8 @@ export interface PayConfigResponse {
 export class PaymentsClient {
   private readonly logger = new Logger(PaymentsClient.name);
   private readonly serviceUrl: string;
+
   private readonly apiKey: string | undefined;
-  private readonly breaker: CircuitBreaker;
 
   constructor() {
     const url = process.env['PAYMENTS_SERVICE_URL']?.replace(/\/$/, '');
@@ -51,33 +43,6 @@ export class PaymentsClient {
     }
     this.serviceUrl = url;
     this.apiKey = process.env['TKH_PAYMENTS_API_KEY'];
-
-    // Circuit breaker configuration
-    this.breaker = new CircuitBreaker(this.fetchWithRetry.bind(this), {
-      timeout: 15000,                  // 15s timeout per request
-      errorThresholdPercentage: 50,    // Open circuit if 50% of requests fail
-      resetTimeout: 30000,             // Try again after 30s
-      rollingCountTimeout: 60000,      // 1-minute rolling window
-      rollingCountBuckets: 10,
-      name: 'TkhPaymentsClient',
-    });
-
-    // Circuit breaker event listeners for monitoring
-    this.breaker.on('open', () => {
-      this.logger.error('[Circuit Breaker] OPEN - TKH Payments circuit opened due to failures');
-    });
-
-    this.breaker.on('halfOpen', () => {
-      this.logger.warn('[Circuit Breaker] HALF-OPEN - Testing if TKH Payments recovered');
-    });
-
-    this.breaker.on('close', () => {
-      this.logger.log('[Circuit Breaker] CLOSED - TKH Payments circuit closed, operating normally');
-    });
-
-    this.breaker.on('reject', () => {
-      this.logger.warn('[Circuit Breaker] REJECT - Request rejected, circuit is OPEN');
-    });
   }
 
   private getMoMoSandboxOverride(): { currency?: string; countryCode?: string } {
@@ -202,81 +167,26 @@ export class PaymentsClient {
     return env !== 'production';
   }
 
-  /**
-   * Fetch with circuit breaker and retry logic
-   */
   private async fetch<T>(
     path: string,
     options: { method?: string; body?: object } = {},
   ): Promise<T> {
-    try {
-      return await this.breaker.fire(path, options) as T;
-    } catch (error) {
-      // Classify error for better handling
-      if (error instanceof Error) {
-        if (error.message.includes('Invalid API key') || error.message.includes('Unauthorized')) {
-          throw new ConfigurationError('TKH Payments API key is invalid or missing');
-        }
-        if (error.message.includes('Insufficient funds')) {
-          throw new BusinessRuleError('Customer has insufficient funds');
-        }
-        if (error.message.includes('Circuit breaker is open')) {
-          throw new ExternalServiceError('TKH Payments', 'Service is currently unavailable. Please try again later.');
-        }
-      }
-      throw new ExternalServiceError('TKH Payments', error instanceof Error ? error.message : 'Unknown error');
+    const { method = 'GET', body } = options;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (this.apiKey) headers['X-API-Key'] = this.apiKey;
+    const res = await fetch(`${this.serviceUrl}${path}`, {
+      method,
+      headers,
+      ...(body && { body: JSON.stringify(body) }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    const data = (await res.json().catch(() => ({}))) as T & { message?: string };
+    if (!res.ok) {
+      this.logger.error(`Payments service error ${res.status}: ${(data as { message?: string }).message ?? 'unknown'}`);
+      throw new Error((data as { message?: string }).message ?? `Payments service error ${res.status}`);
     }
-  }
-
-  /**
-   * Underlying fetch with retry logic
-   */
-  private async fetchWithRetry<T>(
-    path: string,
-    options: { method?: string; body?: object } = {},
-  ): Promise<T> {
-    return pRetry(
-      async () => {
-        const { method = 'GET', body } = options;
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (this.apiKey) headers['X-API-Key'] = this.apiKey;
-
-        const res = await fetch(`${this.serviceUrl}${path}`, {
-          method,
-          headers,
-          ...(body && { body: JSON.stringify(body) }),
-          signal: AbortSignal.timeout(15000),
-        });
-
-        const data = (await res.json().catch(() => ({}))) as T & { message?: string };
-
-        if (!res.ok) {
-          const errorMessage = (data as { message?: string }).message ?? `HTTP ${res.status}`;
-          this.logger.error(`TKH Payments error ${res.status}: ${errorMessage}`);
-
-          // Don't retry client errors (4xx) except 429 (rate limit)
-          if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-            throw new AbortError(errorMessage);
-          }
-
-          throw new Error(errorMessage);
-        }
-
-        return data;
-      },
-      {
-        retries: 3,
-        minTimeout: 1000,    // 1s
-        maxTimeout: 5000,    // 5s
-        factor: 2,           // Exponential backoff
-        onFailedAttempt: (error: any) => {
-          this.logger.warn(
-            `TKH Payments request attempt ${error.attemptNumber ?? 'unknown'} failed. ` +
-            `${error.retriesLeft ?? 0} retries left.`,
-          );
-        },
-      },
-    );
+    return data;
   }
 
   /**
@@ -297,7 +207,7 @@ export class PaymentsClient {
     };
     returnUrl?: string;
     gatewayOverride?: string;
-    /** Use KkiaPay JS widget (Mode B) instead of REST push. Required for widget flow. */
+    /** Use KkiaPay JS widget (Mode B) — creates intent without calling KkiaPay API; frontend opens widget. */
     useWidget?: boolean;
   }): Promise<{
     paymentUrl?: string;
@@ -326,7 +236,7 @@ export class PaymentsClient {
         metadata,
         returnUrl: request.returnUrl,
         gatewayOverride: request.gatewayOverride,
-        useWidget: request.useWidget,
+        ...(request.useWidget !== undefined && { useWidget: request.useWidget }),
       };
 
       const data = (await this.fetch(

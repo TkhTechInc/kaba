@@ -93,6 +93,7 @@ export class PlanPaymentService {
     useMomoRequest: boolean;
     intentId?: string;
     upgraded?: boolean;
+    kkiapayPublicKey?: string;
   } | null> {
     const record = await this.planPaymentRepo.getByToken(token);
     if (!record) return null;
@@ -104,6 +105,12 @@ export class PlanPaymentService {
     const payConfig = await this.paymentsClient.getPayConfig(currency, business?.countryCode);
     let useKkiaPayWidget = payConfig.useKkiaPayWidget;
     const useMomoRequest = payConfig.useMomoRequest;
+    const isDev = process.env['NODE_ENV'] !== 'production';
+    const kkiapayCurrencies = new Set(['XOF', 'XAF', 'GNF']);
+    // In dev, force KkiaPay for XOF/XAF/GNF when TKH Payments may not have gateways configured
+    if (isDev && kkiapayCurrencies.has(currency)) {
+      useKkiaPayWidget = true;
+    }
     const forceKkiaPayUi = process.env['KKIAPAY_TEST_FORCE_UI'] === 'true';
     let intentId: string | undefined;
     if (useKkiaPayWidget) {
@@ -124,7 +131,8 @@ export class PlanPaymentService {
         intentId = intent.intentId;
       }
     }
-    if (forceKkiaPayUi && !intentId) {
+    // Dev fallback: when createIntent fails (e.g. KkiaPay not configured in TKH Payments), use placeholder so widget still shows
+    if ((forceKkiaPayUi || isDev) && !intentId && useKkiaPayWidget) {
       intentId = `dev-kkiapay-${record.token}`;
     }
     useKkiaPayWidget = useKkiaPayWidget && !!intentId;
@@ -132,6 +140,8 @@ export class PlanPaymentService {
     const upgraded =
       business &&
       tierIndex(business.tier ?? 'free') >= tierIndex(record.targetTier);
+
+    const kkiapayPublicKey = process.env['KKIAPAY_PUBLIC_KEY']?.trim() ?? '';
 
     return {
       businessName: business?.name ?? 'Business',
@@ -142,6 +152,7 @@ export class PlanPaymentService {
       useMomoRequest,
       intentId,
       upgraded: !!upgraded,
+      kkiapayPublicKey: useKkiaPayWidget ? kkiapayPublicKey : undefined,
     };
   }
 
@@ -240,8 +251,12 @@ export class PlanPaymentService {
       return { success: false, error: 'Payment was not successful' };
     }
 
-    const verify = await this.paymentsClient.verifyKkiaPayTransaction(transactionId, intentId);
-    if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
+    const isDev = process.env['NODE_ENV'] !== 'production';
+    const isDevIntent = intentId.startsWith('dev-kkiapay-');
+    if (!(isDev && isDevIntent)) {
+      const verify = await this.paymentsClient.verifyKkiaPayTransaction(transactionId, intentId);
+      if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
+    }
 
     try {
       await this.businessRepo.updateTier(record.businessId, record.targetTier);

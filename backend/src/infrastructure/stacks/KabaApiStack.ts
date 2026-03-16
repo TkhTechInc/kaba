@@ -113,6 +113,9 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.tkhPaymentsApiKey && {
           TKH_PAYMENTS_API_KEY: config.tkhPaymentsApiKey,
         }),
+        ...(config.kkiapayPublicKey && {
+          KKIAPAY_PUBLIC_KEY: config.kkiapayPublicKey,
+        }),
       },
     });
 

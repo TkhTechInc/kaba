@@ -24,6 +24,7 @@ export type PlanPayDataResponse = {
     useMomoRequest?: boolean;
     intentId?: string;
     upgraded?: boolean;
+    kkiapayPublicKey?: string;
   };
 };
 

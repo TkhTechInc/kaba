@@ -62,6 +62,8 @@ jobs:
       - name: Deploy to dev
         run: npm run cdk:deploy
         working-directory: backend
+        env:
+          CDK_CONTEXT_kkiapayPublicKey: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
 
       - name: Notify Slack
         if: always()
@@ -122,6 +124,8 @@ jobs:
       - name: Deploy to prod
         run: npm run cdk:deploy:prod
         working-directory: backend
+        env:
+          CDK_CONTEXT_kkiapayPublicKey: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
 
       - name: Notify Slack
         if: always()

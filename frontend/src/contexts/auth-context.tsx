@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { api, apiPost, apiPatch, apiGetWithOfflineCache } from "@/lib/api-client";
 import { CACHE_KEYS } from "@/lib/offline-cache";
 
@@ -66,7 +67,10 @@ const TOKEN_KEY = "qb_auth_token";
 const BUSINESS_KEY = "qb_business_id";
 const USER_KEY = "qb_auth_user";
 
+const PAY_PUBLIC_PATHS = ["/pay/"];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [token, setTokenState] = useState<string | null>(null);
   const [user, setUserState] = useState<AuthUser | null>(null);
   const [businessId, setBusinessIdState] = useState<string | null>(null);
@@ -344,9 +348,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const b = localStorage.getItem(BUSINESS_KEY);
       const u = localStorage.getItem(USER_KEY);
 
+      // Skip checkAuthFromCookie on payment pages (public, shareable links) to avoid 401 on /auth/me.
+      // Use pathname from router; fallback to window.location when pathname is null (e.g. before hydration).
+      const path = pathname ?? (typeof window !== "undefined" ? window.location.pathname : "");
+      const isPayPage = PAY_PUBLIC_PATHS.some((p) => path.startsWith(p));
+      const skipCookieCheck = !!t || isPayPage;
+
       // Skip checkAuthFromCookie if we already have a token from OAuth callback
       // This prevents race condition where checkAuthFromCookie clears the OAuth token
-      const fromCookie = t ? false : await checkAuthFromCookie();
+      const fromCookie = skipCookieCheck ? false : await checkAuthFromCookie();
       if (fromCookie) {
         setTokenState(null);
         setIsLoading(false);
@@ -398,7 +408,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [pathname]);
 
   const isAdmin =
     user?.role === "admin" ||

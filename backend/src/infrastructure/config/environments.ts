@@ -78,6 +78,8 @@ export interface EnvironmentConfig {
   tkhPaymentsApiKey?: string;
   /** SNS topic ARN for payment events published by TKH Payments service */
   paymentsSnsTopicArn?: string;
+  /** KkiaPay public key for widget (returned in plan pay data). Set via -c kkiapayPublicKey=... or GitHub secret. */
+  kkiapayPublicKey?: string;
 }
 
 export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
@@ -203,6 +205,7 @@ export function getEnvironmentConfig(environment: string, contextOverrides?: Rec
     paymentsServiceUrl: contextOverrides?.['paymentsServiceUrl'] ?? config.paymentsServiceUrl,
     tkhPaymentsApiKey: contextOverrides?.['tkhPaymentsApiKey'] ?? config.tkhPaymentsApiKey,
     paymentsSnsTopicArn: contextOverrides?.['paymentsSnsTopicArn'] ?? config.paymentsSnsTopicArn,
+    kkiapayPublicKey: contextOverrides?.['kkiapayPublicKey'] ?? config.kkiapayPublicKey,
   };
 }
 
