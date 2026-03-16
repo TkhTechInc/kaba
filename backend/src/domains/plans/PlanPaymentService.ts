@@ -94,6 +94,7 @@ export class PlanPaymentService {
     intentId?: string;
     upgraded?: boolean;
     kkiapayPublicKey?: string;
+    kkiapaySandbox?: boolean;
   } | null> {
     const record = await this.planPaymentRepo.getByToken(token);
     if (!record) return null;
@@ -142,6 +143,7 @@ export class PlanPaymentService {
       tierIndex(business.tier ?? 'free') >= tierIndex(record.targetTier);
 
     const kkiapayPublicKey = process.env['KKIAPAY_PUBLIC_KEY']?.trim() ?? '';
+    const kkiapaySandbox = process.env['KKIAPAY_SANDBOX'] !== 'false';
 
     return {
       businessName: business?.name ?? 'Business',
@@ -153,6 +155,7 @@ export class PlanPaymentService {
       intentId,
       upgraded: !!upgraded,
       kkiapayPublicKey: useKkiaPayWidget ? kkiapayPublicKey : undefined,
+      kkiapaySandbox: useKkiaPayWidget ? kkiapaySandbox : undefined,
     };
   }
 

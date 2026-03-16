@@ -115,6 +115,7 @@ export class KabaApiStack extends cdk.Stack {
         }),
         ...(config.kkiapayPublicKey && {
           KKIAPAY_PUBLIC_KEY: config.kkiapayPublicKey,
+          KKIAPAY_SANDBOX: environment === 'prod' ? 'false' : 'true',
         }),
       },
     });

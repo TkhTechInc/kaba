@@ -25,6 +25,7 @@ export type PlanPayDataResponse = {
     intentId?: string;
     upgraded?: boolean;
     kkiapayPublicKey?: string;
+    kkiapaySandbox?: boolean;
   };
 };
 

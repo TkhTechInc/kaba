@@ -34,17 +34,19 @@ function KkiaPayPlanWidget({
   amount,
   currency,
   kkiapayPublicKey: publicKeyFromApi,
+  kkiapaySandbox: sandboxFromApi,
 }: {
   token: string;
   intentId?: string;
   amount: number;
   currency: string;
   kkiapayPublicKey?: string;
+  kkiapaySandbox?: boolean;
 }) {
   const [scriptLoaded, setScriptLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const publicKey = (publicKeyFromApi ?? process.env.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY ?? "").trim();
-  const sandbox = (process.env.NEXT_PUBLIC_KKIAPAY_SANDBOX ?? "true") === "true";
+  const sandbox = sandboxFromApi ?? (process.env.NEXT_PUBLIC_KKIAPAY_SANDBOX ?? "true") === "true";
   const amountWhole = ["XOF", "XAF", "GNF"].includes(currency?.toUpperCase?.() ?? "")
     ? Math.round(amount)
     : Math.round(amount * 100);
@@ -192,6 +194,7 @@ function PlanPayContent() {
     intentId?: string;
     upgraded?: boolean;
     kkiapayPublicKey?: string;
+    kkiapaySandbox?: boolean;
   } | null>(null);
   const [momoRequestSent, setMomoRequestSent] = useState(false);
   const [momoError, setMomoError] = useState<string | null>(null);
@@ -374,6 +377,7 @@ function PlanPayContent() {
                         amount={data.amount}
                         currency={data.currency}
                         kkiapayPublicKey={data.kkiapayPublicKey}
+                        kkiapaySandbox={data.kkiapaySandbox}
                       />
                       <p className="text-center text-sm text-dark-5">Mobile Money or Card</p>
                     </div>
