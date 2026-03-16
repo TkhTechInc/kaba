@@ -109,6 +109,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     },
     paymentsServiceUrl: 'https://dev-payments.tkhtech.com/api/v1',
     tkhPaymentsApiKey: undefined,
+    kkiapayPublicKey: '7f8733408b8a11f0bc43af9778631087', // KkiaPay sandbox public key for dev
     // Cross-account SNS requires topic owner to add resource policy. Omit for deploy without org role.
     paymentsSnsTopicArn: undefined,
     ai: {
