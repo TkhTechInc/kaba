@@ -8,7 +8,7 @@
  * - Performance traces for critical operations
  */
 import * as Sentry from '@sentry/node';
-import { ProfilingIntegration } from '@sentry/profiling-node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
 
 let sentryInitialized = false;
 
@@ -34,8 +34,8 @@ export function initSentry() {
     profilesSampleRate: environment === 'production' ? 0.1 : 1.0,
 
     integrations: [
-      new ProfilingIntegration(),
-      new Sentry.Integrations.Http({ tracing: true }),
+      nodeProfilingIntegration(),
+      Sentry.httpIntegration(),
     ],
 
     // Filter out sensitive data
@@ -121,16 +121,16 @@ export function captureMessage(message: string, level: Sentry.SeverityLevel = 'i
 export function startTrace(name: string, op: string) {
   if (!sentryInitialized) return null;
 
-  const transaction = Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
     op,
+  }, (span) => {
+    return {
+      setTag: (key: string, value: string) => span?.setAttribute(key, value),
+      setData: (key: string, value: unknown) => span?.setAttribute(key, String(value)),
+      finish: () => {}, // Span finishes automatically when callback returns
+    };
   });
-
-  return {
-    setTag: (key: string, value: string) => transaction.setTag(key, value),
-    setData: (key: string, value: unknown) => transaction.setData(key, value),
-    finish: () => transaction.finish(),
-  };
 }
 
 /**

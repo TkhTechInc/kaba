@@ -7,7 +7,7 @@
  * - Redis-backed for distributed rate limiting
  * - Fallback to in-memory if Redis unavailable
  */
-import { Injectable, ExecutionContext, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, ExecutionContext, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
 import { Request } from 'express';
 
@@ -15,6 +15,7 @@ interface RateLimitStore {
   get(key: string): Promise<number>;
   increment(key: string, ttl: number): Promise<number>;
   reset(key: string): Promise<void>;
+  cleanup?(): void;
 }
 
 /**
@@ -66,15 +67,16 @@ class InMemoryStore implements RateLimitStore {
 export class EnhancedRateLimitGuard extends ThrottlerGuard {
   private store: RateLimitStore = new InMemoryStore();
 
-  constructor() {
-    super({
-      ttl: 60000,
-      limit: 200,
-    } as any, {} as any);
+  constructor(
+    @Inject('THROTTLER_OPTIONS') options: any,
+    storageService: any,
+    reflector: any,
+  ) {
+    super(options, storageService, reflector);
 
     // Cleanup in-memory store every 5 minutes
     if (this.store instanceof InMemoryStore) {
-      setInterval(() => this.store.cleanup(), 5 * 60 * 1000);
+      setInterval(() => (this.store as InMemoryStore).cleanup(), 5 * 60 * 1000);
     }
   }
 

@@ -44,6 +44,8 @@ const externals = [
   '@anthropic-ai/sdk',
   'openai',
   '@google/generative-ai',
+  '@sentry/profiling-node',
+  '@sentry-internal/node-cpu-profiler',
 ];
 
 esbuild

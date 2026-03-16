@@ -18,7 +18,7 @@
  */
 import { Injectable, Logger } from '@nestjs/common';
 import CircuitBreaker from 'opossum';
-import pRetry from 'p-retry';
+import pRetry, { AbortError } from 'p-retry';
 import { ExternalServiceError, ConfigurationError, BusinessRuleError } from '@/shared/errors/DomainError';
 
 export interface PaymentsIntentResponse {
@@ -210,7 +210,7 @@ export class PaymentsClient {
     options: { method?: string; body?: object } = {},
   ): Promise<T> {
     try {
-      return await this.breaker.fire(path, options);
+      return await this.breaker.fire(path, options) as T;
     } catch (error) {
       // Classify error for better handling
       if (error instanceof Error) {
@@ -221,10 +221,10 @@ export class PaymentsClient {
           throw new BusinessRuleError('Customer has insufficient funds');
         }
         if (error.message.includes('Circuit breaker is open')) {
-          throw new ExternalServiceError('TKH Payments is currently unavailable. Please try again later.');
+          throw new ExternalServiceError('TKH Payments', 'Service is currently unavailable. Please try again later.');
         }
       }
-      throw new ExternalServiceError(`Payment request failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new ExternalServiceError('TKH Payments', error instanceof Error ? error.message : 'Unknown error');
     }
   }
 
@@ -256,7 +256,7 @@ export class PaymentsClient {
 
           // Don't retry client errors (4xx) except 429 (rate limit)
           if (res.status >= 400 && res.status < 500 && res.status !== 429) {
-            throw new pRetry.AbortError(errorMessage);
+            throw new AbortError(errorMessage);
           }
 
           throw new Error(errorMessage);
@@ -269,10 +269,10 @@ export class PaymentsClient {
         minTimeout: 1000,    // 1s
         maxTimeout: 5000,    // 5s
         factor: 2,           // Exponential backoff
-        onFailedAttempt: (error) => {
+        onFailedAttempt: (error: any) => {
           this.logger.warn(
-            `TKH Payments request attempt ${error.attemptNumber} failed: ${error.message}. ` +
-            `${error.retriesLeft} retries left.`,
+            `TKH Payments request attempt ${error.attemptNumber ?? 'unknown'} failed. ` +
+            `${error.retriesLeft ?? 0} retries left.`,
           );
         },
       },

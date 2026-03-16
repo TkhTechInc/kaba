@@ -29,6 +29,7 @@ export interface EnvironmentConfig {
     enableCloudWatchLogs: boolean;
     enableAlarms: boolean;
     logRetentionDays: number;
+    alertEmails?: string[];
   };
   sms?: {
     enabled: boolean;
