@@ -23,6 +23,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      packages: read
 
     steps:
       - uses: actions/checkout@v4
@@ -30,6 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@tkhtechinc'
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -42,6 +45,8 @@ jobs:
       - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & bundle Lambda
         run: npm run bundle
@@ -85,6 +90,7 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      packages: read
 
     steps:
       - uses: actions/checkout@v4
@@ -92,6 +98,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@tkhtechinc'
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -104,6 +112,8 @@ jobs:
       - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & bundle Lambda
         run: npm run bundle
