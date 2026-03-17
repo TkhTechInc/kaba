@@ -43,7 +43,7 @@ import { DYNAMODB_DOC_CLIENT } from '@/nest/modules/dynamodb/dynamodb.module';
     {
       provide: NotificationRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.tableName') || process.env['DYNAMODB_TABLE'] || 'kaba-dev';
+        const tableName = config.get<string>('dynamodb.ledgerTable') || process.env['DYNAMODB_LEDGER_TABLE'] || 'Kaba-LedgerService-dev-ledger';
         return new NotificationRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

@@ -8,6 +8,7 @@ import {
   Matches,
   ValidateIf,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 const CURRENCIES = ['NGN', 'GHS', 'XOF', 'XAF', 'USD', 'EUR'] as const;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -21,6 +22,7 @@ export class CreateLedgerEntryDto {
 
   /** Required when productId not provided. When productId provided, computed from product. */
   @ValidateIf((o) => !o.productId)
+  @Type(() => Number)
   @IsNumber()
   @Min(0)
   amount?: number;
@@ -55,6 +57,7 @@ export class CreateLedgerEntryDto {
 
   /** Quantity sold when productId provided. */
   @ValidateIf((o) => !!o.productId)
+  @Type(() => Number)
   @IsNumber()
   @Min(1)
   quantitySold?: number;
@@ -66,11 +69,13 @@ export class CreateLedgerEntryDto {
 
   /** Exchange rate (1 originalCurrency = X ledger currency). */
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   exchangeRate?: number;
 
   /** Forex gain/loss in ledger currency. */
   @IsOptional()
+  @Type(() => Number)
   @IsNumber()
   forexGainLoss?: number;
 }

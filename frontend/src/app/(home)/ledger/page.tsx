@@ -246,6 +246,8 @@ export default function LedgerPage() {
               emptyMessage={
                 search.trim() ? (
                   t("ledger.entries.noResults")
+                ) : (typeFilter !== "all" || dateRange.fromDate || dateRange.toDate) ? (
+                  t("ledger.entries.noResultsForFilter")
                 ) : canWrite ? (
                   <>
                     {t("ledger.entries.empty")}{" "}

@@ -189,11 +189,13 @@ export default function DebtsPage() {
               : debts;
             return visibleDebts.length === 0 ? (
               <p className="py-8 text-center text-dark-6">
-                {search.trim() ? t("debts.noResults") : t("dashboard.debtsToCollect.noPending")}{" "}
-                {!search.trim() && (
-                  <Link href="/debts/new" className="text-primary hover:underline">
-                    {t("dashboard.debtsToCollect.addDebt")}
-                  </Link>
+                {search.trim() ? t("debts.noResults") : (statusFilter !== "all" || dateRange.fromDate || dateRange.toDate) ? t("debts.noResultsForFilter") : (
+                  <>
+                    {t("dashboard.debtsToCollect.noPending")}{" "}
+                    <Link href="/debts/new" className="text-primary hover:underline">
+                      {t("dashboard.debtsToCollect.addDebt")}
+                    </Link>
+                  </>
                 )}
               </p>
             ) : (

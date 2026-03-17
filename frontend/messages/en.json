@@ -250,7 +250,8 @@
       "empty": "No entries yet.",
       "emptyCta": "Create your first entry.",
       "search": "Search entries…",
-      "noResults": "No entries match your search."
+      "noResults": "No entries match your search.",
+      "noResultsForFilter": "No entries match the current filter. Try \"All\" or a different date range."
     },
     "filter": {
       "all": "All",
@@ -534,6 +535,7 @@
     "noBusinessSelected": "Select a business to manage debts.",
     "search": "Search debts…",
     "noResults": "No debts match your search.",
+    "noResultsForFilter": "No debts match the current filter. Try \"All\" or a different date range.",
     "filter": {
       "pending": "Pending"
     },

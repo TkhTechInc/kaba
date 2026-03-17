@@ -250,7 +250,8 @@
       "empty": "Aucune écriture pour l'instant.",
       "emptyCta": "Créez votre première écriture.",
       "search": "Rechercher des écritures…",
-      "noResults": "Aucune écriture ne correspond à votre recherche."
+      "noResults": "Aucune écriture ne correspond à votre recherche.",
+      "noResultsForFilter": "Aucune écriture ne correspond au filtre actuel. Essayez « Toutes » ou une autre plage de dates."
     },
     "filter": {
       "all": "Toutes",
@@ -534,6 +535,7 @@
     "noBusinessSelected": "Sélectionnez une entreprise pour gérer les dettes.",
     "search": "Rechercher des dettes…",
     "noResults": "Aucune dette ne correspond à votre recherche.",
+    "noResultsForFilter": "Aucune dette ne correspond au filtre actuel. Essayez « Toutes » ou une autre plage de dates.",
     "filter": {
       "pending": "En attente"
     },
