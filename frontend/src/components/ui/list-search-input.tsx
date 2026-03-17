@@ -1,12 +1,15 @@
 "use client";
 
 import { SearchIcon } from "@/assets/icons8";
+import { useId } from "react";
 
 interface ListSearchInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  /** Optional id for the input; auto-generated if omitted */
+  id?: string;
 }
 
 export function ListSearchInput({
@@ -14,10 +17,17 @@ export function ListSearchInput({
   onChange,
   placeholder = "Search…",
   className = "",
+  id: idProp,
 }: ListSearchInputProps) {
+  const id = idProp ?? useId();
   return (
     <div className={`relative ${className}`}>
+      <label htmlFor={id} className="sr-only">
+        {placeholder}
+      </label>
       <input
+        id={id}
+        name="search"
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -44,7 +44,7 @@ export default function PreferencesPage() {
           {t("preferences.notifications.title")}
         </h2>
         <div className="space-y-4">
-          <label className="flex cursor-pointer items-center justify-between gap-4">
+          <label htmlFor="pref-email-notifications" className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
                 {t("preferences.notifications.emailLabel")}
@@ -54,6 +54,8 @@ export default function PreferencesPage() {
               </span>
             </div>
             <input
+              id="pref-email-notifications"
+              name="emailNotifications"
               type="checkbox"
               checked={preferences.emailNotifications}
               onChange={(e) =>
@@ -63,7 +65,7 @@ export default function PreferencesPage() {
             />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between gap-4">
+          <label htmlFor="pref-inapp-notifications" className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
                 {t("preferences.notifications.inAppLabel")}
@@ -73,6 +75,8 @@ export default function PreferencesPage() {
               </span>
             </div>
             <input
+              id="pref-inapp-notifications"
+              name="inAppNotifications"
               type="checkbox"
               checked={preferences.inAppNotifications}
               onChange={(e) =>
@@ -82,7 +86,7 @@ export default function PreferencesPage() {
             />
           </label>
 
-          <label className="flex cursor-pointer items-center justify-between gap-4">
+          <label htmlFor="pref-sms-reminders" className="flex cursor-pointer items-center justify-between gap-4">
             <div>
               <span className="block font-medium text-dark dark:text-white">
                 {t("preferences.notifications.smsLabel")}
@@ -92,6 +96,8 @@ export default function PreferencesPage() {
               </span>
             </div>
             <input
+              id="pref-sms-reminders"
+              name="smsReminders"
               type="checkbox"
               checked={preferences.smsReminders}
               onChange={(e) =>
@@ -109,10 +115,12 @@ export default function PreferencesPage() {
         </h2>
         <div className="space-y-4">
           <div>
-            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
+            <label htmlFor="pref-locale" className="mb-2 block text-sm font-medium text-dark dark:text-white">
               {t("preferences.display.languageLabel")}
             </label>
             <select
+              id="pref-locale"
+              name="locale"
               value={preferences.locale}
               onChange={(e) =>
                 setPreferences({ locale: e.target.value as "en" | "fr" })
@@ -125,10 +133,12 @@ export default function PreferencesPage() {
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-dark dark:text-white">
+            <label htmlFor="pref-timezone" className="mb-2 block text-sm font-medium text-dark dark:text-white">
               {t("preferences.display.timezoneLabel")}
             </label>
             <select
+              id="pref-timezone"
+              name="timezone"
               value={preferences.timezone}
               onChange={(e) => setPreferences({ timezone: e.target.value })}
               className="w-full max-w-xs rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-dark outline-none focus:border-primary dark:border-gray-600 dark:bg-gray-800 dark:text-white"

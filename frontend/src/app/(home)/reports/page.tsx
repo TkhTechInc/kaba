@@ -123,10 +123,12 @@ export default function ReportsPage() {
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
-          <label className="text-body-sm font-medium text-dark dark:text-white">
+          <label htmlFor="reports-date-from" className="text-body-sm font-medium text-dark dark:text-white">
             {t("reports.filter.from")}
           </label>
           <input
+            id="reports-date-from"
+            name="reportsDateFrom"
             type="date"
             value={dates.fromDate}
             onChange={(e) => setDates((d) => ({ ...d, fromDate: e.target.value }))}
@@ -134,10 +136,12 @@ export default function ReportsPage() {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-body-sm font-medium text-dark dark:text-white">
+          <label htmlFor="reports-date-to" className="text-body-sm font-medium text-dark dark:text-white">
             {t("reports.filter.to")}
           </label>
           <input
+            id="reports-date-to"
+            name="reportsDateTo"
             type="date"
             value={dates.toDate}
             onChange={(e) => setDates((d) => ({ ...d, toDate: e.target.value }))}

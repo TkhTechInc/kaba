@@ -53,28 +53,47 @@ export default function AdminAuditLogsPage() {
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
         Audit Logs
       </h1>
-      <div className="mb-4 flex flex-wrap gap-4">
-        <input
-          type="text"
-          placeholder="Business ID"
-          value={businessId}
-          onChange={(e) => setBusinessId(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        />
-        <input
-          type="date"
-          placeholder="From"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        />
-        <input
-          type="date"
-          placeholder="To"
-          value={to}
-          onChange={(e) => setTo(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-        />
+      <div className="mb-4 flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="audit-business-id" className="text-sm font-medium text-dark dark:text-white">
+            Business ID
+          </label>
+          <input
+            id="audit-business-id"
+            name="auditBusinessId"
+            type="text"
+            placeholder="Business ID"
+            value={businessId}
+            onChange={(e) => setBusinessId(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="audit-date-from" className="text-sm font-medium text-dark dark:text-white">
+            From
+          </label>
+          <input
+            id="audit-date-from"
+            name="auditDateFrom"
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="audit-date-to" className="text-sm font-medium text-dark dark:text-white">
+            To
+          </label>
+          <input
+            id="audit-date-to"
+            name="auditDateTo"
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+          />
+        </div>
         <button
           onClick={load}
           disabled={loading}

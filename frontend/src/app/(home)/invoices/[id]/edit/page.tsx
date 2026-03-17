@@ -225,10 +225,11 @@ export default function InvoiceEditPage() {
           )}
           <div className="space-y-4">
             <div>
-              <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
+              <label htmlFor="invoice-edit-customer" className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
                 Customer
               </label>
               <CustomerSelect
+                id="invoice-edit-customer"
                 customers={customers}
                 value={form.customerId}
                 onChange={(id) => setForm((f) => ({ ...f, customerId: id }))}
@@ -254,6 +255,7 @@ export default function InvoiceEditPage() {
             </div>
             <InputGroup
               label="Due Date"
+              name="dueDate"
               type="date"
               required
               placeholder=""
@@ -265,7 +267,10 @@ export default function InvoiceEditPage() {
                 Early payment discount (optional)
               </p>
               <div className="flex gap-2">
+                <label htmlFor="early-discount-percent" className="sr-only">Discount percent</label>
                 <input
+                  id="early-discount-percent"
+                  name="earlyPaymentDiscountPercent"
                   type="number"
                   placeholder="% off"
                   min={0}
@@ -276,7 +281,10 @@ export default function InvoiceEditPage() {
                   }
                   className="w-20 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                 />
+                <label htmlFor="early-discount-days" className="sr-only">Discount days</label>
                 <input
+                  id="early-discount-days"
+                  name="earlyPaymentDiscountDays"
                   type="number"
                   placeholder="Days"
                   min={1}
@@ -320,14 +328,20 @@ export default function InvoiceEditPage() {
               )}
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
+                  <label htmlFor="line-item-desc" className="sr-only">Description</label>
                   <input
+                    id="line-item-desc"
+                    name="itemDesc"
                     type="text"
                     placeholder="Description"
                     value={form.itemDesc}
                     onChange={(e) => setForm((f) => ({ ...f, itemDesc: e.target.value }))}
                     className="min-w-[120px] flex-1 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                   />
+                  <label htmlFor="line-item-qty" className="sr-only">{t("invoiceEdit.qty")}</label>
                   <input
+                    id="line-item-qty"
+                    name="itemQty"
                     type="number"
                     placeholder={t("invoiceEdit.qty")}
                     min={1}
@@ -335,11 +349,14 @@ export default function InvoiceEditPage() {
                     onChange={(e) => setForm((f) => ({ ...f, itemQty: e.target.value }))}
                     className="w-16 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                   />
-                    <input
-                      type="number"
-                      placeholder={t("invoiceEdit.unitPrice")}
-                      step={0.01}
-                      value={form.itemPrice}
+                  <label htmlFor="line-item-price" className="sr-only">{t("invoiceEdit.unitPrice")}</label>
+                  <input
+                    id="line-item-price"
+                    name="itemPrice"
+                    type="number"
+                    placeholder={t("invoiceEdit.unitPrice")}
+                    step={0.01}
+                    value={form.itemPrice}
                     onChange={(e) => setForm((f) => ({ ...f, itemPrice: e.target.value }))}
                     className="w-24 rounded border border-stroke px-3 py-2 dark:border-dark-3 dark:bg-dark-2"
                   />

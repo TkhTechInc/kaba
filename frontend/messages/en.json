@@ -76,6 +76,7 @@
   "pay": {
     "requestFailed": "Request failed",
     "paymentFailed": "Payment failed",
+    "momoPhoneLabel": "MoMo phone number",
     "plan": {
       "upgradeSuccess": {
         "title": "Payment confirmed",

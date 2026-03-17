@@ -174,10 +174,12 @@ export default function CreateEntryPage() {
 
           <div className="space-y-5">
             <div>
-              <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+              <label htmlFor="entry-type" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
                 {t("entryNew.typeLabel")}
               </label>
               <select
+                id="entry-type"
+                name="entryType"
                 value={form.type}
                 onChange={(e) =>
                   setForm((f) => ({
@@ -199,10 +201,12 @@ export default function CreateEntryPage() {
               products.length > 0 && (
                 <>
                   <div>
-                    <label className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+                    <label htmlFor="entry-product" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
                       {t("entryNew.productLabel")}
                     </label>
                     <select
+                      id="entry-product"
+                      name="entryProduct"
                       value={form.productId || ""}
                       onChange={(e) => {
                         const pid = e.target.value;
@@ -230,6 +234,7 @@ export default function CreateEntryPage() {
                   {form.productId && (
                     <InputGroup
                       label={t("entryNew.quantitySold")}
+                      name="quantitySold"
                       type="number"
                       placeholder="1"
                       required
@@ -256,6 +261,7 @@ export default function CreateEntryPage() {
             {(!form.productId || form.type === "expense") && (
               <InputGroup
                 label={t("entryNew.amountLabel")}
+                name="amount"
                 type="number"
                 placeholder="0"
                 required={!form.productId}
@@ -290,6 +296,7 @@ export default function CreateEntryPage() {
 
             <InputGroup
               label={t("entryNew.dateLabel")}
+              name="date"
               type="date"
               placeholder="YYYY-MM-DD"
               required
@@ -300,6 +307,7 @@ export default function CreateEntryPage() {
             />
             <InputGroup
               label={t("entryNew.descriptionLabel")}
+              name="description"
               type="text"
               placeholder={t("common.noData")}
               value={form.description || ""}
@@ -309,6 +317,7 @@ export default function CreateEntryPage() {
             />
             <InputGroup
               label={t("entryNew.categoryLabel")}
+              name="category"
               type="text"
               placeholder={t("common.noData")}
               value={form.category || ""}
@@ -318,6 +327,7 @@ export default function CreateEntryPage() {
             />
             <InputGroup
               label={t("entryNew.smsPhoneLabel")}
+              name="smsPhone"
               type="text"
               placeholder={getPhonePlaceholder(features.countryCode)}
               value={form.smsPhone || ""}

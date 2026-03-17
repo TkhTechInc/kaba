@@ -161,11 +161,17 @@ function MoMoPlanRequestForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      <label htmlFor="momo-phone" className="sr-only">
+        {t("pay.momoPhoneLabel")}
+      </label>
       <input
+        id="momo-phone"
+        name="phone"
         type="tel"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         placeholder="+233241234567 or 0241234567"
+        autoComplete="tel"
         className="w-full rounded-xl border border-stroke bg-white px-4 py-3 text-dark placeholder:text-dark-5"
         disabled={loading}
       />

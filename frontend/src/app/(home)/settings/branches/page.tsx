@@ -343,6 +343,7 @@ export default function BranchesPage() {
               </label>
               <input
                 id="branch-name"
+                name="branchName"
                 type="text"
                 value={branchName}
                 onChange={(e) => setBranchName(e.target.value)}
@@ -355,7 +356,7 @@ export default function BranchesPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="branch-country" className="mb-1 block text-sm font-medium text-dark dark:text-white">{t("branches.createBranch.countryLabel")}</label>
-                <select id="branch-country" value={branchCountry} onChange={(e) => handleCountryChange(e.target.value)}
+                <select id="branch-country" name="branchCountry" value={branchCountry} onChange={(e) => handleCountryChange(e.target.value)}
                   className="w-full rounded-lg border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white">
                   <option value="">{t("branches.createBranch.countryPlaceholder")}</option>
                   {COUNTRY_CODES.map((cc) => <option key={cc} value={cc}>{cc}</option>)}
@@ -363,7 +364,7 @@ export default function BranchesPage() {
               </div>
               <div>
                 <label htmlFor="branch-currency" className="mb-1 block text-sm font-medium text-dark dark:text-white">{t("branches.createBranch.currencyLabel")}</label>
-                <input id="branch-currency" type="text" value={branchCurrency} onChange={(e) => setBranchCurrency(e.target.value)}
+                <input id="branch-currency" name="branchCurrency" type="text" value={branchCurrency} onChange={(e) => setBranchCurrency(e.target.value)}
                   placeholder={t("branches.createBranch.currencyPlaceholder")}
                   className="w-full rounded-lg border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2 dark:text-white" />
               </div>
@@ -402,7 +403,7 @@ export default function BranchesPage() {
       {!noOrgs && (
         <div className="mb-6">
           <label htmlFor="org-select" className="mb-2 block text-sm font-medium text-dark dark:text-white">{t("branches.orgSelector.label")}</label>
-          <select id="org-select" value={selectedOrgId}
+          <select id="org-select" name="selectedOrgId" value={selectedOrgId}
             onChange={(e) => { setSelectedOrgId(e.target.value); setBranches([]); setExpandedBranchId(null); }}
             disabled={loadingOrgs}
             className="w-full max-w-sm rounded-lg border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-gray-dark dark:text-white disabled:opacity-60">

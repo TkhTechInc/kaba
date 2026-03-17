@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useId } from "react";
 import type { Customer } from "@/services/invoices.service";
 
 interface CustomerSelectProps {
@@ -17,6 +17,8 @@ interface CustomerSelectProps {
   businessId: string;
   disabled?: boolean;
   placeholder?: string;
+  /** Optional id for the main input; use with htmlFor on parent label for accessibility */
+  id?: string;
 }
 
 export function CustomerSelect({
@@ -28,6 +30,7 @@ export function CustomerSelect({
   businessId,
   disabled,
   placeholder = "Search or select customer",
+  id: idProp,
 }: CustomerSelectProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -36,6 +39,11 @@ export function CustomerSelect({
   const [adding, setAdding] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const generatedId = useId();
+  const inputId = idProp ?? generatedId;
+  const addNameId = useId();
+  const addEmailId = useId();
+  const addPhoneId = useId();
 
   const selected = customers.find((c) => c.id === value);
   const filtered =
@@ -98,7 +106,14 @@ export function CustomerSelect({
     <div ref={containerRef} className="relative">
       <div className="flex gap-2">
         <div className="relative flex-1">
+          {!idProp && (
+            <label htmlFor={inputId} className="sr-only">
+              {placeholder}
+            </label>
+          )}
           <input
+            id={inputId}
+            name="customerId"
             type="text"
             value={open ? search : selected?.name ?? ""}
             onChange={(e) => {
@@ -175,7 +190,10 @@ export function CustomerSelect({
                 {addError}
               </div>
             )}
+            <label htmlFor={addNameId} className="sr-only">Name</label>
             <input
+              id={addNameId}
+              name="name"
               type="text"
               placeholder="Name"
               required
@@ -185,7 +203,10 @@ export function CustomerSelect({
               }
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2"
             />
+            <label htmlFor={addEmailId} className="sr-only">Email</label>
             <input
+              id={addEmailId}
+              name="email"
               type="email"
               placeholder="Email"
               required
@@ -195,7 +216,10 @@ export function CustomerSelect({
               }
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2"
             />
+            <label htmlFor={addPhoneId} className="sr-only">Phone (optional)</label>
             <input
+              id={addPhoneId}
+              name="phone"
               type="tel"
               placeholder="Phone (optional)"
               value={addForm.phone}

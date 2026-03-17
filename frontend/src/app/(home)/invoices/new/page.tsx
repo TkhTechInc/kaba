@@ -216,10 +216,11 @@ export default function CreateInvoicePage() {
           )}
           <div className="space-y-6">
             <div>
-              <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
+              <label htmlFor="invoice-new-customer" className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
                 {t("invoiceNew.customerLabel")}
               </label>
               <CustomerSelect
+                id="invoice-new-customer"
                 customers={customers}
                 value={form.customerId}
                 onChange={(id) => setForm((f) => ({ ...f, customerId: id }))}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useId } from "react";
 import { useLocale } from "@/contexts/locale-context";
 
 export interface DateRange {
@@ -24,6 +24,8 @@ export function DateRangeFilter({
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DateRange>(value);
+  const fromId = useId();
+  const toId = useId();
 
   const isActive = value.fromDate || value.toDate;
 
@@ -84,11 +86,13 @@ export function DateRangeFilter({
               {t("dateFilter.label")}
             </p>
             <div className="flex flex-col gap-3">
-              <label className="flex flex-col gap-1">
+              <label htmlFor={fromId} className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-dark-4 dark:text-dark-6">
                   {t("dateFilter.from")}
                 </span>
                 <input
+                  id={fromId}
+                  name="dateFrom"
                   type="date"
                   value={draft.fromDate}
                   max={draft.toDate || undefined}
@@ -98,11 +102,13 @@ export function DateRangeFilter({
                   className="rounded-lg border border-stroke px-3 py-1.5 text-sm text-dark focus:border-primary focus:outline-none dark:border-dark-3 dark:bg-dark-2 dark:text-white"
                 />
               </label>
-              <label className="flex flex-col gap-1">
+              <label htmlFor={toId} className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-dark-4 dark:text-dark-6">
                   {t("dateFilter.to")}
                 </span>
                 <input
+                  id={toId}
+                  name="dateTo"
                   type="date"
                   value={draft.toDate}
                   min={draft.fromDate || undefined}
