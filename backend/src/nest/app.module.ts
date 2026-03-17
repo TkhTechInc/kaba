@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
@@ -104,7 +104,22 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     {
       provide: APP_PIPE,
-      useValue: new ValidationPipe({ whitelist: true, transform: true }),
+      useValue: new ValidationPipe({
+        whitelist: true,
+        transform: true,
+        exceptionFactory: (errors) => {
+          const messages = errors.map((e) =>
+            e.constraints ? Object.values(e.constraints).join(', ') : `${e.property} invalid`,
+          );
+          return new BadRequestException({
+            message: messages.length === 1 ? messages[0] : messages,
+            errors: errors.map((e) => ({
+              property: e.property,
+              constraints: e.constraints,
+            })),
+          });
+        },
+      }),
     },
   ],
 })

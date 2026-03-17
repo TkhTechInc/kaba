@@ -8,10 +8,11 @@ import {
   Matches,
   ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
-const CURRENCIES = ['NGN', 'GHS', 'XOF', 'XAF', 'USD', 'EUR'] as const;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+/** ISO 4217: 3-letter currency code (case-insensitive, normalized to uppercase) */
+const CURRENCY_PATTERN = /^[A-Za-z]{3}$/;
 
 export class CreateLedgerEntryDto {
   @IsString()
@@ -28,7 +29,8 @@ export class CreateLedgerEntryDto {
   amount?: number;
 
   @IsString()
-  @IsIn(CURRENCIES)
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
+  @Matches(CURRENCY_PATTERN, { message: 'currency must be a 3-letter ISO code (e.g. XOF, NGN)' })
   currency!: string;
 
   /** Optional when productId provided (computed as "{productName} x {quantitySold}"). */
