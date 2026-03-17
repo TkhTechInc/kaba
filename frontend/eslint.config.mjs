@@ -9,7 +9,7 @@ const compat = new FlatCompat({ baseDirectory: __dirname });
 
 export default [
   {
-    ignores: [".next/**", "node_modules/**", "out/**", "*.config.js", "*.config.mjs", "*.config.ts"],
+    ignores: [".next/**", "node_modules/**", "out/**", "*.config.js", "*.config.mjs", "*.config.ts", "playwright-report/**", "test-results/**"],
   },
   ...compat.extends("next/core-web-vitals"),
 ];

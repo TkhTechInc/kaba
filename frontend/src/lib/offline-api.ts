@@ -45,9 +45,13 @@ export async function offlineMutation<T = unknown>(
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({})) as { error?: { message?: string }; message?: string };
+    const err = await res.json().catch(() => ({})) as {
+      error?: { message?: string | string[] };
+      message?: string | string[];
+    };
     const msg = err?.error?.message ?? err?.message ?? `Request failed: ${res.status}`;
-    throw new Error(typeof msg === 'string' ? msg : Array.isArray(msg) ? msg.join('; ') : String(msg));
+    const msgStr = typeof msg === "string" ? msg : Array.isArray(msg) ? msg.join("; ") : String(msg);
+    throw new Error(msgStr);
   }
   const data = await res.json();
   return { data, queued: false };

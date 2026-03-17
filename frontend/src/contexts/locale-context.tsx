@@ -23,7 +23,6 @@ export const LOCALE_LABELS: Record<Locale, string> = {
 
 const STORAGE_KEY = "kaba-locale";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // Messages are loaded lazily from JSON files to keep this file manageable.
 // The JSON files live in /messages/{locale}.json and are imported at runtime.
 // Auth + common + nav keys that don't yet have JSON files are inlined below.

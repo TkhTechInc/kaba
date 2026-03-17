@@ -19,7 +19,8 @@ export function ListSearchInput({
   className = "",
   id: idProp,
 }: ListSearchInputProps) {
-  const id = idProp ?? useId();
+  const generatedId = useId();
+  const id = idProp ?? generatedId;
   return (
     <div className={`relative ${className}`}>
       <label htmlFor={id} className="sr-only">
