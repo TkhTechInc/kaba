@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useLocale } from "@/contexts/locale-context";
 
 interface StorefrontData {
   name?: string;
@@ -62,6 +63,7 @@ function PayFooter() {
 function StorefrontContent() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useLocale();
   const slug = params?.slug as string;
 
   const [business, setBusiness] = useState<StorefrontData | null>(null);
@@ -118,13 +120,13 @@ function StorefrontContent() {
         if (redirectUrl) {
           router.push(redirectUrl);
         } else {
-          setSubmitError("Could not initiate payment. Please try again.");
+          setSubmitError(t("pay.requestFailed"));
         }
       } else {
-        setSubmitError("Could not initiate payment. Please try again.");
+        setSubmitError(t("pay.requestFailed"));
       }
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "Payment failed");
+      setSubmitError(err instanceof Error ? err.message : t("pay.paymentFailed"));
     } finally {
       setSubmitting(false);
     }

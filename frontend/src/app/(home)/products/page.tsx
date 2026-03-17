@@ -15,6 +15,7 @@ import { useLocale } from "@/contexts/locale-context";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 type StockoutForecast = {
   productId: string;
@@ -38,6 +39,7 @@ export default function ProductsPage() {
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const permissions = usePermissions(businessId);
+  const searchParams = useSearchParams();
   const canWrite = permissions.inventory?.canWrite ?? false;
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -50,7 +52,7 @@ export default function ProductsPage() {
     null
   );
   const [forecastLoading, setForecastLoading] = useState(false);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   const api = createProductsApi(token);
 

@@ -17,6 +17,7 @@ import { ListSearchInput } from "@/components/ui/list-search-input";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type CreditScoreData = {
@@ -33,6 +34,7 @@ export default function CustomersPage() {
   const { token, businessId } = useAuth();
   const { t } = useLocale();
   const features = useFeatures(businessId);
+  const searchParams = useSearchParams();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -46,7 +48,7 @@ export default function CustomersPage() {
   const [creditError, setCreditError] = useState<string | null>(null);
 
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   const api = createInvoicesApi(token);
   const reportsApi = createReportsApi(token);

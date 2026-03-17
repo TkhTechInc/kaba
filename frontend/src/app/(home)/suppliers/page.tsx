@@ -33,6 +33,7 @@ export default function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [modal, setModal] = useState<ModalState>({ type: "none" });
   const [form, setForm] = useState<CreateSupplierInput>(() => ({
@@ -75,6 +76,7 @@ export default function SuppliersPage() {
       currency:
         features.currency ?? getCurrencyForCountry(features.countryCode ?? ""),
     });
+    setModalError(null);
     setModal({ type: "create" });
   };
 
@@ -88,6 +90,7 @@ export default function SuppliersPage() {
       bankAccount: supplier.bankAccount ?? "",
       notes: supplier.notes ?? "",
     });
+    setModalError(null);
     setModal({ type: "edit", supplier });
   };
 
@@ -96,25 +99,33 @@ export default function SuppliersPage() {
     setModal({ type: "pay", supplier });
   };
 
-  const closeModal = () => setModal({ type: "none" });
+  const closeModal = () => { setModal({ type: "none" }); setModalError(null); };
 
   const handleSubmitCreate = () => {
     if (!businessId) return;
     setSubmitting(true);
+    setModalError(null);
     suppliersApi
       .create(businessId, form)
       .then(() => { closeModal(); load(); })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : t("suppliers.error.create")))
+      .catch((e: unknown) => {
+        console.error("[suppliers] create failed:", e);
+        setModalError(e instanceof Error ? e.message : t("suppliers.error.create"));
+      })
       .finally(() => setSubmitting(false));
   };
 
   const handleSubmitEdit = () => {
     if (!businessId || modal.type !== "edit") return;
     setSubmitting(true);
+    setModalError(null);
     suppliersApi
       .update(businessId, modal.supplier.id, form)
       .then(() => { closeModal(); load(); })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : t("suppliers.error.update")))
+      .catch((e: unknown) => {
+        console.error("[suppliers] update failed:", e);
+        setModalError(e instanceof Error ? e.message : t("suppliers.error.update"));
+      })
       .finally(() => setSubmitting(false));
   };
 
@@ -303,6 +314,9 @@ export default function SuppliersPage() {
             <h2 className="mb-4 text-lg font-semibold text-dark dark:text-white">
               {modal.type === "create" ? t("suppliers.addSupplier") : t("suppliers.editSupplier")}
             </h2>
+            {modalError && (
+              <div className="mb-3 rounded bg-red/10 p-3 text-sm text-red">{modalError}</div>
+            )}
             <div className="space-y-3">
               {(["name", "phone", "momoPhone", "bankAccount", "currency", "countryCode", "notes"] as const).map((field) => (
                 <div key={field}>

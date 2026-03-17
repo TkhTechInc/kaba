@@ -26,6 +26,7 @@
       "consolidated": "Consolidated"
     },
     "trustScore": "Trust Score",
+    "suppliers": "Suppliers",
     "branches": "Branches",
     "settings": "Settings",
     "settingsSub": {
@@ -69,11 +70,29 @@
       "close": "close"
     }
   },
+  "auth": {
+    "loginFailed": "Login failed"
+  },
+  "pay": {
+    "requestFailed": "Request failed",
+    "paymentFailed": "Payment failed",
+    "plan": {
+      "upgradeSuccess": {
+        "title": "Payment confirmed",
+        "subtitle": "Your plan has been upgraded. The app will refresh to show your new features.",
+        "newFeatures": "What you now have access to:",
+        "goToSettings": "Go to Settings",
+        "goToDashboard": "Dashboard"
+      }
+    }
+  },
   "common": {
     "loading": "Loading…",
     "noData": "No data",
     "cancel": "Cancel",
+    "change": "Change",
     "save": "Save",
+    "saveChanges": "Save changes",
     "search": "Search",
     "from": "From",
     "to": "To",
@@ -328,6 +347,11 @@
       "currentBadge": "(current)",
       "upgrade": "Upgrade",
       "downgrade": "Downgrade",
+      "downgradeAtPeriodEnd": "Downgrade takes effect at the end of your current billing period. You keep your current plan until then.",
+      "downgradeEffectiveImmediately": "Downgrade takes effect immediately (dev mode).",
+      "downgradeScheduled": "Your plan will change to {tier} on {date}.",
+      "downgradeScheduledSuccess": "Downgrade scheduled. You keep your current plan until {date}.",
+      "downgradeImmediateSuccess": "Plan updated.",
       "updating": "Updating…",
       "updateFailed": "Failed to update plan",
       "perMonth": " / month",
@@ -505,6 +529,7 @@
     "loadError": "Failed to load activity"
   },
   "debts": {
+    "upgradeFeature": "Debt tracker",
     "title": "Outstanding debts",
     "noBusinessSelected": "Select a business to manage debts.",
     "search": "Search debts…",
@@ -674,6 +699,13 @@
     "next": "Next",
     "pageOf": "Page {page} of {total}"
   },
+  "invoiceEdit": {
+    "unitPrice": "Unit price",
+    "qty": "Qty",
+    "addLineItem": "+ Add line item",
+    "saving": "Saving...",
+    "saveChanges": "Save changes"
+  },
   "invoiceNew": {
     "pageName": "Create Invoice",
     "title": "Create Invoice",
@@ -816,6 +848,9 @@
       "customerRetention": "Customer retention",
       "networkDiversity": "Network diversity"
     }
+  },
+  "profile": {
+    "saving": "Saving…"
   },
   "preferences": {
     "pageName": "Preferences",
@@ -1041,6 +1076,9 @@
       "thisYear": "This year"
     }
   },
+  "voice": {
+    "recordTransaction": "Record transaction"
+  },
   "pos": {
     "settingUp": "Setting up POS terminal…",
     "error": "Error",
@@ -1058,5 +1096,145 @@
     "waitingForPayment": "Waiting for payment…",
     "clientScansQr": "Customer scans the QR code to pay via Mobile Money",
     "or": "or"
+  },
+  "onboarding": {
+    "taxRegime": {
+      "vatRegistered": "VAT registered",
+      "simplifiedTax": "Simplified tax",
+      "notRegistered": "Not registered"
+    },
+    "steps": {
+      "business": "Business",
+      "location": "Location",
+      "tax": "Fiscal (optional)",
+      "details": "Details (optional)"
+    },
+    "months": {
+      "january": "January",
+      "february": "February",
+      "march": "March",
+      "april": "April",
+      "may": "May",
+      "june": "June",
+      "july": "July",
+      "august": "August",
+      "september": "September",
+      "october": "October",
+      "november": "November",
+      "december": "December"
+    },
+    "businessForm": {
+      "businessName": "Business name",
+      "businessType": "Business type",
+      "location": "Location",
+      "fiscalOptional": "Fiscal (optional)",
+      "detailsOptional": "Details (optional)"
+    },
+    "fiscalId": {
+      "BJ": {
+        "label": "IFU (Identifiant Fiscal Unique)",
+        "placeholder": "e.g. 0202376693109",
+        "hint": "Your 13-digit Benin tax ID. Required for DGI e-MECeF invoice certification."
+      },
+      "CI": {
+        "label": "NCC (Numéro de Compte Contribuable)",
+        "placeholder": "e.g. 1234567A",
+        "hint": "Your Côte d'Ivoire taxpayer account number. Required for FNE e-invoicing."
+      }
+    },
+    "form": {
+      "businessAddress": "Business address",
+      "businessPhone": "Business phone",
+      "legalStructure": "Legal structure",
+      "businessName": "Business name",
+      "businessType": "Business type",
+      "storeUrl": "Store URL",
+      "description": "Description",
+      "country": "Country",
+      "currency": "Currency",
+      "taxRegime": "Tax regime",
+      "fiscalYearStart": "Fiscal year start month",
+      "rccm": "RCCM",
+      "businessNamePlaceholder": "e.g. Mama's Shop",
+      "businessTypePlaceholder": "Select type",
+      "storeUrlPlaceholder": "my-shop",
+      "descriptionPlaceholder": "A short description of your business",
+      "countryPlaceholder": "Select country",
+      "currencyFromCountry": "Select a country to set your currency",
+      "optional": "(optional)",
+      "selectOptional": "Select (optional)",
+      "fiscalYearStartPlaceholder": "Select (optional)",
+      "businessAddressPlaceholder": "e.g. 123 Main St, Lagos",
+      "businessPhonePlaceholder": "e.g. +234 800 000 0000",
+      "rccmPlaceholder": "Numéro RCCM",
+      "rccmPlaceholderBJ": "e.g. RB/COT/25 A 12345",
+      "rccmRegistre": "Registre du Commerce",
+      "rccmHint": "Registration number at the Trade Register. Found on your articles of association or RCCM extract."
+    },
+    "businessTypes": {
+      "retail": "Retail / Shop",
+      "restaurant": "Restaurant / Food",
+      "services": "Services",
+      "manufacturing": "Manufacturing",
+      "agriculture": "Agriculture",
+      "other": "Other"
+    },
+    "countries": {
+      "NG": "Nigeria",
+      "GH": "Ghana",
+      "BJ": "Benin",
+      "SN": "Senegal",
+      "CI": "Côte d'Ivoire",
+      "TG": "Togo",
+      "CM": "Cameroon",
+      "ML": "Mali",
+      "NE": "Niger",
+      "BF": "Burkina Faso"
+    },
+    "currencies": {
+      "NGN": "NGN (Naira)",
+      "GHS": "GHS (Cedi)",
+      "XOF": "XOF (CFA Franc)",
+      "XAF": "XAF (CFA Franc)"
+    },
+    "legalStatus": {
+      "auto_entrepreneur": "Auto-entrepreneur / Micro-entreprise",
+      "sarl": "SARL — Société à Responsabilité Limitée",
+      "sa": "SA — Société Anonyme",
+      "snc": "SNC — Société en Nom Collectif",
+      "association": "Association / ONG",
+      "other": "Autre"
+    },
+    "stepTitles": {
+      "business": "Tell us about your business",
+      "location": "Where do you operate?",
+      "tax": "Legal structure & tax (optional)",
+      "details": "Contact & reporting (optional)"
+    },
+    "aria": {
+      "wizard": "Onboarding wizard",
+      "stepOf": "Step {step} of 4",
+      "businessType": "Business type",
+      "storeUrl": "Store URL slug",
+      "description": "Business description (optional)",
+      "country": "Country",
+      "legalStructure": "Legal structure",
+      "taxRegime": "Tax regime (optional)",
+      "fiscalYearStart": "Fiscal year start (optional)",
+      "rccm": "RCCM registration number",
+      "back": "Go back to previous step"
+    },
+    "storeUrlPrefix": "kabasika.com/store/",
+    "storeUrlSuffix": "Your store: kabasika.com/store/{slug}",
+    "back": "← Back",
+    "next": "Next",
+    "complete": "Complete",
+    "skip": "Skip",
+    "error": "Something went wrong",
+    "vatHint": "18% VAT applied automatically on your certified invoices.",
+    "fiscalQrSuccess": "✓ A fiscal QR code will appear on all your invoices.",
+    "autoEntrepreneurHint": "💡 As an auto-entrepreneur in Benin, you still need an IFU to sell legally. It's free and obtained in 24–48h at impots.bj.",
+    "sarlSaHint": "SARL and SA must be registered at the RCCM and have an active IFU to issue certified invoices.",
+    "noEinvCountryHint": "Electronic invoice certification is not yet available for your country. You can update your tax profile later in Settings → Business profile."
   }
 }

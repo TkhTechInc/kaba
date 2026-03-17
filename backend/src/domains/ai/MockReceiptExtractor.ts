@@ -1,4 +1,4 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  */
-export { MockReceiptExtractor } from '@tkhtech/ai';
+export { MockReceiptExtractor } from '@tkhtechinc/ai';

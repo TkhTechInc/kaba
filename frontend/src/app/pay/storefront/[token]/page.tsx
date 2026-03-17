@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useLocale } from "@/contexts/locale-context";
 
 function PayShell({ children }: { children: React.ReactNode }) {
   return (
@@ -130,6 +131,7 @@ function MoMoStorefrontRequestForm({
   onRequestSent: () => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useLocale();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -146,10 +148,10 @@ function MoMoStorefrontRequestForm({
       if (res?.success) {
         onRequestSent();
       } else {
-        onError("Request failed. Please try again.");
+        onError(t("pay.requestFailed"));
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Request failed");
+      onError(err instanceof Error ? err.message : t("pay.requestFailed"));
     } finally {
       setLoading(false);
     }
@@ -182,6 +184,7 @@ function MoMoStorefrontRequestForm({
 
 function StorefrontPayContent() {
   const params = useParams();
+  const { t } = useLocale();
   const tokenParam = params?.token as string | undefined;
   const [data, setData] = useState<{
     businessName: string;
@@ -213,10 +216,10 @@ function StorefrontPayContent() {
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        setError(err instanceof Error ? err.message : t("pay.requestFailed"));
       })
       .finally(() => setLoading(false));
-  }, [tokenParam]);
+  }, [tokenParam, t]);
 
   if (!tokenParam?.trim()) {
     return (

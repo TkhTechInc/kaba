@@ -1,8 +1,8 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  */
 export {
   type IReceiptExtractor,
   type ReceiptExtractionResult,
   type ReceiptLineItem,
-} from '@tkhtech/ai';
+} from '@tkhtechinc/ai';

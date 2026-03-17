@@ -1,1 +1,1 @@
-export { OpenRouterProvider } from '@tkhtech/ai';
+export { OpenRouterProvider } from '@tkhtechinc/ai';

@@ -42,7 +42,7 @@ export class BusinessRepository {
     private readonly tableName: string,
   ) {}
 
-  async getById(businessId: string): Promise<Business | null> {
+  private async getByIdRaw(businessId: string): Promise<Record<string, unknown> | null> {
     try {
       const result = await this.docClient.send(
         new GetCommand({
@@ -50,16 +50,25 @@ export class BusinessRepository {
           Key: { pk: businessId, sk: SK_META },
         }),
       );
-      if (!result.Item) return null;
-      return this.mapFromDynamoDB(result.Item);
+      return result.Item ? (result.Item as Record<string, unknown>) : null;
     } catch (e) {
       throw new DatabaseError('Get business failed', e);
     }
   }
 
+  async getById(businessId: string): Promise<Business | null> {
+    const raw = await this.getByIdRaw(businessId);
+    if (!raw) return null;
+    const business = this.mapFromDynamoDB(raw);
+    return this.applyExpiredSubscription(business);
+  }
+
   async getOrCreate(businessId: string, defaultTier: Tier = 'free'): Promise<Business> {
-    const existing = await this.getById(businessId);
-    if (existing) return existing;
+    const raw = await this.getByIdRaw(businessId);
+    if (raw) {
+      const business = this.mapFromDynamoDB(raw);
+      return this.applyExpiredSubscription(business);
+    }
 
     const now = new Date().toISOString();
     const business: Business = {
@@ -106,6 +115,97 @@ export class BusinessRepository {
   }
 
   /**
+   * Upgrade/renew with subscription period. Sets tier and subscriptionEndsAt.
+   * For new subscription: end of current month.
+   * For renewal: end of month after current subscriptionEndsAt (or end of current month if none).
+   */
+  async updateTierWithSubscription(businessId: string, tier: Tier): Promise<Business> {
+    const existing = await this.getOrCreate(businessId, tier);
+    const now = new Date();
+    let startDate = now;
+    if (existing.subscriptionEndsAt) {
+      const endsAt = new Date(existing.subscriptionEndsAt);
+      if (endsAt > now) startDate = endsAt;
+    }
+    const endOfMonth = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0, 23, 59, 59, 999);
+    const subscriptionEndsAt = endOfMonth.toISOString();
+    const updated: Business = {
+      ...existing,
+      tier,
+      subscriptionEndsAt,
+      scheduledDowngradeTier: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: this.mapToDynamoDB(updated),
+        }),
+      );
+      return updated;
+    } catch (e) {
+      throw new DatabaseError('Update business tier with subscription failed', e);
+    }
+  }
+
+  /**
+   * Schedule downgrade for end of subscription period. User keeps current tier until subscriptionEndsAt.
+   */
+  async scheduleDowngrade(businessId: string, targetTier: Tier): Promise<Business> {
+    const existing = await this.getOrCreate(businessId, 'free');
+    if (!existing.subscriptionEndsAt || new Date(existing.subscriptionEndsAt) <= new Date()) {
+      return this.updateTier(businessId, targetTier);
+    }
+    const updated: Business = {
+      ...existing,
+      scheduledDowngradeTier: targetTier,
+      updatedAt: new Date().toISOString(),
+    };
+
+    try {
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: this.mapToDynamoDB(updated),
+        }),
+      );
+      return updated;
+    } catch (e) {
+      throw new DatabaseError('Schedule downgrade failed', e);
+    }
+  }
+
+  /**
+   * Apply expired subscription: if subscriptionEndsAt has passed, set tier to scheduledDowngradeTier or free.
+   */
+  private async applyExpiredSubscription(business: Business): Promise<Business> {
+    if (!business.subscriptionEndsAt || new Date(business.subscriptionEndsAt) > new Date()) {
+      return business;
+    }
+    const newTier = business.scheduledDowngradeTier ?? 'free';
+    const updated: Business = {
+      ...business,
+      tier: newTier,
+      subscriptionEndsAt: undefined,
+      scheduledDowngradeTier: undefined,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      await this.docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: this.mapToDynamoDB(updated),
+        }),
+      );
+      return updated;
+    } catch (e) {
+      return business;
+    }
+  }
+
+  /**
    * Lock a fiscal period (OHADA-compliant month-end close).
    * Period format: "YYYY-MM" (e.g. "2026-01").
    * Idempotent — locking an already-locked period is a no-op.
@@ -128,6 +228,47 @@ export class BusinessRepository {
         throw new Error(`Business ${businessId} not found`);
       }
       throw new DatabaseError('Lock period failed', e);
+    }
+  }
+
+  /**
+   * List businesses with subscriptionEndsAt within the next N days.
+   * Excludes businesses with scheduledDowngradeTier (they're intentionally downgrading).
+   */
+  async listWithSubscriptionExpiringSoon(withinDays: number): Promise<Business[]> {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000);
+    const nowStr = now.toISOString();
+    const cutoffStr = cutoff.toISOString();
+    const paidTiers = ['starter', 'pro', 'enterprise'];
+
+    const items: Business[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+
+    try {
+      do {
+        const result = await this.docClient.send(
+          new ScanCommand({
+            TableName: this.tableName,
+            FilterExpression:
+              'sk = :meta AND attribute_exists(subscriptionEndsAt) AND subscriptionEndsAt >= :now AND subscriptionEndsAt <= :cutoff AND attribute_not_exists(scheduledDowngradeTier)',
+            ExpressionAttributeValues: {
+              ':meta': SK_META,
+              ':now': nowStr,
+              ':cutoff': cutoffStr,
+            },
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
+          })
+        );
+        const batch = (result.Items ?? [])
+          .map((item) => this.mapFromDynamoDB(item))
+          .filter((b) => paidTiers.includes(b.tier ?? ''));
+        items.push(...batch);
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
+      return items;
+    } catch (e) {
+      throw new DatabaseError('List businesses with expiring subscription failed', e);
     }
   }
 
@@ -438,6 +579,8 @@ export class BusinessRepository {
       logoUrl: b.logoUrl ?? undefined,
       description: b.description ?? undefined,
       dailySummaryEnabled: b.dailySummaryEnabled ?? undefined,
+      subscriptionEndsAt: b.subscriptionEndsAt ?? undefined,
+      scheduledDowngradeTier: b.scheduledDowngradeTier ?? undefined,
       createdAt: b.createdAt,
       updatedAt: b.updatedAt,
       ...(b.lockedPeriods?.length ? { lockedPeriods: b.lockedPeriods } : {}),
@@ -487,6 +630,8 @@ export class BusinessRepository {
           : item.dailySummaryEnabled === false
             ? false
             : undefined,
+      subscriptionEndsAt: item.subscriptionEndsAt != null ? String(item.subscriptionEndsAt) : undefined,
+      scheduledDowngradeTier: item.scheduledDowngradeTier != null ? (item.scheduledDowngradeTier as Tier) : undefined,
       createdAt: String(item.createdAt ?? ''),
       updatedAt: String(item.updatedAt ?? ''),
     };

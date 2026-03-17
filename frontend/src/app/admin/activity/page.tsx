@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import {
   Table,
@@ -15,6 +16,7 @@ import type { AdminActivity, AdminActivityItem } from "@/services/admin.service"
 
 export default function AdminActivityPage() {
   const { token } = useAuth();
+  const { t } = useLocale();
   const [data, setData] = useState<AdminActivity | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +103,7 @@ export default function AdminActivityPage() {
               disabled={loading}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {loading ? "Loading..." : "Load more"}
+              {loading ? t("common.loading") : t("common.loadMore")}
             </button>
           </div>
         )}

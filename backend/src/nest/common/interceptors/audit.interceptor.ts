@@ -1,4 +1,4 @@
 /**
- * Re-exports from @tkhtech/nest-auth.
+ * Re-exports from @tkhtechinc/nest-auth.
  */
-export { AuditInterceptor } from '@tkhtech/nest-auth';
+export { AuditInterceptor } from '@tkhtechinc/nest-auth';

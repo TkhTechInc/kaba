@@ -14,12 +14,14 @@ import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
 import { useLocale } from "@/contexts/locale-context";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export default function DebtsPage() {
   const { t } = useLocale();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const searchParams = useSearchParams();
   const [debts, setDebts] = useState<Debt[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -31,7 +33,7 @@ export default function DebtsPage() {
   const [statusFilter, setStatusFilter] = useState<"all" | DebtStatus>("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
 
   const api = createDebtsApi(token);
   const canRemind = features.isEnabled("debt_reminders");

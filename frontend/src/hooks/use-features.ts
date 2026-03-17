@@ -17,6 +17,8 @@ export type FeaturesResponse = {
   success: boolean;
   data: {
     tier: Tier;
+    subscriptionEndsAt?: string;
+    scheduledDowngradeTier?: Tier;
     onboardingComplete?: boolean;
     currency?: string;
     countryCode?: string;
@@ -209,6 +211,8 @@ export function useFeatures(businessId: string | null) {
   return useMemo(
     () => ({
       tier: data?.tier ?? null,
+      subscriptionEndsAt: data?.subscriptionEndsAt ?? null,
+      scheduledDowngradeTier: data?.scheduledDowngradeTier ?? null,
       onboardingComplete: data?.onboardingComplete ?? false,
       /** null while loading; derived from business.currency or country when loaded. Fallback XOF (not NGN). */
       currency: data

@@ -29,7 +29,7 @@ function tierIndex(t: Tier): number {
 export default function SettingsPage() {
   const { t } = useLocale();
   const { token, businessId } = useAuth();
-  const { tier, currency, loading, refetch } = useFeatures(businessId);
+  const { tier, currency, loading, refetch, subscriptionEndsAt, scheduledDowngradeTier } = useFeatures(businessId);
   const { hasPermission } = usePermissions(businessId);
   const canChangePlan = hasPermission("business:tier");
   const [updating, setUpdating] = useState<Tier | null>(null);
@@ -93,9 +93,11 @@ export default function SettingsPage() {
         window.location.href = checkout.payUrl;
         return;
       }
-      await updateBusinessTier(businessId, newTier, token);
+      const res = await updateBusinessTier(businessId, newTier, token);
       invalidateFeaturesCache(businessId);
       await refetch();
+      const wasScheduled = !!res?.data?.scheduledDowngradeTier;
+      if (!wasScheduled) window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("settings.plans.updateFailed"));
     } finally {
@@ -178,6 +180,28 @@ export default function SettingsPage() {
         {!canChangePlan && (
           <p className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
             {t("settings.plans.restrictedNotice")}
+          </p>
+        )}
+
+        {canChangePlan && scheduledDowngradeTier && (
+          <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            {t("settings.plans.downgradeScheduled", {
+              tier: t(`settings.plans.tiers.${scheduledDowngradeTier}.name`),
+              date: subscriptionEndsAt
+                ? new Date(subscriptionEndsAt).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "",
+            })}
+          </div>
+        )}
+        {canChangePlan && tierIndex((tier ?? "free") as Tier) > 0 && !scheduledDowngradeTier && (
+          <p className="mb-4 text-sm text-dark-4 dark:text-dark-6">
+            {process.env.NODE_ENV === "development"
+              ? t("settings.plans.downgradeEffectiveImmediately")
+              : t("settings.plans.downgradeAtPeriodEnd")}
           </p>
         )}
 

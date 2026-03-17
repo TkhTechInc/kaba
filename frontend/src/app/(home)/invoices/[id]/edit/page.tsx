@@ -4,6 +4,7 @@ import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { CustomerSelect } from "@/components/Invoices/CustomerSelect";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
 import { getCurrencyForCountry } from "@/lib/country-currency";
 import { Price } from "@/components/ui/Price";
@@ -22,6 +23,7 @@ import { useEffect, useState } from "react";
 export default function InvoiceEditPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useLocale();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
@@ -327,7 +329,7 @@ export default function InvoiceEditPage() {
                   />
                   <input
                     type="number"
-                    placeholder="Qty"
+                    placeholder={t("invoiceEdit.qty")}
                     min={1}
                     value={form.itemQty}
                     onChange={(e) => setForm((f) => ({ ...f, itemQty: e.target.value }))}
@@ -335,7 +337,7 @@ export default function InvoiceEditPage() {
                   />
                     <input
                       type="number"
-                      placeholder="Unit price"
+                      placeholder={t("invoiceEdit.unitPrice")}
                       step={0.01}
                       value={form.itemPrice}
                     onChange={(e) => setForm((f) => ({ ...f, itemPrice: e.target.value }))}
@@ -347,7 +349,7 @@ export default function InvoiceEditPage() {
                   onClick={addItem}
                   className="w-full rounded border border-dashed border-stroke py-2 text-sm text-dark-4 hover:border-primary hover:text-primary dark:border-dark-3 dark:hover:border-primary"
                 >
-                  + Add line item
+                  {t("invoiceEdit.addLineItem")}
                 </button>
               </div>
             </div>
@@ -357,7 +359,7 @@ export default function InvoiceEditPage() {
             disabled={submitting || form.items.length === 0 || form.items.reduce((s, i) => s + i.amount, 0) <= 0}
             className="mt-6 w-full rounded-lg bg-primary py-3 font-medium text-white hover:bg-primary/90 disabled:opacity-50"
           >
-            {submitting ? "Saving..." : "Save changes"}
+            {submitting ? t("invoiceEdit.saving") : t("invoiceEdit.saveChanges")}
           </button>
         </form>
       </div>

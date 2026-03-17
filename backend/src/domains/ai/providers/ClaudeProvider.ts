@@ -1,1 +1,1 @@
-export { ClaudeProvider } from '@tkhtech/ai';
+export { ClaudeProvider } from '@tkhtechinc/ai';

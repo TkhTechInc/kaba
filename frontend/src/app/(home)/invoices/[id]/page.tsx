@@ -31,8 +31,8 @@ export default function InvoiceDetailPage() {
   const id = params?.id as string | undefined;
   const api = createInvoicesApi(token);
 
-  // Redirect to list if id is invalid (prevents GET /invoices/undefined)
-  const isValidId = id && typeof id === "string" && id !== "undefined" && id !== "null";
+  // Redirect to list if id is invalid (prevents GET /invoices/undefined or /invoices/new being treated as a detail fetch)
+  const isValidId = id && typeof id === "string" && id !== "undefined" && id !== "null" && id !== "new";
 
   const canEdit = invoice && (invoice.status === "draft" || invoice.status === "pending_approval");
   const canGetPaymentLink =
@@ -98,7 +98,7 @@ export default function InvoiceDetailPage() {
     if (!businessId || !isValidId) {
       setLoading(false);
       if (!isValidId && id !== undefined) {
-        router.replace("/invoices");
+        router.replace(id === "new" ? "/invoices/new" : "/invoices");
       }
       return;
     }

@@ -40,6 +40,8 @@ export class FeaturesController {
       success: true,
       data: {
         tier: business.tier,
+        subscriptionEndsAt: business.subscriptionEndsAt ?? undefined,
+        scheduledDowngradeTier: business.scheduledDowngradeTier ?? undefined,
         onboardingComplete: business.onboardingComplete ?? false,
         currency: getBusinessCurrency(business),
         countryCode: business.countryCode ?? undefined,

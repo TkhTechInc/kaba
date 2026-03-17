@@ -2,6 +2,7 @@
 
 import { EmailIcon, LockIcon } from "@/assets/icons8";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +15,7 @@ function isValidReturnUrl(url: string): boolean {
 
 export default function SigninWithPassword() {
   const { loginWithEmail } = useAuth();
+  const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnUrl = searchParams.get("returnUrl");
@@ -37,7 +39,7 @@ export default function SigninWithPassword() {
       const target = isValidReturnUrl(returnUrl ?? "") ? (returnUrl ?? "/") : "/";
       router.replace(target);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : t("auth.loginFailed"));
     } finally {
       setLoading(false);
     }

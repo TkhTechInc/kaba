@@ -9,6 +9,7 @@ import { apiGet, apiPost } from "@/lib/api-client";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "@/contexts/locale-context";
 
 function PayShell({ children }: { children: React.ReactNode }) {
   return (
@@ -128,6 +129,7 @@ function MoMoRequestForm({
   onRequestSent: () => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useLocale();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -148,10 +150,10 @@ function MoMoRequestForm({
       if (res?.success) {
         onRequestSent();
       } else {
-        onError("Request failed. Please try again.");
+        onError(t("pay.requestFailed"));
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Request failed");
+      onError(err instanceof Error ? err.message : t("pay.requestFailed"));
     } finally {
       setLoading(false);
     }
@@ -228,6 +230,7 @@ const POLL_MAX_MS = 120_000;
 
 function PayContent() {
   const params = useParams();
+  const { t } = useLocale();
   const tokenParam = params?.token as string | undefined;
 
   const [data, setData] = useState<InvoicePayData | null>(null);
@@ -298,13 +301,13 @@ function PayContent() {
       })
       .catch((err) => {
         setError(
-          err instanceof Error ? err.message : "Invalid or expired payment link"
+          err instanceof Error ? err.message : t("pay.requestFailed")
         );
       })
       .finally(() => setLoading(false));
 
     return () => stopPolling();
-  }, [tokenParam, fetchInvoice, stopPolling]);
+  }, [tokenParam, fetchInvoice, stopPolling, t]);
 
   // No token
   if (!tokenParam?.trim()) {

@@ -59,7 +59,7 @@ export default function AddDebtPage() {
         phone: form.phone.trim() || undefined,
         notes: form.notes.trim() || undefined,
       });
-      router.push("/debts");
+      router.push(`/debts?search=${encodeURIComponent(form.debtorName.trim())}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("debts.new.error"));
     } finally {
@@ -93,7 +93,7 @@ export default function AddDebtPage() {
     return (
       <>
         <Breadcrumb pageName={t("debts.new.pageName")} />
-        <UpgradePrompt feature="Debt tracker" />
+        <UpgradePrompt feature={t("debts.upgradeFeature")} />
       </>
     );
   }

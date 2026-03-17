@@ -1,2 +1,2 @@
-export { BedrockProvider } from '@tkhtech/ai';
-export type { BedrockProviderOptions } from '@tkhtech/ai';
+export { BedrockProvider } from '@tkhtechinc/ai';
+export type { BedrockProviderOptions } from '@tkhtechinc/ai';

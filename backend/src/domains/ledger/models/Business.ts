@@ -58,6 +58,16 @@ export interface Business {
   trustScoredAt?: string;
   /** Market day cycle in days (e.g. 5 for a 5-day periodic market). Used for Market Day Awareness in scoring. */
   marketDayCycle?: number;
+  /**
+   * When the current paid subscription period ends (ISO timestamp).
+   * User keeps their paid tier until this date. After that, tier becomes scheduledDowngradeTier or free.
+   */
+  subscriptionEndsAt?: string;
+  /**
+   * When user requests downgrade, the tier to switch to at end of subscription period.
+   * Applied when subscriptionEndsAt passes.
+   */
+  scheduledDowngradeTier?: Tier;
   /** URL-friendly identifier for public storefront, e.g. "mama-fashion" */
   slug?: string;
   /** Public URL to the business logo image */

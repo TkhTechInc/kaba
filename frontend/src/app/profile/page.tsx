@@ -3,6 +3,7 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import Image from "next/image";
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { CameraIcon } from "./_components/icons";
@@ -14,6 +15,7 @@ const USER_KEY = "qb_auth_user";
 
 export default function Page() {
   const { user, businesses, isLoading, token } = useAuth();
+  const { t } = useLocale();
   const { preferences, setPreferences } = usePreferences(token);
   const router = useRouter();
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
@@ -246,7 +248,7 @@ export default function Page() {
               disabled={saving}
               className="rounded-lg bg-primary px-6 py-2.5 text-sm font-medium text-white hover:bg-opacity-90 disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save changes"}
+              {saving ? t("profile.saving") : t("common.saveChanges")}
             </button>
           </div>
         </form>

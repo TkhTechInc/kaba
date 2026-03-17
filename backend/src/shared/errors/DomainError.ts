@@ -1,5 +1,5 @@
 /**
- * Re-exports from @tkhtech/domain-errors.
+ * Re-exports from @tkhtechinc/domain-errors.
  * All existing import paths across Kaba continue to work unchanged.
  * Source of truth is now the shared platform package.
  */
@@ -26,4 +26,4 @@ export {
   ErrorFactory,
   logDomainError,
   ERROR_STATUS_MAP,
-} from '@tkhtech/domain-errors';
+} from '@tkhtechinc/domain-errors';

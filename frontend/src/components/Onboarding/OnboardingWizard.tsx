@@ -2,37 +2,9 @@
 
 import { useOnboarding } from "@/hooks/use-onboarding";
 import InputGroup from "@/components/FormElements/InputGroup";
+import { useLocale } from "@/contexts/locale-context";
 import { cn } from "@/lib/utils";
 import React, { useState, useRef, useEffect } from "react";
-
-const BUSINESS_TYPES = [
-  { value: "retail", label: "Retail / Shop" },
-  { value: "restaurant", label: "Restaurant / Food" },
-  { value: "services", label: "Services" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "agriculture", label: "Agriculture" },
-  { value: "other", label: "Other" },
-];
-
-const COUNTRIES = [
-  { value: "NG", label: "Nigeria" },
-  { value: "GH", label: "Ghana" },
-  { value: "BJ", label: "Benin" },
-  { value: "SN", label: "Senegal" },
-  { value: "CI", label: "Côte d'Ivoire" },
-  { value: "TG", label: "Togo" },
-  { value: "CM", label: "Cameroon" },
-  { value: "ML", label: "Mali" },
-  { value: "NE", label: "Niger" },
-  { value: "BF", label: "Burkina Faso" },
-];
-
-const CURRENCIES = [
-  { value: "NGN", label: "NGN (Naira)" },
-  { value: "GHS", label: "GHS (Cedi)" },
-  { value: "XOF", label: "XOF (CFA Franc)" },
-  { value: "XAF", label: "XAF (CFA Franc)" },
-];
 
 const COUNTRY_DEFAULT_CURRENCY: Record<string, string> = {
   NG: "NGN",
@@ -47,35 +19,12 @@ const COUNTRY_DEFAULT_CURRENCY: Record<string, string> = {
   CM: "XAF",
 };
 
-const TAX_REGIMES = [
-  { value: "vat", label: "VAT registered" },
-  { value: "simplified", label: "Simplified tax" },
-  { value: "none", label: "Not registered" },
-];
-
-const STEPS = [
-  { id: 1, key: "business", title: "Business" },
-  { id: 2, key: "location", title: "Location" },
-  { id: 3, key: "tax", title: "Fiscal (optional)" },
-  { id: 4, key: "details", title: "Details (optional)" },
-];
+const MONTH_KEYS = [
+  "january", "february", "march", "april", "may", "june",
+  "july", "august", "september", "october", "november", "december",
+] as const;
 
 type WizardStep = 1 | 2 | 3 | 4;
-
-const FISCAL_YEAR_MONTHS = [
-  { value: 1, label: "January" },
-  { value: 2, label: "February" },
-  { value: 3, label: "March" },
-  { value: 4, label: "April" },
-  { value: 5, label: "May" },
-  { value: 6, label: "June" },
-  { value: 7, label: "July" },
-  { value: 8, label: "August" },
-  { value: 9, label: "September" },
-  { value: 10, label: "October" },
-  { value: 11, label: "November" },
-  { value: 12, label: "December" },
-];
 
 export function OnboardingWizard({
   businessId,
@@ -97,8 +46,56 @@ export function OnboardingWizard({
     fiscalYearStart: number;
   }>;
 }) {
+  const { t } = useLocale();
   const { data, update, loading } = useOnboarding(businessId);
   const [step, setStep] = useState<WizardStep>(1);
+
+  const BUSINESS_TYPES = [
+    { value: "retail", label: t("onboarding.businessTypes.retail") },
+    { value: "restaurant", label: t("onboarding.businessTypes.restaurant") },
+    { value: "services", label: t("onboarding.businessTypes.services") },
+    { value: "manufacturing", label: t("onboarding.businessTypes.manufacturing") },
+    { value: "agriculture", label: t("onboarding.businessTypes.agriculture") },
+    { value: "other", label: t("onboarding.businessTypes.other") },
+  ];
+
+  const COUNTRIES = [
+    { value: "NG", label: t("onboarding.countries.NG") },
+    { value: "GH", label: t("onboarding.countries.GH") },
+    { value: "BJ", label: t("onboarding.countries.BJ") },
+    { value: "SN", label: t("onboarding.countries.SN") },
+    { value: "CI", label: t("onboarding.countries.CI") },
+    { value: "TG", label: t("onboarding.countries.TG") },
+    { value: "CM", label: t("onboarding.countries.CM") },
+    { value: "ML", label: t("onboarding.countries.ML") },
+    { value: "NE", label: t("onboarding.countries.NE") },
+    { value: "BF", label: t("onboarding.countries.BF") },
+  ];
+
+  const CURRENCIES = [
+    { value: "NGN", label: t("onboarding.currencies.NGN") },
+    { value: "GHS", label: t("onboarding.currencies.GHS") },
+    { value: "XOF", label: t("onboarding.currencies.XOF") },
+    { value: "XAF", label: t("onboarding.currencies.XAF") },
+  ];
+
+  const TAX_REGIMES = [
+    { value: "vat", label: t("onboarding.taxRegime.vatRegistered") },
+    { value: "simplified", label: t("onboarding.taxRegime.simplifiedTax") },
+    { value: "none", label: t("onboarding.taxRegime.notRegistered") },
+  ];
+
+  const STEPS = [
+    { id: 1, key: "business", title: t("onboarding.steps.business") },
+    { id: 2, key: "location", title: t("onboarding.steps.location") },
+    { id: 3, key: "tax", title: t("onboarding.steps.tax") },
+    { id: 4, key: "details", title: t("onboarding.steps.details") },
+  ];
+
+  const FISCAL_YEAR_MONTHS = MONTH_KEYS.map((key, i) => ({
+    value: i + 1,
+    label: t(`onboarding.months.${key}`),
+  }));
   const [businessName, setBusinessName] = useState(data?.answers.businessName ?? "");
   const [businessType, setBusinessType] = useState(data?.answers.businessType ?? "");
   const [slug, setSlug] = useState(data?.answers.slug ?? "");
@@ -120,14 +117,14 @@ export function OnboardingWizard({
   /** Countries where a government-issued tax ID (IFU/NCC) is required for e-invoicing */
   const FISCAL_ID_COUNTRIES: Record<string, { label: string; placeholder: string; hint: string }> = {
     BJ: {
-      label: "IFU (Identifiant Fiscal Unique)",
-      placeholder: "e.g. 0202376693109",
-      hint: "Your 13-digit Benin tax ID. Required for DGI e-MECeF invoice certification.",
+      label: t("onboarding.fiscalId.BJ.label"),
+      placeholder: t("onboarding.fiscalId.BJ.placeholder"),
+      hint: t("onboarding.fiscalId.BJ.hint"),
     },
     CI: {
-      label: "NCC (Numéro de Compte Contribuable)",
-      placeholder: "e.g. 1234567A",
-      hint: "Your Côte d'Ivoire taxpayer account number. Required for FNE e-invoicing.",
+      label: t("onboarding.fiscalId.CI.label"),
+      placeholder: t("onboarding.fiscalId.CI.placeholder"),
+      hint: t("onboarding.fiscalId.CI.hint"),
     },
   };
 
@@ -247,7 +244,7 @@ export function OnboardingWizard({
         onComplete();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("onboarding.error"));
     }
   };
 
@@ -269,7 +266,7 @@ export function OnboardingWizard({
         onComplete();
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("onboarding.error"));
     }
   };
 
@@ -283,8 +280,8 @@ export function OnboardingWizard({
           : true;
 
   return (
-    <div className="w-full max-w-lg" role="region" aria-label="Onboarding wizard">
-      <div className="mb-8 flex gap-2" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4} aria-label={`Step ${step} of 4`}>
+    <div className="w-full max-w-lg" role="region" aria-label={t("onboarding.aria.wizard")}>
+      <div className="mb-8 flex gap-2" role="progressbar" aria-valuenow={step} aria-valuemin={1} aria-valuemax={4} aria-label={t("onboarding.aria.stepOf", { step })}>
         {STEPS.map((s) => (
           <div
             key={s.id}
@@ -297,19 +294,19 @@ export function OnboardingWizard({
       </div>
 
       <h2 id="onboarding-step-title" className="mb-6 text-xl font-semibold text-dark dark:text-white">
-        {step === 1 && "Tell us about your business"}
-        {step === 2 && "Where do you operate?"}
-        {step === 3 && "Structure légale & fiscal (optional)"}
-        {step === 4 && "Contact & reporting (optional)"}
+        {step === 1 && t("onboarding.stepTitles.business")}
+        {step === 2 && t("onboarding.stepTitles.location")}
+        {step === 3 && t("onboarding.stepTitles.tax")}
+        {step === 4 && t("onboarding.stepTitles.details")}
       </h2>
 
       {step === 1 && (
         <div className="space-y-4" aria-labelledby="onboarding-step-title">
           <InputGroup
             type="text"
-            label="Business name"
+            label={t("onboarding.form.businessName")}
             name="businessName"
-            placeholder="e.g. Mama's Shop"
+            placeholder={t("onboarding.form.businessNamePlaceholder")}
             value={businessName}
             handleChange={handleChange}
             className="[&_input]:py-[15px]"
@@ -318,7 +315,7 @@ export function OnboardingWizard({
           />
           <div>
             <label htmlFor="businessType" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Business type
+              {t("onboarding.form.businessType")}
             </label>
             <select
               id="businessType"
@@ -326,24 +323,24 @@ export function OnboardingWizard({
               value={businessType}
               onChange={handleChange}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Business type"
+              aria-label={t("onboarding.aria.businessType")}
             >
-              <option value="">Select type</option>
-              {BUSINESS_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              <option value="">{t("onboarding.form.businessTypePlaceholder")}</option>
+              {BUSINESS_TYPES.map((bt) => (
+                <option key={bt.value} value={bt.value}>
+                  {bt.label}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label htmlFor="slug" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Store URL{" "}
-              <span className="font-normal text-dark-4">(optional)</span>
+              {t("onboarding.form.storeUrl")}{" "}
+              <span className="font-normal text-dark-4">{t("onboarding.form.optional")}</span>
             </label>
             <div className="flex items-center rounded-lg border border-stroke transition focus-within:border-primary dark:border-dark-3 dark:bg-dark-2 dark:focus-within:border-primary">
               <span className="whitespace-nowrap pl-4 text-sm text-dark-4 dark:text-dark-6">
-                kabasika.com/store/
+                {t("onboarding.storeUrlPrefix")}
               </span>
               <input
                 id="slug"
@@ -351,31 +348,31 @@ export function OnboardingWizard({
                 name="slug"
                 value={slug}
                 onChange={handleChange}
-                placeholder="my-shop"
+                placeholder={t("onboarding.form.storeUrlPlaceholder")}
                 className="w-full bg-transparent py-3 pr-4 text-dark outline-none dark:text-white"
-                aria-label="Store URL slug"
+                aria-label={t("onboarding.aria.storeUrl")}
               />
             </div>
             {slug && (
               <p className="mt-1 text-xs text-dark-4 dark:text-dark-6">
-                Your store: kabasika.com/store/{slug}
+                {t("onboarding.storeUrlSuffix", { slug })}
               </p>
             )}
           </div>
           <div>
             <label htmlFor="description" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Description{" "}
-              <span className="font-normal text-dark-4">(optional)</span>
+              {t("onboarding.form.description")}{" "}
+              <span className="font-normal text-dark-4">{t("onboarding.form.optional")}</span>
             </label>
             <textarea
               id="description"
               name="description"
               value={description}
               onChange={handleChange}
-              placeholder="A short description of your business"
+              placeholder={t("onboarding.form.descriptionPlaceholder")}
               rows={3}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 text-dark outline-none transition focus:border-primary dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
-              aria-label="Business description (optional)"
+              aria-label={t("onboarding.aria.description")}
             />
           </div>
         </div>
@@ -385,7 +382,7 @@ export function OnboardingWizard({
         <div className="space-y-4" aria-labelledby="onboarding-step-title">
           <div>
             <label htmlFor="country" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Country
+              {t("onboarding.form.country")}
             </label>
             <select
               id="country"
@@ -394,9 +391,9 @@ export function OnboardingWizard({
               onChange={handleChange}
               ref={firstInputRef as React.RefObject<HTMLSelectElement>}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Country"
+              aria-label={t("onboarding.aria.country")}
             >
-              <option value="">Select country</option>
+              <option value="">{t("onboarding.form.countryPlaceholder")}</option>
               {COUNTRIES.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
@@ -406,7 +403,7 @@ export function OnboardingWizard({
           </div>
           <div>
             <span className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Currency
+              {t("onboarding.form.currency")}
             </span>
             <div
               className="flex items-center rounded-lg border border-stroke bg-gray-1 px-5.5 py-3 text-dark dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6"
@@ -420,12 +417,12 @@ export function OnboardingWizard({
                   return (
                     <>
                       <span className="font-medium text-dark dark:text-white">{label}</span>
-                      <span className="ml-2 text-dark-4 dark:text-dark-6">(from {countryLabel})</span>
+                      <span className="ml-2 text-dark-4 dark:text-dark-6">({t("common.from")} {countryLabel})</span>
                     </>
                   );
                 })()
               ) : (
-                <span className="text-dark-4 dark:text-dark-6">Select a country to set your currency</span>
+                <span className="text-dark-4 dark:text-dark-6">{t("onboarding.form.currencyFromCountry")}</span>
               )}
             </div>
           </div>
@@ -437,7 +434,7 @@ export function OnboardingWizard({
           {/* Legal status */}
           <div>
             <label htmlFor="legalStatus" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Legal structure <span className="font-normal text-dark-4">(optional)</span>
+              {t("onboarding.form.legalStructure")} <span className="font-normal text-dark-4">{t("onboarding.form.optional")}</span>
             </label>
             <select
               id="legalStatus"
@@ -446,24 +443,24 @@ export function OnboardingWizard({
               onChange={handleChange}
               ref={firstInputRef as React.RefObject<HTMLSelectElement>}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Legal structure"
+              aria-label={t("onboarding.aria.legalStructure")}
             >
-              <option value="">Select (optional)</option>
-              <option value="auto_entrepreneur">Auto-entrepreneur / Micro-entreprise</option>
-              <option value="sarl">SARL — Société à Responsabilité Limitée</option>
-              <option value="sa">SA — Société Anonyme</option>
-              <option value="snc">SNC — Société en Nom Collectif</option>
-              <option value="association">Association / ONG</option>
-              <option value="other">Autre</option>
+              <option value="">{t("onboarding.form.selectOptional")}</option>
+              <option value="auto_entrepreneur">{t("onboarding.legalStatus.auto_entrepreneur")}</option>
+              <option value="sarl">{t("onboarding.legalStatus.sarl")}</option>
+              <option value="sa">{t("onboarding.legalStatus.sa")}</option>
+              <option value="snc">{t("onboarding.legalStatus.snc")}</option>
+              <option value="association">{t("onboarding.legalStatus.association")}</option>
+              <option value="other">{t("onboarding.legalStatus.other")}</option>
             </select>
             {legalStatus === "auto_entrepreneur" && country === "BJ" && (
               <p className="mt-1.5 text-xs text-amber-700 dark:text-amber-400">
-                💡 En tant qu'auto-entrepreneur au Bénin, l'IFU reste obligatoire pour vendre légalement. Il est gratuit et s'obtient en 24–48h sur impots.bj.
+                {t("onboarding.autoEntrepreneurHint")}
               </p>
             )}
             {(legalStatus === "sarl" || legalStatus === "sa") && (
               <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
-                Les SARL et SA doivent être enregistrées au RCCM et disposer d'un IFU actif pour émettre des factures certifiées.
+                {t("onboarding.sarlSaHint")}
               </p>
             )}
           </div>
@@ -472,7 +469,7 @@ export function OnboardingWizard({
           {(legalStatus === "sarl" || legalStatus === "sa" || legalStatus === "snc") && (
             <div>
               <label htmlFor="rccm" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-                RCCM <span className="font-normal text-dark-4">(Registre du Commerce)</span>
+                {t("onboarding.form.rccm")} <span className="font-normal text-dark-4">({t("onboarding.form.rccmRegistre")})</span>
               </label>
               <input
                 id="rccm"
@@ -480,13 +477,13 @@ export function OnboardingWizard({
                 name="rccm"
                 value={rccm}
                 onChange={handleChange}
-                placeholder={country === "BJ" ? "e.g. RB/COT/25 A 12345" : "Numéro RCCM"}
+                placeholder={country === "BJ" ? t("onboarding.form.rccmPlaceholderBJ") : t("onboarding.form.rccmPlaceholder")}
                 className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 text-dark outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:focus:border-primary"
-                aria-label="RCCM registration number"
+                aria-label={t("onboarding.aria.rccm")}
                 autoComplete="off"
               />
               <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
-                Numéro d'immatriculation au Registre du Commerce. Figurant sur vos statuts ou votre extrait RCCM.
+                {t("onboarding.form.rccmHint")}
               </p>
             </div>
           )}
@@ -494,7 +491,7 @@ export function OnboardingWizard({
           {/* Tax regime */}
           <div>
             <label htmlFor="taxRegime" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Régime fiscal <span className="font-normal text-dark-4">(optional)</span>
+              {t("onboarding.form.taxRegime")} <span className="font-normal text-dark-4">{t("onboarding.form.optional")}</span>
             </label>
             <select
               id="taxRegime"
@@ -502,18 +499,18 @@ export function OnboardingWizard({
               value={taxRegime}
               onChange={handleChange}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Tax regime (optional)"
+              aria-label={t("onboarding.aria.taxRegime")}
             >
-              <option value="">Select (optional)</option>
-              {TAX_REGIMES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
+              <option value="">{t("onboarding.form.selectOptional")}</option>
+              {TAX_REGIMES.map((tr) => (
+                <option key={tr.value} value={tr.value}>
+                  {tr.label}
                 </option>
               ))}
             </select>
             {taxRegime === "vat" && (
               <p className="mt-1.5 text-xs text-dark-4 dark:text-dark-6">
-                TVA à 18 % appliquée automatiquement sur vos factures certifiées.
+                {t("onboarding.vatHint")}
               </p>
             )}
           </div>
@@ -541,7 +538,7 @@ export function OnboardingWizard({
               </p>
               {taxId && (
                 <div className="mt-2 rounded-lg bg-green-50 px-3 py-2 text-xs text-green-800 dark:bg-green-900/20 dark:text-green-300">
-                  ✓ Un QR code fiscal apparaîtra sur toutes vos factures.
+                  {t("onboarding.fiscalQrSuccess")}
                 </div>
               )}
             </div>
@@ -550,7 +547,7 @@ export function OnboardingWizard({
           {/* Info banner for countries without e-invoicing yet */}
           {!FISCAL_ID_COUNTRIES[country] && country && (
             <div className="rounded-lg border border-stroke bg-gray-1 p-4 text-xs text-dark-4 dark:border-dark-3 dark:bg-dark-2 dark:text-dark-6">
-              La certification électronique des factures n'est pas encore disponible pour votre pays. Vous pourrez mettre à jour votre profil fiscal plus tard dans <strong>Paramètres → Profil entreprise</strong>.
+              {t("onboarding.noEinvCountryHint")}
             </div>
           )}
         </div>
@@ -560,9 +557,9 @@ export function OnboardingWizard({
         <div className="space-y-4" aria-labelledby="onboarding-step-title">
           <InputGroup
             type="text"
-            label="Business address"
+            label={t("onboarding.form.businessAddress")}
             name="businessAddress"
-            placeholder="e.g. 123 Main St, Lagos"
+            placeholder={t("onboarding.form.businessAddressPlaceholder")}
             value={businessAddress}
             handleChange={handleChange}
             className="[&_input]:py-[15px]"
@@ -570,16 +567,16 @@ export function OnboardingWizard({
           />
           <InputGroup
             type="text"
-            label="Business phone"
+            label={t("onboarding.form.businessPhone")}
             name="businessPhone"
-            placeholder="e.g. +234 800 000 0000"
+            placeholder={t("onboarding.form.businessPhonePlaceholder")}
             value={businessPhone}
             handleChange={handleChange}
             className="[&_input]:py-[15px]"
           />
           <div>
             <label htmlFor="fiscalYearStart" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
-              Fiscal year start month
+              {t("onboarding.form.fiscalYearStart")}
             </label>
             <select
               id="fiscalYearStart"
@@ -587,9 +584,9 @@ export function OnboardingWizard({
               value={fiscalYearStart}
               onChange={handleChange}
               className="w-full appearance-none rounded-lg border border-stroke bg-transparent px-5.5 py-3 outline-none transition focus:border-primary focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 dark:border-dark-3 dark:bg-dark-2 dark:focus:border-primary"
-              aria-label="Fiscal year start (optional)"
+              aria-label={t("onboarding.aria.fiscalYearStart")}
             >
-              <option value="">Select (optional)</option>
+              <option value="">{t("onboarding.form.fiscalYearStartPlaceholder")}</option>
               {FISCAL_YEAR_MONTHS.map((m) => (
                 <option key={m.value} value={m.value}>
                   {m.label}
@@ -611,9 +608,9 @@ export function OnboardingWizard({
             onClick={() => setStep((s) => (s - 1) as WizardStep)}
             disabled={loading}
             className="flex items-center gap-1 rounded-lg border border-stroke px-6 py-3 font-medium text-dark transition hover:bg-gray-2 disabled:opacity-70 dark:border-dark-3 dark:text-white dark:hover:bg-dark-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark-2"
-            aria-label="Go back to previous step"
+            aria-label={t("onboarding.aria.back")}
           >
-            ← Back
+            {t("onboarding.back")}
           </button>
         )}
         <button
@@ -623,7 +620,7 @@ export function OnboardingWizard({
           className="flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 font-medium text-white transition hover:bg-opacity-90 disabled:opacity-70 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark-2"
           aria-busy={loading}
         >
-          {step < 4 ? "Next" : "Complete"}
+          {step < 4 ? t("onboarding.next") : t("onboarding.complete")}
           {loading && (
             <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-t-transparent" />
           )}
@@ -635,7 +632,7 @@ export function OnboardingWizard({
             disabled={loading}
             className="rounded-lg border border-stroke px-6 py-3 font-medium text-dark transition hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-3 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 dark:focus:ring-offset-dark-2"
           >
-            Skip
+            {t("onboarding.skip")}
           </button>
         )}
       </div>

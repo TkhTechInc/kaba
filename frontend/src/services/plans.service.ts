@@ -16,6 +16,7 @@ export type PlanCheckoutResponse = {
 export type PlanPayDataResponse = {
   success: boolean;
   data: {
+    businessId?: string;
     businessName: string;
     targetTier: string;
     amount: number;
@@ -73,8 +74,8 @@ export async function confirmPlanKkiaPay(
   transactionId: string,
   intentId: string,
   redirectStatus?: string
-): Promise<{ success: boolean; businessId?: string }> {
-  const res = await apiPost<{ success: boolean; businessId?: string }>(
+): Promise<{ success: boolean; businessId?: string; targetTier?: string }> {
+  const res = await apiPost<{ success: boolean; businessId?: string; targetTier?: string }>(
     "/api/v1/plans/pay/confirm-kkiapay",
     { token, transactionId, intentId, ...(redirectStatus && { redirectStatus }) },
     { skip401Redirect: true }
@@ -82,5 +83,6 @@ export async function confirmPlanKkiaPay(
   return {
     success: res?.success ?? false,
     businessId: res?.businessId,
+    targetTier: res?.targetTier,
   };
 }

@@ -38,7 +38,7 @@ export default function TaxReportPage() {
   const [dates, setDates] = useState(getDefaultDates);
   const [countryCode, setCountryCode] = useState("NG");
   const [vat, setVat] = useState<VATSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
 

@@ -34,7 +34,7 @@ const CHECK_ICON = (
 export default function PlansPage() {
   const { t } = useLocale();
   const { token, businessId } = useAuth();
-  const { tier, currency, loading, refetch } = useFeatures(businessId);
+  const { tier, currency, loading, refetch, subscriptionEndsAt, scheduledDowngradeTier } = useFeatures(businessId);
   const { hasPermission } = usePermissions(businessId);
   const canChangePlan = hasPermission("business:tier");
   const [updating, setUpdating] = useState<Tier | null>(null);
@@ -101,10 +101,24 @@ export default function PlansPage() {
         window.location.href = checkout.payUrl;
         return;
       }
-      await updateBusinessTier(businessId, newTier, token);
+      const res = await updateBusinessTier(businessId, newTier, token);
       invalidateFeaturesCache(businessId);
       await refetch();
-      setSuccess(`Plan updated to ${newTier}.`);
+      const wasScheduled = !!res?.data?.scheduledDowngradeTier;
+      setSuccess(
+        wasScheduled
+          ? t("settings.plans.downgradeScheduledSuccess", {
+              date: (res.data?.subscriptionEndsAt ?? subscriptionEndsAt)
+                ? new Date(res.data?.subscriptionEndsAt ?? subscriptionEndsAt ?? "").toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })
+                : "",
+            })
+          : t("settings.plans.downgradeImmediateSuccess")
+      );
+      if (!wasScheduled) window.location.reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : t("settings.plans.updateFailed"));
     } finally {
@@ -157,6 +171,28 @@ export default function PlansPage() {
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
           {t("settings.plans.restrictedNotice")}
         </div>
+      )}
+
+      {canChangePlan && scheduledDowngradeTier && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+          {t("settings.plans.downgradeScheduled", {
+            tier: t(`settings.plans.tiers.${scheduledDowngradeTier}.name`),
+            date: subscriptionEndsAt
+              ? new Date(subscriptionEndsAt).toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })
+              : "",
+          })}
+        </div>
+      )}
+      {canChangePlan && currentIdx > 0 && !scheduledDowngradeTier && (
+        <p className="mb-4 text-sm text-dark-4 dark:text-dark-6">
+          {process.env.NODE_ENV === "development"
+            ? t("settings.plans.downgradeEffectiveImmediately")
+            : t("settings.plans.downgradeAtPeriodEnd")}
+        </p>
       )}
 
       <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">

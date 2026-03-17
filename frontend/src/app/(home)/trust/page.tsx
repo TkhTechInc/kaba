@@ -26,16 +26,30 @@ export default function TrustPage() {
 
   useEffect(() => {
     if (!businessId) return;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
     setLoading(true);
     setError(null);
     api
       .getMyScore(businessId)
       .then((res) => setScore(res.data))
       .catch((e: unknown) => {
-        if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load trust score");
+        if (controller.signal.aborted) {
+          setError("Loading trust score timed out. Please refresh.");
+        } else if (e instanceof ApiError && e.status === 403) {
+          setForbidden(true);
+        } else {
+          setError(e instanceof Error ? e.message : "Failed to load trust score");
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        clearTimeout(timeoutId);
+        setLoading(false);
+      });
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [businessId]);
 
   const handleShare = () => {

@@ -26,6 +26,7 @@
       "consolidated": "Consolidé"
     },
     "trustScore": "Score de confiance",
+    "suppliers": "Fournisseurs",
     "branches": "Succursales",
     "settings": "Paramètres",
     "settingsSub": {
@@ -69,11 +70,29 @@
       "close": "fermer"
     }
   },
+  "auth": {
+    "loginFailed": "Échec de connexion"
+  },
+  "pay": {
+    "requestFailed": "Échec de la requête",
+    "paymentFailed": "Échec du paiement",
+    "plan": {
+      "upgradeSuccess": {
+        "title": "Paiement confirmé",
+        "subtitle": "Votre abonnement a été mis à niveau. L'application va se rafraîchir pour afficher vos nouvelles fonctionnalités.",
+        "newFeatures": "Ce à quoi vous avez maintenant accès :",
+        "goToSettings": "Paramètres",
+        "goToDashboard": "Tableau de bord"
+      }
+    }
+  },
   "common": {
     "loading": "Chargement…",
     "noData": "Aucune donnée",
     "cancel": "Annuler",
+    "change": "Changer",
     "save": "Enregistrer",
+    "saveChanges": "Enregistrer les modifications",
     "search": "Rechercher",
     "from": "Du",
     "to": "Au",
@@ -328,6 +347,11 @@
       "currentBadge": "(actuel)",
       "upgrade": "Améliorer",
       "downgrade": "Rétrograder",
+      "downgradeAtPeriodEnd": "La rétrogradation prend effet à la fin de votre période de facturation. Vous conservez votre plan actuel jusqu'à cette date.",
+      "downgradeEffectiveImmediately": "La rétrogradation prend effet immédiatement (mode dev).",
+      "downgradeScheduled": "Votre plan passera à {tier} le {date}.",
+      "downgradeScheduledSuccess": "Rétrogradation planifiée. Vous conservez votre plan actuel jusqu'au {date}.",
+      "downgradeImmediateSuccess": "Plan mis à jour.",
       "updating": "Mise à jour…",
       "updateFailed": "Échec de la mise à jour",
       "perMonth": " / mois",
@@ -505,6 +529,7 @@
     "loadError": "Impossible de charger l'activité"
   },
   "debts": {
+    "upgradeFeature": "Suivi des dettes",
     "title": "Dettes en cours",
     "noBusinessSelected": "Sélectionnez une entreprise pour gérer les dettes.",
     "search": "Rechercher des dettes…",
@@ -674,6 +699,13 @@
     "next": "Suivant",
     "pageOf": "Page {page} sur {total}"
   },
+  "invoiceEdit": {
+    "unitPrice": "Prix unitaire",
+    "qty": "Qté",
+    "addLineItem": "+ Ajouter une ligne",
+    "saving": "Enregistrement…",
+    "saveChanges": "Enregistrer les modifications"
+  },
   "invoiceNew": {
     "pageName": "Créer une facture",
     "title": "Créer une facture",
@@ -816,6 +848,9 @@
       "customerRetention": "Fidélisation client",
       "networkDiversity": "Diversité du réseau"
     }
+  },
+  "profile": {
+    "saving": "Enregistrement…"
   },
   "preferences": {
     "pageName": "Préférences",
@@ -1041,6 +1076,9 @@
       "thisYear": "Cette année"
     }
   },
+  "voice": {
+    "recordTransaction": "Enregistrer une transaction"
+  },
   "pos": {
     "settingUp": "Configuration du terminal POS…",
     "error": "Erreur",
@@ -1058,5 +1096,145 @@
     "waitingForPayment": "En attente de paiement…",
     "clientScansQr": "Le client scanne le QR code pour payer par Mobile Money",
     "or": "ou"
+  },
+  "onboarding": {
+    "taxRegime": {
+      "vatRegistered": "Assujetti à la TVA",
+      "simplifiedTax": "Simplifié",
+      "notRegistered": "Non enregistré"
+    },
+    "steps": {
+      "business": "Entreprise",
+      "location": "Localisation",
+      "tax": "Fiscal (optionnel)",
+      "details": "Détails (optionnel)"
+    },
+    "months": {
+      "january": "Janvier",
+      "february": "Février",
+      "march": "Mars",
+      "april": "Avril",
+      "may": "Mai",
+      "june": "Juin",
+      "july": "Juillet",
+      "august": "Août",
+      "september": "Septembre",
+      "october": "Octobre",
+      "november": "Novembre",
+      "december": "Décembre"
+    },
+    "businessForm": {
+      "businessName": "Nom de l'entreprise",
+      "businessType": "Type d'entreprise",
+      "location": "Localisation",
+      "fiscalOptional": "Fiscal (optionnel)",
+      "detailsOptional": "Détails (optionnel)"
+    },
+    "fiscalId": {
+      "BJ": {
+        "label": "IFU (Identifiant Fiscal Unique)",
+        "placeholder": "ex. 0202376693109",
+        "hint": "Votre identifiant fiscal unique à 13 chiffres au Bénin. Obligatoire pour la certification DGI e-MECeF."
+      },
+      "CI": {
+        "label": "NCC (Numéro de Compte Contribuable)",
+        "placeholder": "ex. 1234567A",
+        "hint": "Votre numéro de compte contribuable en Côte d'Ivoire. Obligatoire pour la facturation électronique FNE."
+      }
+    },
+    "form": {
+      "businessAddress": "Adresse de l'entreprise",
+      "businessPhone": "Téléphone de l'entreprise",
+      "legalStructure": "Structure légale",
+      "businessName": "Nom de l'entreprise",
+      "businessType": "Type d'entreprise",
+      "storeUrl": "URL du magasin",
+      "description": "Description",
+      "country": "Pays",
+      "currency": "Devise",
+      "taxRegime": "Régime fiscal",
+      "fiscalYearStart": "Mois de début d'exercice fiscal",
+      "rccm": "RCCM",
+      "businessNamePlaceholder": "ex. Boutique Mama",
+      "businessTypePlaceholder": "Sélectionnez le type",
+      "storeUrlPlaceholder": "my-shop",
+      "descriptionPlaceholder": "Une brève description de votre entreprise",
+      "countryPlaceholder": "Sélectionnez un pays",
+      "currencyFromCountry": "Sélectionnez un pays pour définir votre devise",
+      "optional": "(optionnel)",
+      "selectOptional": "Sélectionnez (optionnel)",
+      "fiscalYearStartPlaceholder": "Sélectionnez (optionnel)",
+      "businessAddressPlaceholder": "ex. 123 Rue Principale, Lagos",
+      "businessPhonePlaceholder": "ex. +234 800 000 0000",
+      "rccmPlaceholder": "Numéro RCCM",
+      "rccmPlaceholderBJ": "ex. RB/COT/25 A 12345",
+      "rccmRegistre": "Registre du Commerce",
+      "rccmHint": "Numéro d'immatriculation au Registre du Commerce. Figurant sur vos statuts ou votre extrait RCCM."
+    },
+    "businessTypes": {
+      "retail": "Commerce / Boutique",
+      "restaurant": "Restaurant / Alimentation",
+      "services": "Services",
+      "manufacturing": "Industrie",
+      "agriculture": "Agriculture",
+      "other": "Autre"
+    },
+    "countries": {
+      "NG": "Nigeria",
+      "GH": "Ghana",
+      "BJ": "Bénin",
+      "SN": "Sénégal",
+      "CI": "Côte d'Ivoire",
+      "TG": "Togo",
+      "CM": "Cameroun",
+      "ML": "Mali",
+      "NE": "Niger",
+      "BF": "Burkina Faso"
+    },
+    "currencies": {
+      "NGN": "NGN (Naira)",
+      "GHS": "GHS (Cedi)",
+      "XOF": "XOF (Franc CFA)",
+      "XAF": "XAF (Franc CFA)"
+    },
+    "legalStatus": {
+      "auto_entrepreneur": "Auto-entrepreneur / Micro-entreprise",
+      "sarl": "SARL — Société à Responsabilité Limitée",
+      "sa": "SA — Société Anonyme",
+      "snc": "SNC — Société en Nom Collectif",
+      "association": "Association / ONG",
+      "other": "Autre"
+    },
+    "stepTitles": {
+      "business": "Parlez-nous de votre entreprise",
+      "location": "Où exercez-vous ?",
+      "tax": "Structure légale & fiscal (optionnel)",
+      "details": "Contact & reporting (optionnel)"
+    },
+    "aria": {
+      "wizard": "Assistant de configuration",
+      "stepOf": "Étape {step} sur 4",
+      "businessType": "Type d'entreprise",
+      "storeUrl": "URL du magasin",
+      "description": "Description de l'entreprise (optionnel)",
+      "country": "Pays",
+      "legalStructure": "Structure légale",
+      "taxRegime": "Régime fiscal (optionnel)",
+      "fiscalYearStart": "Début d'exercice fiscal (optionnel)",
+      "rccm": "Numéro d'immatriculation RCCM",
+      "back": "Retour à l'étape précédente"
+    },
+    "storeUrlPrefix": "kabasika.com/store/",
+    "storeUrlSuffix": "Votre magasin : kabasika.com/store/{slug}",
+    "back": "← Retour",
+    "next": "Suivant",
+    "complete": "Terminer",
+    "skip": "Passer",
+    "error": "Une erreur s'est produite",
+    "vatHint": "TVA à 18 % appliquée automatiquement sur vos factures certifiées.",
+    "fiscalQrSuccess": "✓ Un QR code fiscal apparaîtra sur toutes vos factures.",
+    "autoEntrepreneurHint": "💡 En tant qu'auto-entrepreneur au Bénin, l'IFU reste obligatoire pour vendre légalement. Il est gratuit et s'obtient en 24–48h sur impots.bj.",
+    "sarlSaHint": "Les SARL et SA doivent être enregistrées au RCCM et disposer d'un IFU actif pour émettre des factures certifiées.",
+    "noEinvCountryHint": "La certification électronique des factures n'est pas encore disponible pour votre pays. Vous pourrez mettre à jour votre profil fiscal plus tard dans Paramètres → Profil entreprise."
   }
 }

@@ -46,7 +46,16 @@ export class BusinessController {
       throw new BadRequestException(`tier must be one of: ${valid.join(', ')}`);
     }
     const existing = await this.businessRepo.getById(businessId.trim());
-    const business = await this.businessRepo.updateTier(businessId.trim(), tier);
+    const tierOrder = ['free', 'starter', 'pro', 'enterprise'];
+    const currentIdx = tierOrder.indexOf(existing?.tier ?? 'free');
+    const targetIdx = tierOrder.indexOf(tier);
+    const isDowngrade = targetIdx < currentIdx;
+    const isDev = process.env['NODE_ENV'] !== 'production';
+
+    const business =
+      isDowngrade && !isDev
+        ? await this.businessRepo.scheduleDowngrade(businessId.trim(), tier)
+        : await this.businessRepo.updateTier(businessId.trim(), tier);
 
     if (this.auditLogger && userId) {
       try {
@@ -62,6 +71,7 @@ export class BusinessController {
               to: tier,
             },
           },
+          metadata: isDowngrade && !isDev ? { scheduled: true } : undefined,
         });
       } catch (auditErr) {
         console.error('[BusinessController] Audit log failed:', auditErr);

@@ -3,10 +3,12 @@
 import { Logo } from "@/components/logo";
 import { MoMoLogo } from "@/components/payments/MoMoLogo";
 import { Price } from "@/components/ui/Price";
-import { getPlanPayData, confirmPlanKkiaPay, requestPlanMoMo } from "@/services/plans.service";
+import { getPlanPayData, requestPlanMoMo } from "@/services/plans.service";
+import { invalidateFeaturesCache } from "@/hooks/use-features";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "@/contexts/locale-context";
 
 function PayShell({ children }: { children: React.ReactNode }) {
   return (
@@ -131,6 +133,7 @@ function MoMoPlanRequestForm({
   onRequestSent: () => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useLocale();
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -147,10 +150,10 @@ function MoMoPlanRequestForm({
       if (res?.success) {
         onRequestSent();
       } else {
-        onError("Request failed. Please try again.");
+        onError(t("pay.requestFailed"));
       }
     } catch (err) {
-      onError(err instanceof Error ? err.message : "Request failed");
+      onError(err instanceof Error ? err.message : t("pay.requestFailed"));
     } finally {
       setLoading(false);
     }
@@ -183,8 +186,10 @@ function MoMoPlanRequestForm({
 
 function PlanPayContent() {
   const params = useParams();
+  const { t } = useLocale();
   const tokenParam = params?.token as string | undefined;
   const [data, setData] = useState<{
+    businessId?: string;
     businessName: string;
     targetTier: string;
     amount: number;
@@ -250,10 +255,10 @@ function PlanPayContent() {
         }
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load");
+        setError(err instanceof Error ? err.message : t("pay.requestFailed"));
       })
       .finally(() => setLoading(false));
-  }, [tokenParam]);
+  }, [tokenParam, t]);
 
   if (!tokenParam?.trim()) {
     return (
@@ -427,12 +432,31 @@ function PlanPayContent() {
                 Payment is not available for this currency. Contact support.
               </p>
             )}
-            <Link
-              href="/settings"
-              className="block text-center text-sm text-dark-5 hover:text-dark"
-            >
-              ← Back to Settings
-            </Link>
+            {data.upgraded ? (
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => { if (data.businessId) invalidateFeaturesCache(data.businessId); window.location.href = "/settings"; }}
+                  className="block w-full rounded-lg bg-primary py-2.5 text-center text-sm font-semibold text-white hover:bg-primary/90"
+                >
+                  Go to Settings
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { if (data.businessId) invalidateFeaturesCache(data.businessId); window.location.href = "/"; }}
+                  className="block w-full rounded-lg border border-stroke py-2.5 text-center text-sm font-semibold text-dark dark:text-white dark:border-dark-3"
+                >
+                  Dashboard
+                </button>
+              </div>
+            ) : (
+              <Link
+                href="/settings"
+                className="block text-center text-sm text-dark-5 hover:text-dark"
+              >
+                ← Back to Settings
+              </Link>
+            )}
           </div>
         </GlassCard>
       </div>

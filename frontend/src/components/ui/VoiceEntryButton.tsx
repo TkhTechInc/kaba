@@ -13,6 +13,7 @@
  */
 
 import { useRef, useState, useCallback } from "react";
+import { useLocale } from "@/contexts/locale-context";
 import { createAiApi, type VoiceTransactionResult } from "@/services/ai.service";
 import { useFeatures } from "@/hooks/use-features";
 import { getCurrencyForCountry } from "@/lib/country-currency";
@@ -48,6 +49,7 @@ export function VoiceEntryButton({
   onError,
   className = "",
 }: VoiceEntryButtonProps) {
+  const { t } = useLocale();
   const features = useFeatures(businessId);
   const currency =
     currencyProp ??
@@ -331,7 +333,7 @@ export function VoiceEntryButton({
   const isProcessing = state === "processing";
 
   const buttonLabel =
-    state === "idle" ? "Record transaction"
+    state === "idle" ? t("voice.recordTransaction")
     : state === "listening" ? "Listening… tap to stop"
     : state === "recording" ? "Recording… tap to stop"
     : state === "processing" ? "Processing…"

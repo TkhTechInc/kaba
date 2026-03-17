@@ -1,1 +1,1 @@
-export { OpenAIProvider } from '@tkhtech/ai';
+export { OpenAIProvider } from '@tkhtechinc/ai';

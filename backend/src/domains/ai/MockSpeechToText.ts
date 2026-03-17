@@ -1,4 +1,4 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  */
-export { MockSpeechToText } from '@tkhtech/ai';
+export { MockSpeechToText } from '@tkhtechinc/ai';

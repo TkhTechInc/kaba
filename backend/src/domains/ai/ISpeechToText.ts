@@ -1,4 +1,4 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  */
-export { type ISpeechToText, type TranscriptionResult } from '@tkhtech/ai';
+export { type ISpeechToText, type TranscriptionResult } from '@tkhtechinc/ai';

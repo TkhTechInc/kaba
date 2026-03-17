@@ -101,4 +101,15 @@ export class NotificationService {
       link: '/settings',
     });
   }
+
+  async emitPlanExpiring(businessId: string, planName: string, renewalUrl: string, endsAt: string) {
+    await this.create({
+      businessId,
+      type: 'plan.expiring',
+      title: 'Plan renewal',
+      body: `Your ${planName} plan ends on ${new Date(endsAt).toLocaleDateString()}. Renew now to keep your features.`,
+      link: renewalUrl,
+      refId: `renewal-${businessId}`,
+    });
+  }
 }

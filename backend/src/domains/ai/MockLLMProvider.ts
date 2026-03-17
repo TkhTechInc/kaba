@@ -1,4 +1,4 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  */
-export { MockLLMProvider } from '@tkhtech/ai';
+export { MockLLMProvider } from '@tkhtechinc/ai';

@@ -1,5 +1,5 @@
 /**
- * Re-exports from @tkhtech/nest-auth.
+ * Re-exports from @tkhtechinc/nest-auth.
  * All existing import paths across Kaba continue to work unchanged.
  */
-export { JwtAuthGuard } from '@tkhtech/nest-auth';
+export { JwtAuthGuard } from '@tkhtechinc/nest-auth';

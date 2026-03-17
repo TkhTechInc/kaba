@@ -32,7 +32,13 @@ export default defineConfig({
     {
       name: "chromium-dashboard",
       use: { ...devices["Desktop Chrome"], storageState: authFile },
-      testMatch: /(dashboard|journeys|payment-cash-flow|kkiapay-payment)\.spec\.ts/,
+      testMatch: /(dashboard|journeys|journeys-data|journeys-finances|journeys-reports|payment-cash-flow|kkiapay-payment|form-validation)\.spec\.ts/,
+      dependencies: ["setup"],
+    },
+    {
+      name: "chromium-nav-smoke",
+      use: { ...devices["Desktop Chrome"], storageState: authFile },
+      testMatch: /nav-smoke\.spec\.ts/,
       dependencies: ["setup"],
     },
   ],

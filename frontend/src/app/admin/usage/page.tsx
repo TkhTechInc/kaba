@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import {
   Table,
@@ -37,6 +38,7 @@ const MONTH_OPTIONS = getMonthOptions();
 
 export default function AdminUsagePage() {
   const { token } = useAuth();
+  const { t } = useLocale();
   const [data, setData] = useState<AdminUsageSummary | null>(null);
   const [items, setItems] = useState<AdminUsageItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +185,7 @@ export default function AdminUsagePage() {
               disabled={loadingMore}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {loadingMore ? "Loading..." : "Load more"}
+              {loadingMore ? t("common.loading") : t("common.loadMore")}
             </button>
           </div>
         )}

@@ -56,6 +56,7 @@ export class KabaApiStack extends cdk.Stack {
     // __dirname is src/infrastructure/stacks (ts-node) or dist/infrastructure/stacks (compiled)
     const apiLambdaAsset = path.join(__dirname, '../../../dist/api-lambda');
     const recurringLambdaAsset = path.join(__dirname, '../../../dist/recurring-invoice-lambda');
+    const planRenewalLambdaAsset = path.join(__dirname, '../../../dist/plan-renewal-lambda');
     const paymentReminderLambdaAsset = path.join(__dirname, '../../../dist/payment-reminder-lambda');
     const dailySummaryLambdaAsset = path.join(__dirname, '../../../dist/daily-summary-lambda');
 
@@ -143,6 +144,30 @@ export class KabaApiStack extends cdk.Stack {
       description: 'Process due recurring invoice schedules daily at 6am UTC',
       schedule: events.Schedule.cron({ minute: '0', hour: '6', day: '*', month: '*', year: '*' }),
       targets: [new targets.LambdaFunction(recurringInvoiceLambda)],
+    });
+
+    // Plan renewal Lambda: sends renewal links to businesses with subscription expiring in 7 days, daily at 7am UTC
+    const planRenewalLambda = new lambda.Function(this, 'PlanRenewalLambda', {
+      functionName: `${resourcePrefix}-plan-renewal`,
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'handler.handler',
+      code: lambda.Code.fromAsset(planRenewalLambdaAsset),
+      timeout: Duration.minutes(5),
+      memorySize: 256,
+      environment: {
+        DYNAMODB_LEDGER_TABLE: ledgerTable.tableName,
+        FRONTEND_URL: config.frontendUrl ?? 'http://localhost:3000',
+        SMS_PROVIDER: config.sms?.provider ?? 'aws_sns',
+        SMS_SENDER_ID: config.sms?.senderId ?? 'Kaba',
+      },
+    });
+    ledgerTable.grantReadWriteData(planRenewalLambda);
+
+    new events.Rule(this, 'PlanRenewalScheduleRule', {
+      ruleName: `${resourcePrefix}-plan-renewal-daily`,
+      description: 'Send plan renewal links daily at 7am UTC',
+      schedule: events.Schedule.cron({ minute: '0', hour: '7', day: '*', month: '*', year: '*' }),
+      targets: [new targets.LambdaFunction(planRenewalLambda)],
     });
 
     // Payment reminder Lambda: sends SMS/WhatsApp reminders for overdue/pending debts daily at 8am UTC

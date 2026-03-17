@@ -8,12 +8,13 @@ const path = require('path');
 const rootDir = path.join(__dirname, '..');
 const apiLambdaDir = path.join(rootDir, 'dist/api-lambda');
 const recurringLambdaDir = path.join(rootDir, 'dist/recurring-invoice-lambda');
+const planRenewalLambdaDir = path.join(rootDir, 'dist/plan-renewal-lambda');
 const paymentReminderLambdaDir = path.join(rootDir, 'dist/payment-reminder-lambda');
 const dailySummaryLambdaDir = path.join(rootDir, 'dist/daily-summary-lambda');
 const paymentEventLambdaDir = path.join(rootDir, 'dist/payment-event-lambda');
 const whatsappWebhookDir = path.join(rootDir, 'dist/lambda/whatsapp-webhook');
 const telegramWebhookDir = path.join(rootDir, 'dist/lambda/telegram-webhook');
-[apiLambdaDir, recurringLambdaDir, paymentReminderLambdaDir, dailySummaryLambdaDir, paymentEventLambdaDir, whatsappWebhookDir, telegramWebhookDir].forEach((d) => {
+[apiLambdaDir, recurringLambdaDir, planRenewalLambdaDir, paymentReminderLambdaDir, dailySummaryLambdaDir, paymentEventLambdaDir, whatsappWebhookDir, telegramWebhookDir].forEach((d) => {
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
 });
 
@@ -96,6 +97,18 @@ esbuild
   })
   .then(() => {
     console.log('Recurring invoice Lambda bundled: dist/recurring-invoice-lambda/handler.js');
+    return esbuild.build({
+      entryPoints: [path.join(rootDir, 'src/infrastructure/handlers/plan-renewal.ts')],
+      bundle: true,
+      platform: 'node',
+      target: 'node20',
+      tsconfig: path.join(rootDir, 'tsconfig.json'),
+      outfile: path.join(rootDir, 'dist/plan-renewal-lambda/handler.js'),
+      external: externals,
+    });
+  })
+  .then(() => {
+    console.log('Plan renewal Lambda bundled: dist/plan-renewal-lambda/handler.js');
     return esbuild.build({
       entryPoints: [path.join(rootDir, 'src/infrastructure/handlers/payment-reminder.ts')],
       bundle: true,

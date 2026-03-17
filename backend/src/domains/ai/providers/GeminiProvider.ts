@@ -1,1 +1,1 @@
-export { GeminiProvider } from '@tkhtech/ai';
+export { GeminiProvider } from '@tkhtechinc/ai';

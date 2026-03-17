@@ -4,7 +4,13 @@ export type Tier = "free" | "starter" | "pro" | "enterprise";
 
 export type UpdateTierResponse = {
   success: boolean;
-  data: { id: string; tier: Tier; updatedAt: string };
+  data: {
+    id: string;
+    tier: Tier;
+    updatedAt: string;
+    scheduledDowngradeTier?: Tier;
+    subscriptionEndsAt?: string;
+  };
 };
 
 export async function updateBusinessTier(

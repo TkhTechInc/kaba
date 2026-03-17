@@ -45,11 +45,7 @@ export default function AddCustomerPage() {
         email,
         phone: form.phone.trim() || undefined,
       });
-      if (result?.id) {
-        router.push("/customers");
-      } else {
-        router.push("/customers");
-      }
+      router.push(`/customers?search=${encodeURIComponent(form.name.trim())}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : t("customerNew.error"));
     } finally {
@@ -116,7 +112,7 @@ export default function AddCustomerPage() {
           />
           <InputGroup
             label={t("customerNew.emailLabel")}
-            type="email"
+            type="text"
             placeholder={t("customerNew.emailPlaceholder")}
             required
             value={form.email}

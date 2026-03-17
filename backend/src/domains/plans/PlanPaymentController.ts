@@ -77,6 +77,6 @@ export class PlanPaymentController {
     if (!result.success) {
       throw new BadRequestException(result.error ?? 'Payment confirmation failed');
     }
-    return { success: true, businessId: result.businessId };
+    return { success: true, businessId: result.businessId, targetTier: result.targetTier };
   }
 }

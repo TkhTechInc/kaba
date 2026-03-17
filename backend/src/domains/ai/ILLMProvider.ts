@@ -1,5 +1,5 @@
 /**
- * Re-exports from @tkhtech/ai.
+ * Re-exports from @tkhtechinc/ai.
  * All existing import paths across Kaba continue to work unchanged.
  */
 export {
@@ -12,4 +12,4 @@ export {
   type GenerateStructuredWithImageRequest,
   type EmbedRequest,
   type EmbedResponse,
-} from '@tkhtech/ai';
+} from '@tkhtechinc/ai';

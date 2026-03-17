@@ -1,1 +1,1 @@
-export { WhisperSpeechToText } from '@tkhtech/ai';
+export { WhisperSpeechToText } from '@tkhtechinc/ai';

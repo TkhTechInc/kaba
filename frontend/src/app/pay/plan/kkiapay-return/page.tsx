@@ -6,8 +6,18 @@ import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { confirmPlanKkiaPay } from "@/services/plans.service";
 import { invalidateFeaturesCache } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
+import type { Tier } from "@/hooks/use-features";
+
+const TIER_FEATURE_KEYS: Record<Tier, string[]> = {
+  free: ["f1", "f2", "f3"],
+  starter: ["f1", "f2", "f3", "f4"],
+  pro: ["f1", "f2", "f3", "f4", "f5"],
+  enterprise: ["f1", "f2", "f3"],
+};
 
 function PlanKkiaPayReturnContent() {
+  const { t } = useLocale();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const transactionId =
@@ -20,6 +30,7 @@ function PlanKkiaPayReturnContent() {
 
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState<string>("");
+  const [targetTier, setTargetTier] = useState<Tier | null>(null);
 
   useEffect(() => {
     if (!token || !transactionId || !intentId) {
@@ -31,6 +42,7 @@ function PlanKkiaPayReturnContent() {
       .then((result) => {
         if (result.success) {
           if (result.businessId) invalidateFeaturesCache(result.businessId);
+          setTargetTier((result.targetTier as Tier) ?? null);
           setStatus("success");
         } else {
           setStatus("error");
@@ -42,6 +54,10 @@ function PlanKkiaPayReturnContent() {
         setMessage(err instanceof Error ? err.message : "Could not confirm payment.");
       });
   }, [token, transactionId, intentId, redirectStatus]);
+
+  const handleGoToApp = (path: string) => {
+    window.location.href = path;
+  };
 
   if (status === "loading") {
     return (
@@ -83,24 +99,38 @@ function PlanKkiaPayReturnContent() {
               </svg>
             </div>
             <h1 className="text-xl font-semibold text-dark dark:text-white">
-              Payment confirmed
+              {t("pay.plan.upgradeSuccess.title")}
             </h1>
             <p className="mt-1 text-center text-sm text-dark-4 dark:text-dark-6">
-              Your plan has been upgraded. You now have access to all features.
+              {t("pay.plan.upgradeSuccess.subtitle")}
             </p>
+            {targetTier && targetTier !== "free" && (
+              <div className="mt-4 w-full rounded-lg border border-primary/20 bg-primary/5 p-4 dark:bg-primary/10">
+                <p className="mb-2 text-sm font-medium text-dark dark:text-white">
+                  {t("pay.plan.upgradeSuccess.newFeatures")}
+                </p>
+                <ul className="space-y-1 text-sm text-dark-4 dark:text-dark-6">
+                  {TIER_FEATURE_KEYS[targetTier].map((key) => (
+                    <li key={key}>• {t(`settings.plans.tiers.${targetTier}.${key}`)}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="mt-6 flex w-full flex-col gap-3">
-              <Link
-                href="/settings"
+              <button
+                type="button"
+                onClick={() => handleGoToApp("/settings")}
                 className="block w-full rounded-lg bg-primary py-2.5 text-center text-sm font-semibold text-white hover:bg-primary/90"
               >
-                Go to Settings
-              </Link>
-              <Link
-                href="/"
+                {t("pay.plan.upgradeSuccess.goToSettings")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleGoToApp("/")}
                 className="block w-full rounded-lg border border-stroke py-2.5 text-center text-sm font-semibold text-dark dark:text-white dark:border-dark-3"
               >
-                Dashboard
-              </Link>
+                {t("pay.plan.upgradeSuccess.goToDashboard")}
+              </button>
             </div>
           </div>
         </div>

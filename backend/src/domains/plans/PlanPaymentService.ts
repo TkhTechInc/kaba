@@ -47,7 +47,7 @@ export class PlanPaymentService {
 
     const currentIdx = tierIndex(business.tier ?? 'free');
     const targetIdx = tierIndex(targetTier);
-    if (targetIdx <= currentIdx) {
+    if (targetIdx < currentIdx) {
       throw new ValidationError('Select a higher plan to upgrade.');
     }
 
@@ -85,6 +85,7 @@ export class PlanPaymentService {
 
   /** Get plan payment data for pay page (public, no auth). */
   async getPayData(token: string): Promise<{
+    businessId?: string;
     businessName: string;
     targetTier: string;
     amount: number;
@@ -146,6 +147,7 @@ export class PlanPaymentService {
     const kkiapaySandbox = process.env['KKIAPAY_SANDBOX'] !== 'false';
 
     return {
+      businessId: record.businessId,
       businessName: business?.name ?? 'Business',
       targetTier: record.targetTier,
       amount: record.amount,
@@ -189,14 +191,14 @@ export class PlanPaymentService {
     return response;
   }
 
-  /** Confirm MoMo payment (called from webhook). Updates business tier. */
+  /** Confirm MoMo payment (called from webhook). Updates business tier with subscription period. */
   async confirmMoMoPayment(token: string): Promise<{ success: boolean; error?: string }> {
     const record = await this.planPaymentRepo.getByToken(token);
     if (!record) return { success: false, error: 'Invalid or expired link' };
     if (new Date(record.expiresAt) < new Date()) return { success: false, error: 'Link expired' };
 
     try {
-      await this.businessRepo.updateTier(record.businessId, record.targetTier);
+      await this.businessRepo.updateTierWithSubscription(record.businessId, record.targetTier);
 
       if (this.auditLogger) {
         this.auditLogger.log({
@@ -244,7 +246,7 @@ export class PlanPaymentService {
     transactionId: string,
     intentId: string,
     redirectStatus?: string,
-  ): Promise<{ success: boolean; error?: string; businessId?: string }> {
+  ): Promise<{ success: boolean; error?: string; businessId?: string; targetTier?: string }> {
     const record = await this.planPaymentRepo.getByToken(token);
     if (!record) return { success: false, error: 'Invalid or expired link' };
     if (new Date(record.expiresAt) < new Date()) return { success: false, error: 'Link expired' };
@@ -262,7 +264,7 @@ export class PlanPaymentService {
     }
 
     try {
-      await this.businessRepo.updateTier(record.businessId, record.targetTier);
+      await this.businessRepo.updateTierWithSubscription(record.businessId, record.targetTier);
 
       if (this.auditLogger) {
         this.auditLogger.log({
@@ -279,7 +281,7 @@ export class PlanPaymentService {
         }).catch(() => {});
       }
 
-      return { success: true, businessId: record.businessId };
+      return { success: true, businessId: record.businessId, targetTier: record.targetTier };
     } catch (err) {
       return { success: false, error: (err as Error).message };
     }

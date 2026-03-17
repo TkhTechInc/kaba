@@ -72,11 +72,12 @@ export default function AddProductPage() {
     };
     try {
       const result = await api.create(payload);
+      const searchParam = encodeURIComponent(form.name.trim());
       if (result.queued) {
         setQueued(true);
-        setTimeout(() => router.push("/products"), 2000);
+        setTimeout(() => router.push(`/products?search=${searchParam}`), 2000);
       } else {
-        router.push("/products");
+        router.push(`/products?search=${searchParam}`);
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t("products.new.error"));
