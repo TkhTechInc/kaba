@@ -42,6 +42,8 @@ jobs:
       - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - name: Build & bundle Lambda
         run: npm run bundle
@@ -104,6 +106,8 @@ jobs:
       - name: Install backend dependencies
         run: npm ci --legacy-peer-deps
         working-directory: backend
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PACKAGES_READ_TOKEN }}
 
       - name: Build & bundle Lambda
         run: npm run bundle
