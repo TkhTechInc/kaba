@@ -83,12 +83,14 @@ function buildSummaryMessage(
   expenses: number,
   debtCount: number,
   debtTotal: number,
+  locale: string = 'fr',
 ): string {
   const profit = sales - expenses;
   const profitSign = profit >= 0 ? '' : '-';
   const profitAbs = Math.abs(profit);
 
-  return [
+  // French version (default for West Africa)
+  const fr = [
     `📊 Résumé du jour — Kaba AI`,
     ``,
     `📅 ${date}`,
@@ -98,14 +100,23 @@ function buildSummaryMessage(
     `📈 Profit: ${profitSign}${formatAmount(currency, profitAbs)}`,
     ``,
     `💳 Dettes en attente: ${debtCount} (${formatAmount(currency, debtTotal)})`,
-    ``,
-    `---`,
-    `Daily Summary — Kaba AI`,
-    `Sales: ${formatAmount(currency, sales)}`,
-    `Expenses: ${formatAmount(currency, expenses)}`,
-    `Profit: ${profitSign}${formatAmount(currency, profitAbs)}`,
-    `Outstanding debts: ${debtCount}`,
   ].join('\n');
+
+  // English version
+  const en = [
+    `📊 Daily Summary — Kaba AI`,
+    ``,
+    `📅 ${date}`,
+    ``,
+    `💰 Sales: ${formatAmount(currency, sales)}`,
+    `💸 Expenses: ${formatAmount(currency, expenses)}`,
+    `📈 Profit: ${profitSign}${formatAmount(currency, profitAbs)}`,
+    ``,
+    `💳 Outstanding debts: ${debtCount} (${formatAmount(currency, debtTotal)})`,
+  ].join('\n');
+
+  // Bilingual message
+  return locale === 'en' ? en : `${fr}\n\n---\n\n${en}`;
 }
 
 export async function handler(

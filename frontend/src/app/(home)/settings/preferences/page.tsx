@@ -106,6 +106,27 @@ export default function PreferencesPage() {
               className="h-4 w-4 accent-primary"
             />
           </label>
+
+          <label htmlFor="pref-daily-summary" className="flex cursor-pointer items-center justify-between gap-4">
+            <div>
+              <span className="block font-medium text-dark dark:text-white">
+                {t("preferences.notifications.dailySummaryLabel")}
+              </span>
+              <span className="text-sm text-dark-4 dark:text-dark-6">
+                {t("preferences.notifications.dailySummaryDesc")}
+              </span>
+            </div>
+            <input
+              id="pref-daily-summary"
+              name="dailySummaryEnabled"
+              type="checkbox"
+              checked={preferences.dailySummaryEnabled ?? false}
+              onChange={(e) =>
+                setPreferences({ dailySummaryEnabled: e.target.checked })
+              }
+              className="h-4 w-4 accent-primary"
+            />
+          </label>
         </div>
       </section>
 

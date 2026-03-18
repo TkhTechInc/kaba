@@ -46,6 +46,10 @@ import {
   GetTaxEstimateTool,
   GetDailySummaryTool,
   AnalyzeTrendsTool,
+  SendBulkInvoicesTool,
+  GenerateTaxReportTool,
+  ReconcilePaymentsTool,
+  PredictCashShortageTool,
 } from './tools/business';
 
 const CUSTOMER_TOOL_PROVIDERS = [
@@ -71,6 +75,10 @@ const BUSINESS_TOOL_PROVIDERS = [
   GetTaxEstimateTool,
   GetDailySummaryTool,
   AnalyzeTrendsTool,
+  SendBulkInvoicesTool,
+  GenerateTaxReportTool,
+  ReconcilePaymentsTool,
+  PredictCashShortageTool,
 ];
 
 @Module({
@@ -142,6 +150,10 @@ const BUSINESS_TOOL_PROVIDERS = [
         getTaxEstimate: GetTaxEstimateTool,
         getDailySummary: GetDailySummaryTool,
         analyzeTrends: AnalyzeTrendsTool,
+        sendBulkInvoices: SendBulkInvoicesTool,
+        generateTaxReport: GenerateTaxReportTool,
+        reconcilePayments: ReconcilePaymentsTool,
+        predictCashShortage: PredictCashShortageTool,
       ): IMcpTool[] => [
         lookupMyInvoices,
         getInvoiceDetail,
@@ -159,6 +171,10 @@ const BUSINESS_TOOL_PROVIDERS = [
         getTaxEstimate,
         getDailySummary,
         analyzeTrends,
+        sendBulkInvoices,
+        generateTaxReport,
+        reconcilePayments,
+        predictCashShortage,
       ],
       inject: [
         LookupMyInvoicesTool,
@@ -177,6 +193,10 @@ const BUSINESS_TOOL_PROVIDERS = [
         GetTaxEstimateTool,
         GetDailySummaryTool,
         AnalyzeTrendsTool,
+        SendBulkInvoicesTool,
+        GenerateTaxReportTool,
+        ReconcilePaymentsTool,
+        PredictCashShortageTool,
       ],
     },
   ],

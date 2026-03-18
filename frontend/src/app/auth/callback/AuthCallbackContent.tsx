@@ -18,11 +18,21 @@ export function AuthCallbackContent({
     const token = typeof params?.token === "string" ? params.token : null;
     if (token) {
       completeOAuth(token)
-        .then(() => router.replace("/"))
+        .then(() => {
+          // Small delay to ensure auth state is fully updated
+          setTimeout(() => router.replace("/"), 100);
+        })
         .catch(() => setError("Invalid token. Please try signing in again."));
     } else {
       checkAuthFromCookie()
-        .then((ok) => (ok ? router.replace("/") : setError("No token received. Please try signing in again.")))
+        .then((ok) => {
+          if (ok) {
+            // Small delay to ensure auth state is fully updated
+            setTimeout(() => router.replace("/"), 100);
+          } else {
+            setError("No token received. Please try signing in again.");
+          }
+        })
         .catch(() => setError("Sign-in failed. Please try again."));
     }
   }, [params, completeOAuth, checkAuthFromCookie, router]);

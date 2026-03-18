@@ -870,7 +870,9 @@
       "inAppLabel": "Notifications dans l'application",
       "inAppDesc": "Afficher les notifications quand vous êtes dans l'application",
       "smsLabel": "Rappels SMS",
-      "smsDesc": "Recevoir les rappels de paiement par SMS (peut entraîner des frais)"
+      "smsDesc": "Recevoir les rappels de paiement par SMS (peut entraîner des frais)",
+      "dailySummaryLabel": "Résumé quotidien de l'entreprise",
+      "dailySummaryDesc": "Recevoir un résumé quotidien des ventes, dépenses et dettes via WhatsApp à 7h"
     },
     "display": {
       "title": "Affichage",

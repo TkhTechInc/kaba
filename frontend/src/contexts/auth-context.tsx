@@ -352,7 +352,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Use pathname from router; fallback to window.location when pathname is null (e.g. before hydration).
       const path = pathname ?? (typeof window !== "undefined" ? window.location.pathname : "");
       const isPayPage = PAY_PUBLIC_PATHS.some((p) => path.startsWith(p));
-      const skipCookieCheck = !!t || isPayPage;
+      const isCallbackPage = path.startsWith("/auth/callback");
+
+      // Skip checkAuthFromCookie if we already have a token, on payment pages, or on OAuth callback page
+      // This prevents race condition where checkAuthFromCookie interferes with OAuth token processing
+      const skipCookieCheck = !!t || isPayPage || isCallbackPage;
 
       // Skip checkAuthFromCookie if we already have a token from OAuth callback
       // This prevents race condition where checkAuthFromCookie clears the OAuth token

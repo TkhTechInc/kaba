@@ -9,6 +9,7 @@ import { DynamoConversationStore } from '../../domains/chat/services/DynamoConve
 import { BusinessRepository } from '../../domains/business/BusinessRepository';
 import { AI_SPEECH_TO_TEXT } from '../../nest/modules/ai/ai.tokens';
 import type { ISpeechToText } from '../../domains/ai/ISpeechToText';
+import { getMessages, formatMessage } from '../../domains/i18n/messages';
 
 let appContext: INestApplicationContext | undefined;
 
@@ -19,13 +20,13 @@ async function getContext(): Promise<INestApplicationContext> {
   return appContext;
 }
 
-const REGISTRATION_PROMPT =
-  'Welcome to Kaba! Your account is not linked to this chat.\n\n' +
-  'To get started:\n' +
-  '1. Create an account at app.kaba.dev\n' +
-  '2. Reply: LINK <your email>\n' +
-  '   (If you have multiple businesses: LINK <email> <businessId>)\n\n' +
-  'Example: LINK amara@gmail.com';
+// Default locale for West Africa (French)
+const DEFAULT_LOCALE = 'fr';
+
+function getRegistrationPrompt(locale: string = DEFAULT_LOCALE): string {
+  const msg = getMessages(locale);
+  return `${msg.whatsapp.welcome}\n\n${msg.whatsapp.linkPrompt}`;
+}
 
 const LINK_COMMAND = /^link\s+(\S+@\S+\.\S+)(?:\s+(\S+))?$/i;
 
@@ -91,6 +92,8 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
       const text = (incoming.text ?? '').trim();
       const match = text.match(LINK_COMMAND);
       let reply: string;
+      const locale = DEFAULT_LOCALE; // TODO: detect user language or store preference
+      const msg = getMessages(locale);
 
       if (match) {
         const email = match[1];
@@ -101,19 +104,12 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
           session.userId = resolved.userId;
           session.linked = true;
           await conversationStore.save(session);
-          reply =
-            'Linked! Your Kaba account is now connected.\n\n' +
-            'You can now ask me:\n' +
-            '• "Check my balance"\n' +
-            '• "I sold 3 bags of rice for 45,000"\n' +
-            '• "Who owes me money?"\n' +
-            '• "Send reminder to Moussa"\n' +
-            '• "My daily summary"';
+          reply = msg.whatsapp.linkSuccess;
         } else {
-          reply = `No Kaba account found for ${email}.\n\nSign up at app.kaba.dev, then try: LINK ${email}`;
+          reply = formatMessage(msg.whatsapp.linkFailed, { email });
         }
       } else {
-        reply = REGISTRATION_PROMPT;
+        reply = getRegistrationPrompt(locale);
       }
 
       await waChannel.send({ channelUserId: incoming.channelUserId, text: reply });
@@ -131,9 +127,11 @@ export async function handler(event: APIGatewayProxyEvent): Promise<APIGatewayPr
         messageText = text?.trim() || '';
       } catch (err) {
         console.error('WhatsApp voice transcription failed', err);
+        const locale = DEFAULT_LOCALE;
+        const msg = getMessages(locale);
         await waChannel.send({
           channelUserId: incoming.channelUserId,
-          text: 'Sorry, I could not understand the voice message. Please try typing your message.',
+          text: msg.whatsapp.voiceTranscriptionFailed,
         });
         return { statusCode: 200, body: 'OK' };
       }

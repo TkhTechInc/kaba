@@ -870,7 +870,9 @@
       "inAppLabel": "In-app notifications",
       "inAppDesc": "Show notifications when you're in the app",
       "smsLabel": "SMS reminders",
-      "smsDesc": "Receive payment reminders by SMS (may incur charges)"
+      "smsDesc": "Receive payment reminders by SMS (may incur charges)",
+      "dailySummaryLabel": "Daily business summary",
+      "dailySummaryDesc": "Receive daily summary of sales, expenses, and debts via WhatsApp at 7am"
     },
     "display": {
       "title": "Display",

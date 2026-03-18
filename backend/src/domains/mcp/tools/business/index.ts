@@ -19,3 +19,7 @@ export { SendDebtReminderTool } from './send-debt-reminder.tool';
 export { GetTaxEstimateTool } from './get-tax-estimate.tool';
 export { GetDailySummaryTool } from './get-daily-summary.tool';
 export { AnalyzeTrendsTool } from './analyze-trends.tool';
+export { SendBulkInvoicesTool } from './send-bulk-invoices.tool';
+export { GenerateTaxReportTool } from './generate-tax-report.tool';
+export { ReconcilePaymentsTool } from './reconcile-payments.tool';
+export { PredictCashShortageTool } from './predict-cash-shortage.tool';

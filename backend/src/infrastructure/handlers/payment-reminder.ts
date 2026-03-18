@@ -23,8 +23,18 @@ const whatsApp =
 
 const smsProvider = new AwsSnsSmsProvider(null);
 
-function buildReminderMessage(debtorName: string, currency: string, amount: number, dueDate: string): string {
-  return `Reminder: ${debtorName} owes ${currency} ${amount}. Due: ${dueDate}. Please pay at your earliest convenience.`;
+function buildReminderMessage(
+  debtorName: string,
+  currency: string,
+  amount: number,
+  dueDate: string,
+  locale: string = 'fr',
+): string {
+  const fr = `Rappel: ${debtorName} doit ${currency} ${amount}. Échéance: ${dueDate}. Veuillez payer dès que possible.`;
+  const en = `Reminder: ${debtorName} owes ${currency} ${amount}. Due: ${dueDate}. Please pay at your earliest convenience.`;
+
+  // Bilingual message
+  return locale === 'en' ? en : `${fr}\n\n${en}`;
 }
 
 export async function handler(): Promise<{
