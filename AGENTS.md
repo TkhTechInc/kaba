@@ -1,6 +1,8 @@
 # Kaba - Agent Coordination
 
-This document guides AI agents working on this project. Follow the plan in `.cursor/plans/` and the rules in `.cursor/rules/`.
+**MANDATORY** — At the start of every conversation, read `AI/core/rules-discovery.md` and follow the steps to load applicable rules.
+
+This document guides AI agents working on this project. Follow the plan in `.cursor/plans/` and the rules in `AI/global/rules/`.
 
 **Stabilization:** See `STABILIZATION.md`. Feature freeze in effect — fix bugs and improve stability only.
 
@@ -12,7 +14,7 @@ This document guides AI agents working on this project. Follow the plan in `.cur
 
 ## Rules (Always Apply)
 
-1. **Read `.cursor/rules/`** – TypeScript, domain architecture, API, DynamoDB patterns
+1. **Read `AI/core/rules-discovery.md`** at conversation start — loads `AI/global/rules/` and `tasks/lessons.md`
 2. **Interface-first** – Define `IPaymentGateway`, `ILLMProvider`, `IReceiptExtractor`, etc.; no concrete implementations in core
 3. **AI model agnostic** – Use `ILLMProvider`; never reference Bedrock/Claude directly in domain code
 4. **Multi-tenant** – All entities have `businessId`; queries filter by it
@@ -60,7 +62,7 @@ This document guides AI agents working on this project. Follow the plan in `.cur
 ## File Paths
 
 - Backend: `backend/`
-- Rules: `.cursor/rules/`
+- Rules: `AI/global/rules/` (loaded via `AI/core/rules-discovery.md`)
 - Plan: `.cursor/plans/` or `~/.cursor/plans/`
 
 ## When Stuck
