@@ -179,8 +179,8 @@ export class AuthController {
     const isProd = this.config?.get<string>('environment') === 'production';
     setAuthCookie(res, result.accessToken, isProd);
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    const separator = frontendUrl.includes('://') ? '' : '://';
-    res.redirect(`${frontendUrl}${separator}auth/callback`);
+    const base = frontendUrl.replace(/\/$/, '');
+    res.redirect(`${base}/auth/callback`);
   }
 
   @Get('facebook')
@@ -205,7 +205,7 @@ export class AuthController {
     const isProd = this.config?.get<string>('environment') === 'production';
     setAuthCookie(res, result.accessToken, isProd);
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    const separator = frontendUrl.includes('://') ? '' : '://';
-    res.redirect(`${frontendUrl}${separator}auth/callback`);
+    const base = frontendUrl.replace(/\/$/, '');
+    res.redirect(`${base}/auth/callback`);
   }
 }

@@ -67,6 +67,17 @@ jobs:
         env:
           CDK_CONTEXT_kkiapayPublicKey: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
 
+      - name: Post-deploy health check (dev)
+        run: |
+          echo "Waiting 45s for deployment to propagate..."
+          sleep 45
+          DEV_URL="https://dev.kabasika.com"
+          echo "Checking $DEV_URL..."
+          curl -sf -o /dev/null -w "%{http_code}" "$DEV_URL" | grep -qE '^[23]' || { echo "Dev frontend unreachable"; exit 1; }
+          echo "Checking $DEV_URL/auth/callback..."
+          curl -sfL -o /dev/null -w "%{http_code}" "$DEV_URL/auth/callback" | grep -qE '^[23]' || { echo "Auth callback unreachable"; exit 1; }
+          echo "Health check passed."
+
       - name: Notify Slack
         if: always()
         continue-on-error: true
