@@ -19,6 +19,7 @@ import { AuditRepository } from '@/domains/audit/repositories/AuditRepository';
 import { AdminMetricsService } from '@/domains/admin/AdminMetricsService';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
 import { ReceiptStorageService } from '@/domains/receipts/ReceiptStorageService';
+import { AICostTracker } from './services/AICostTracker';
 import type { IMcpTool } from './interfaces/IMcpTool';
 import { AgentSessionStore } from './AgentSessionStore';
 import { ToolRegistry } from './ToolRegistry';
@@ -114,6 +115,14 @@ const BUSINESS_TOOL_PROVIDERS = [
         const tableName = config.get<string>('dynamodb.auditLogsTable') ?? 'Kaba-AuditLogs-dev';
         const retentionDays = config.get<number>('compliance.auditRetentionDays') ?? 2555;
         return new AuditRepository(docClient, tableName, retentionDays);
+      },
+      inject: [DYNAMODB_DOC_CLIENT, ConfigService],
+    },
+    {
+      provide: AICostTracker,
+      useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
+        const tableName = config.get<string>('dynamodb.usersTable') ?? 'Kaba-UsersService-dev-users';
+        return new AICostTracker(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],
     },

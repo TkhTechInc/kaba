@@ -2,6 +2,7 @@ import {
   apiGet,
   apiPost,
   apiPatch,
+  apiDelete,
   type RequestConfig,
 } from "@/lib/api-client";
 
@@ -299,6 +300,11 @@ export function createAdminApi(token: string | null) {
       apiPatch<{ success: boolean; data: { id: string; role: string } }>(
         `${ADMIN}/users/${encodeURIComponent(userId)}/role`,
         { role },
+        opts()
+      ),
+    deleteUser: (userId: string) =>
+      apiDelete<{ success: boolean; message?: string }>(
+        `${ADMIN}/users/${encodeURIComponent(userId)}`,
         opts()
       ),
   };

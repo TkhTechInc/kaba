@@ -7,6 +7,13 @@ import {
   SendEmailCommand,
   type SendEmailCommandInput,
 } from '@aws-sdk/client-ses';
+import {
+  type EmailLocale,
+  parseEmailLocale,
+  getEmailTemplates,
+  buildHtmlEmail,
+  textToHtml,
+} from './email-templates';
 
 @Injectable()
 export class EmailService {
@@ -38,7 +45,16 @@ export class EmailService {
   }
 
   /** Send verification email. When disabled (dev), logs to console. */
-  async sendVerificationCode(email: string, code: string): Promise<{ success: boolean }> {
+  async sendVerificationCode(
+    email: string,
+    code: string,
+    localeOrAcceptLanguage?: EmailLocale | string,
+  ): Promise<{ success: boolean; devCode?: string }> {
+    const locale = typeof localeOrAcceptLanguage === 'string' ? parseEmailLocale(localeOrAcceptLanguage) : (localeOrAcceptLanguage ?? 'en');
+    const t = getEmailTemplates(locale);
+    const expiresMinutes = 10;
+    const subject = t.verification.subject;
+    const body = t.verification.body(code, expiresMinutes);
     if (!this.enabled) {
       // eslint-disable-next-line no-console
       console.log(`[DEV] Email verification code for ${email}: ${code}`);
@@ -50,12 +66,8 @@ export class EmailService {
           Source: this.fromEmail,
           Destination: { ToAddresses: [email] },
           Message: {
-            Subject: { Data: 'Your Kaba verification code' },
-            Body: {
-              Text: {
-                Data: `Your verification code is: ${code}\n\nThis code expires in 10 minutes.`,
-              },
-            },
+            Subject: { Data: subject },
+            Body: { Text: { Data: body } },
           },
         };
         await this.getSesClient().send(new SendEmailCommand(input));
@@ -63,6 +75,16 @@ export class EmailService {
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error('[EmailService] SES sendVerificationCode failed:', err);
+        const isDev = process.env['NODE_ENV'] !== 'production';
+        const isSandboxReject =
+          err instanceof Error &&
+          (err.name === 'MessageRejected' ||
+            err.message?.includes('Email address is not verified') ||
+            err.message?.includes('identities failed the check'));
+        if (isDev && isSandboxReject) {
+          // SES sandbox: recipient must be verified. Return code so dev can complete sign-up.
+          return { success: true, devCode: code };
+        }
         return { success: false };
       }
     }
@@ -72,9 +94,16 @@ export class EmailService {
   }
 
   /** Send password reset link. When disabled (dev), logs to console. */
-  async sendPasswordResetLink(email: string, resetLink: string): Promise<{ success: boolean }> {
-    const subject = 'Reset your Kaba password';
-    const body = `You requested a password reset. Click the link below to set a new password:\n\n${resetLink}\n\nThis link expires in 1 hour. If you didn't request this, you can ignore this email.`;
+  async sendPasswordResetLink(
+    email: string,
+    resetLink: string,
+    localeOrAcceptLanguage?: EmailLocale | string,
+  ): Promise<{ success: boolean }> {
+    const locale = typeof localeOrAcceptLanguage === 'string' ? parseEmailLocale(localeOrAcceptLanguage) : (localeOrAcceptLanguage ?? 'en');
+    const t = getEmailTemplates(locale);
+    const expiresMinutes = 60;
+    const subject = t.passwordReset.subject;
+    const body = t.passwordReset.body(resetLink, expiresMinutes);
     if (!this.enabled) {
       // eslint-disable-next-line no-console
       console.log(`[DEV] Password reset link for ${email}: ${resetLink}`);
@@ -109,9 +138,13 @@ export class EmailService {
     inviteLink: string,
     businessName: string,
     role: string,
+    localeOrAcceptLanguage?: EmailLocale | string,
   ): Promise<{ success: boolean }> {
-    const subject = `You're invited to join ${businessName}`;
-    const body = `You've been invited to join ${businessName} as ${role}. Click the link below to accept:\n\n${inviteLink}\n\nThis link expires in 7 days.`;
+    const locale = typeof localeOrAcceptLanguage === 'string' ? parseEmailLocale(localeOrAcceptLanguage) : (localeOrAcceptLanguage ?? 'en');
+    const t = getEmailTemplates(locale);
+    const expiresDays = 7;
+    const subject = t.invitation.subject(businessName);
+    const body = t.invitation.body(businessName, role, inviteLink, expiresDays);
     if (!this.enabled) {
       // eslint-disable-next-line no-console
       console.log(`[DEV] Invitation email to ${email}: ${inviteLink}`);
@@ -137,6 +170,61 @@ export class EmailService {
     }
     // eslint-disable-next-line no-console
     console.log(`[DEV] Invitation email to ${email}: ${inviteLink}`);
+    return { success: true };
+  }
+
+  /**
+   * Send welcome email after account creation (HTML + text).
+   * When disabled (dev), logs to console.
+   */
+  async sendWelcome(
+    email: string,
+    options: { userName?: string; dashboardUrl: string },
+    localeOrAcceptLanguage?: EmailLocale | string,
+  ): Promise<{ success: boolean }> {
+    const locale = typeof localeOrAcceptLanguage === 'string' ? parseEmailLocale(localeOrAcceptLanguage) : (localeOrAcceptLanguage ?? 'en');
+    const t = getEmailTemplates(locale);
+    const subject = t.welcome.subject;
+    const greeting = t.welcome.greeting(options.userName);
+    const bodyHtml = textToHtml(t.welcome.body);
+    const html = buildHtmlEmail({
+      preheader: t.welcome.body.slice(0, 100),
+      title: t.welcome.subject,
+      greeting,
+      bodyHtml,
+      ctaUrl: options.dashboardUrl,
+      ctaText: t.welcome.cta,
+      footer: t.welcome.footer,
+    });
+    const textBody = `${greeting}\n\n${t.welcome.body}\n\n${t.welcome.cta}: ${options.dashboardUrl}\n\n— ${t.welcome.footer}`;
+    if (!this.enabled) {
+      // eslint-disable-next-line no-console
+      console.log(`[DEV] Welcome email to ${email}: ${options.dashboardUrl}`);
+      return { success: true };
+    }
+    if (this.sesRegion) {
+      try {
+        const input: SendEmailCommandInput = {
+          Source: this.fromEmail,
+          Destination: { ToAddresses: [email] },
+          Message: {
+            Subject: { Data: subject },
+            Body: {
+              Text: { Data: textBody },
+              Html: { Data: html },
+            },
+          },
+        };
+        await this.getSesClient().send(new SendEmailCommand(input));
+        return { success: true };
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('[EmailService] SES sendWelcome failed:', err);
+        return { success: false };
+      }
+    }
+    // eslint-disable-next-line no-console
+    console.log(`[DEV] Welcome email to ${email}: ${options.dashboardUrl}`);
     return { success: true };
   }
 

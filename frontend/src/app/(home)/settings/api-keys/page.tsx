@@ -111,14 +111,10 @@ export default function ApiKeysPage() {
   if (!canRead || forbidden) {
     return (
       <PermissionDenied
-        resource="API Keys"
-        hint={
-          forbidden
-            ? "Your current plan or role doesn't allow managing API keys. Upgrade your plan or ask your workspace owner for access."
-            : t("apiKeys.noPermission")
-        }
+        resource={t("permissionDenied.resource.apiKeys")}
+        hint={forbidden ? undefined : t("apiKeys.noPermission")}
         backHref="/settings"
-        backLabel="Back to Settings"
+        backLabel={t("common.backToSettings")}
       />
     );
   }

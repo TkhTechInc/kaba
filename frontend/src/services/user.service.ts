@@ -20,6 +20,7 @@ export interface UserPreferences {
   emailNotifications?: boolean;
   inAppNotifications?: boolean;
   smsReminders?: boolean;
+  dailySummaryEnabled?: boolean;
 }
 
 export async function getPreferences(token: string): Promise<UserPreferences> {

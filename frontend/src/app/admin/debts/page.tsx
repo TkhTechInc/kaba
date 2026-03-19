@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import {
   Table,
@@ -19,6 +20,7 @@ import type {
 const PAGE_SIZE = 20;
 
 export default function AdminDebtsPage() {
+  const { t } = useLocale();
   const { token } = useAuth();
   const [data, setData] = useState<AdminDebtsSummary | null>(null);
   const [items, setItems] = useState<AdminDebtItem[]>([]);
@@ -82,7 +84,8 @@ export default function AdminDebtsPage() {
   const getBucketByLabel = (buckets: AdminDebtItem["buckets"], label: string) =>
     buckets?.find((b) => b.label === label);
 
-  const BUCKET_LABELS = ["0-30 days", "31-60 days", "61-90 days", "90+ days"];
+  const BUCKET_LABELS = ["0-30 days", "31-60 days", "61-90 days", "90+ days"] as const;
+  const BUCKET_KEYS = ["bucket0_30", "bucket31_60", "bucket61_90", "bucket90_plus"] as const;
 
   if (loading && items.length === 0) {
     return (
@@ -95,7 +98,7 @@ export default function AdminDebtsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Debts Summary
+        {t("admin.debts.title")}
       </h1>
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-900/20 dark:text-red-400">
@@ -106,7 +109,7 @@ export default function AdminDebtsPage() {
         <div className="mb-6 flex flex-wrap gap-4 rounded-lg bg-white p-4 shadow-1 dark:bg-gray-dark dark:shadow-card">
           <div>
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              Platform Total Count
+              {t("admin.debts.platformTotalCount")}
             </p>
             <p className="text-xl font-bold text-dark dark:text-white">
               {data.platformTotalCount?.toLocaleString() ?? 0}
@@ -114,7 +117,7 @@ export default function AdminDebtsPage() {
           </div>
           <div>
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              Platform Total Amount
+              {t("admin.debts.platformTotalAmount")}
             </p>
             <p className="text-xl font-bold text-dark dark:text-white">
               {data.platformTotalAmount?.toLocaleString() ?? 0}
@@ -123,18 +126,18 @@ export default function AdminDebtsPage() {
         </div>
       )}
       <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[900px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Business ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Debt Count</TableHead>
-              <TableHead>Total Amount</TableHead>
-              <TableHead>Currency</TableHead>
-              <TableHead>0-30 days</TableHead>
-              <TableHead>31-60 days</TableHead>
-              <TableHead>61-90 days</TableHead>
-              <TableHead>90+ days</TableHead>
+              <TableHead>{t("admin.debts.businessId")}</TableHead>
+              <TableHead>{t("admin.debts.name")}</TableHead>
+              <TableHead>{t("admin.debts.debtCount")}</TableHead>
+              <TableHead>{t("admin.debts.totalAmount")}</TableHead>
+              <TableHead>{t("admin.debts.currency")}</TableHead>
+              {BUCKET_KEYS.map((key) => (
+                <TableHead key={key}>{t(`admin.debts.${key}`)}</TableHead>
+              ))}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -166,9 +169,10 @@ export default function AdminDebtsPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
         {items.length === 0 && !loading && (
           <p className="p-8 text-center text-dark-6 dark:text-dark-6">
-            No debts found.
+            {t("admin.debts.noDebtsFound")}
           </p>
         )}
         {data?.lastEvaluatedKey && (
@@ -178,7 +182,7 @@ export default function AdminDebtsPage() {
               disabled={loadingMore}
               className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
-              {loadingMore ? "Loading..." : "Load more"}
+              {loadingMore ? t("common.loading") : t("common.loadMore")}
             </button>
           </div>
         )}

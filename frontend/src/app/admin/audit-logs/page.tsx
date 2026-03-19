@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import {
   Table,
@@ -15,6 +16,7 @@ import type { AuditLogItem } from "@/services/admin.service";
 
 export default function AdminAuditLogsPage() {
   const { token } = useAuth();
+  const { t } = useLocale();
   const [data, setData] = useState<{ items: AuditLogItem[]; lastEvaluatedKey?: Record<string, unknown> } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,18 +53,18 @@ export default function AdminAuditLogsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Audit Logs
+        {t("admin.auditLogs.title")}
       </h1>
       <div className="mb-4 flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1">
           <label htmlFor="audit-business-id" className="text-sm font-medium text-dark dark:text-white">
-            Business ID
+            {t("admin.auditLogs.businessId")}
           </label>
           <input
             id="audit-business-id"
             name="auditBusinessId"
             type="text"
-            placeholder="Business ID"
+            placeholder={t("admin.auditLogs.placeholder")}
             value={businessId}
             onChange={(e) => setBusinessId(e.target.value)}
             className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -70,7 +72,7 @@ export default function AdminAuditLogsPage() {
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="audit-date-from" className="text-sm font-medium text-dark dark:text-white">
-            From
+            {t("admin.auditLogs.from")}
           </label>
           <input
             id="audit-date-from"
@@ -83,7 +85,7 @@ export default function AdminAuditLogsPage() {
         </div>
         <div className="flex flex-col gap-1">
           <label htmlFor="audit-date-to" className="text-sm font-medium text-dark dark:text-white">
-            To
+            {t("admin.auditLogs.to")}
           </label>
           <input
             id="audit-date-to"
@@ -108,14 +110,15 @@ export default function AdminAuditLogsPage() {
         </div>
       )}
       <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Time</TableHead>
-              <TableHead>Entity</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Business</TableHead>
-              <TableHead>User</TableHead>
+              <TableHead>{t("admin.auditLogs.time")}</TableHead>
+              <TableHead>{t("admin.auditLogs.entity")}</TableHead>
+              <TableHead>{t("admin.auditLogs.action")}</TableHead>
+              <TableHead>{t("admin.auditLogs.business")}</TableHead>
+              <TableHead>{t("admin.auditLogs.user")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -134,9 +137,10 @@ export default function AdminAuditLogsPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
         {items.length === 0 && !loading && (
           <p className="p-8 text-center text-dark-6 dark:text-dark-6">
-            No audit logs found.
+            {t("admin.auditLogs.noLogsFound")}
           </p>
         )}
       </div>

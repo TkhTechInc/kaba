@@ -380,6 +380,50 @@ export class PaymentsClient {
   }
 
   /**
+   * Refund a succeeded payment intent.
+   * Omit amount for full refund. Intent must have status succeeded.
+   * See TKH Payments INTEGRATION.md: POST /intents/:id/refund
+   */
+  async refund(
+    intentId: string,
+    options?: { amount?: number; reason?: string },
+  ): Promise<{
+    success: boolean;
+    refund?: { id: string; status: string; amount: number; currency: string };
+    error?: string;
+  }> {
+    try {
+      const data = (await this.fetch(`/intents/${encodeURIComponent(intentId)}/refund`, {
+        method: 'POST',
+        body: {
+          amount: options?.amount,
+          reason: options?.reason,
+        },
+      })) as {
+        id?: string;
+        status?: string;
+        amount?: number;
+        currency?: string;
+        message?: string;
+      };
+
+      return {
+        success: true,
+        refund: {
+          id: data.id ?? '',
+          status: data.status ?? 'pending',
+          amount: data.amount ?? 0,
+          currency: data.currency ?? '',
+        },
+      };
+    } catch (err) {
+      const msg = (err as Error).message;
+      this.logger.error(`Payments service refund failed: ${msg}`);
+      return { success: false, error: msg };
+    }
+  }
+
+  /**
    * Disburse to mobile money (e.g. supplier payout).
    */
   async disburse(params: {

@@ -87,43 +87,30 @@ export class ProductRepository {
     const pageNum = Math.max(1, Number(page) || 1);
 
     try {
-      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
-      for (let i = 0; i < pageNum - 1; i++) {
-        const skipResult = await this.docClient.send(
+      const allItems: Product[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
           new QueryCommand({
             TableName: this.tableName,
             KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
             ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-            Limit: limitClamped,
-            ...(cursor && { ExclusiveStartKey: cursor }),
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
           })
         );
-        cursor = skipResult.LastEvaluatedKey;
-        if (!cursor) {
-          return { items: [], total: (pageNum - 1) * limitClamped, page: pageNum, limit: limitClamped };
-        }
-      }
+        allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-      const result = await this.docClient.send(
-        new QueryCommand({
-          TableName: this.tableName,
-          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
-          ExpressionAttributeValues: { ':pk': businessId, ':skPrefix': SK_PREFIX },
-          Limit: limitClamped,
-          ...(cursor && { ExclusiveStartKey: cursor }),
-        })
-      );
-
-      const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
-      const hasMore = !!result.LastEvaluatedKey;
-      const total = (pageNum - 1) * limitClamped + items.length + (hasMore ? limitClamped : 0);
+      allItems.sort((a, b) => (b.updatedAt ?? b.createdAt ?? '').localeCompare(a.updatedAt ?? a.createdAt ?? ''));
+      const total = allItems.length;
+      const start = (pageNum - 1) * limitClamped;
 
       return {
-        items,
+        items: allItems.slice(start, start + limitClamped),
         total,
         page: pageNum,
         limit: limitClamped,
-        lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {
       throw new DatabaseError('List products failed', e);
@@ -222,7 +209,8 @@ export class ProductRepository {
   }
 
   /**
-   * Atomically decrement stock. Returns updated product or null if insufficient stock.
+   * Atomically decrement stock. Allows negative stock — inventory is informational,
+   * not a gate; users may forget to update stock before recording a sale.
    */
   async decrementStock(
     businessId: string,
@@ -242,7 +230,6 @@ export class ProductRepository {
             sk: `${SK_PREFIX}${id}`,
           },
           UpdateExpression: 'SET #q = #q - :qty, #ua = :updatedAt',
-          ConditionExpression: '#q >= :qty',
           ExpressionAttributeNames: {
             '#q': 'quantityInStock',
             '#ua': 'updatedAt',
@@ -258,9 +245,6 @@ export class ProductRepository {
       if (!result.Attributes) return null;
       return this.mapFromDynamoDB(result.Attributes);
     } catch (e: unknown) {
-      if (e && typeof e === 'object' && 'name' in e && e.name === 'ConditionalCheckFailedException') {
-        return null;
-      }
       throw new DatabaseError('Decrement stock failed', e);
     }
   }

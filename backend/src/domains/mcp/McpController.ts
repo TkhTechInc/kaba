@@ -24,6 +24,7 @@ export class McpController {
       userId,
       tier: dto.tier ?? 'starter',
       scope: 'business',
+      locale: dto.locale,
     });
     return { success: true, data: result };
   }
@@ -43,6 +44,7 @@ export class McpController {
       customerEmail: dto.customerEmail,
       tier: 'free',
       scope: 'customer',
+      locale: dto.locale,
     });
     return { success: true, data: result };
   }

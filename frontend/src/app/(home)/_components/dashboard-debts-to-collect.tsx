@@ -5,6 +5,7 @@ import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
+import { useLocale } from "@/contexts/locale-context";
 import type { Debt } from "@/services/debts.service";
 
 function formatDate(s: string) {
@@ -22,6 +23,7 @@ function formatDate(s: string) {
 export function DashboardDebtsToCollect({ className }: { className?: string }) {
   const { businessId } = useAuth();
   const { data: homeData, loading } = useDashboardHome();
+  const { t } = useLocale();
   const debts = (homeData?.debts?.items ?? []) as Debt[];
 
   if (!businessId) return null;
@@ -35,13 +37,13 @@ export function DashboardDebtsToCollect({ className }: { className?: string }) {
     >
       <div className="mb-5.5 flex items-center justify-between px-7.5">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          People who owe me
+          {t("dashboard.debtsToCollect.title")}
         </h2>
         <Link
           href="/debts"
           className="text-sm font-medium text-primary hover:underline"
         >
-          View all →
+          {t("dashboard.debtsToCollect.viewAll")}
         </Link>
       </div>
 
@@ -49,9 +51,9 @@ export function DashboardDebtsToCollect({ className }: { className?: string }) {
         <div className="mx-7.5 min-h-[120px] animate-pulse rounded-lg bg-gray-1 dark:bg-dark-2/50" />
       ) : debts.length === 0 ? (
         <p className="px-7.5 py-8 text-center text-dark-6">
-          No pending debts.{" "}
+          {t("dashboard.debtsToCollect.noPending")}{" "}
           <Link href="/debts" className="text-primary hover:underline">
-            Add a debt
+            {t("dashboard.debtsToCollect.addDebt")}
           </Link>
         </p>
       ) : (
@@ -70,12 +72,12 @@ export function DashboardDebtsToCollect({ className }: { className?: string }) {
                     {debt.debtorName}
                   </h3>
                   <p className="text-sm text-dark-6">
-                    <Price amount={debt.amount} currency={debt.currency} /> · Due {formatDate(debt.dueDate)}
+                    <Price amount={debt.amount} currency={debt.currency} /> · {t("dashboard.debtsToCollect.due", { date: formatDate(debt.dueDate) })}
                   </p>
                 </div>
                 {debt.status === "overdue" && (
                   <span className="shrink-0 rounded-full bg-red/10 px-2 py-0.5 text-xs font-medium text-red">
-                    Overdue
+                    {t("dashboard.debtsToCollect.overdue")}
                   </span>
                 )}
               </Link>

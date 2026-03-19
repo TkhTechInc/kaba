@@ -214,8 +214,8 @@ export class InvoicePdfService {
       const billY = metaY + 12;
       doc.fillColor(COLOR_TEXT).fontSize(10).font('Helvetica-Bold')
         .text(customer.name, PAGE_MARGIN, billY, { width: CONTENT_W * 0.5 });
-      doc.font('Helvetica').fontSize(9).fillColor(COLOR_MUTED)
-        .text(customer.email, PAGE_MARGIN, doc.y + 2, { width: CONTENT_W * 0.5 });
+      doc.font('Helvetica').fontSize(9).fillColor(COLOR_MUTED);
+      if (customer.email) doc.text(customer.email, PAGE_MARGIN, doc.y + 2, { width: CONTENT_W * 0.5 });
       if (customer.phone) doc.text(customer.phone, { width: CONTENT_W * 0.5 });
 
       doc.fillColor(COLOR_TEXT).fontSize(10).font('Helvetica-Bold')

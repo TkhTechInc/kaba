@@ -13,6 +13,7 @@ import { DateRangeFilter, type DateRange } from "@/components/ui/date-range-filt
 import { ListSearchInput } from "@/components/ui/list-search-input";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import { ApiError } from "@/lib/api-client";
+import { toPaymentLinkErrorKey } from "@/lib/payment-link-errors";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
@@ -34,6 +35,7 @@ export default function InvoicesPage() {
   const [forbidden, setForbidden] = useState(false);
   const [paymentLinkId, setPaymentLinkId] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
+  const [paymentLinkError, setPaymentLinkError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | "draft" | "sent" | "paid" | "overdue">("all");
   const [dateRange, setDateRange] = useState<DateRange>({ fromDate: "", toDate: "" });
   const [search, setSearch] = useState("");
@@ -52,7 +54,7 @@ export default function InvoicesPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load invoices");
+        else setError(e instanceof Error ? e.message : t("errors.loadInvoices"));
       })
       .finally(() => setLoading(false));
   }, [businessId, page, limit, statusFilter, dateRange]);
@@ -80,13 +82,17 @@ export default function InvoicesPage() {
 
   const generatePaymentLink = (id: string) => {
     if (!businessId) return;
+    setPaymentLinkError(null);
     api
       .generatePaymentLink(id, businessId)
       .then((r) => {
         setPaymentLinkId(id);
         setPaymentLinkUrl(r.paymentUrl);
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => {
+        const raw = e instanceof Error ? e.message : String(e);
+        setPaymentLinkError(t(toPaymentLinkErrorKey(raw)));
+      });
   };
 
   if (!businessId) {
@@ -124,7 +130,7 @@ export default function InvoicesPage() {
     return (
       <>
         <Breadcrumb pageName={t("invoices.title")} />
-        <PermissionDenied resource="Invoices" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.invoices")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }
@@ -258,14 +264,16 @@ export default function InvoicesPage() {
                       <Link href={`/invoices/${inv.id}/edit`} className="text-sm font-medium text-primary hover:underline">
                         {t("invoices.action.edit")}
                       </Link>
-                      <button
-                        type="button"
-                        onClick={() => generatePaymentLink(inv.id)}
-                        className="text-sm font-medium text-primary hover:underline"
-                        aria-label={t("invoices.action.paymentLinkAriaLabel", { id: inv.id })}
-                      >
-                        {t("invoices.action.paymentLink")}
-                      </button>
+                      {(inv.status === "draft" || inv.status === "sent" || inv.status === "overdue") && (
+                        <button
+                          type="button"
+                          onClick={() => generatePaymentLink(inv.id)}
+                          className="text-sm font-medium text-primary hover:underline"
+                          aria-label={t("invoices.action.paymentLinkAriaLabel", { id: inv.id })}
+                        >
+                          {t("invoices.action.paymentLink")}
+                        </button>
+                      )}
                       {(inv.status === "draft" || inv.status === "sent") && (
                         <Link
                           href={`/invoices/${inv.id}/pos`}
@@ -298,6 +306,11 @@ export default function InvoicesPage() {
                 />
               )}
         </div>
+        {paymentLinkError && (
+              <div className="border-t border-stroke p-4 dark:border-dark-3">
+                <p className="rounded-lg bg-red/10 p-3 text-sm text-red">{paymentLinkError}</p>
+              </div>
+            )}
         {paymentLinkUrl && paymentLinkId && (
               <div className="border-t border-stroke p-4 dark:border-dark-3">
                 <p className="mb-2 text-sm font-medium">{t("invoices.paymentLinkLabel")}</p>

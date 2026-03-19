@@ -7,6 +7,7 @@ import InputGroup from "@/components/FormElements/InputGroup";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import React, { useState } from "react";
+import { ApiError } from "@/lib/api-client";
 
 function isValidReturnUrl(url: string): boolean {
   if (!url || typeof url !== "string") return false;
@@ -39,6 +40,10 @@ export default function SigninWithPassword() {
       const target = isValidReturnUrl(returnUrl ?? "") ? (returnUrl ?? "/") : "/";
       router.replace(target);
     } catch (err) {
+      if (err instanceof ApiError && err.code === "USER_NOT_FOUND") {
+        router.replace(`/auth/sign-up?email=${encodeURIComponent(email.trim())}`);
+        return;
+      }
       setError(err instanceof Error ? err.message : t("auth.loginFailed"));
     } finally {
       setLoading(false);

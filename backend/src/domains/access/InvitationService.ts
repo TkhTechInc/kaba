@@ -48,7 +48,7 @@ export class InvitationService {
       expiresInHours: input.expiresInHours ?? 168,
     });
 
-    const frontendUrl = this.config?.get<string>('oauth.frontendUrl') ?? process.env['FRONTEND_URL'] ?? 'http://localhost:3000';
+    const frontendUrl = (this.config?.get<string>('oauth.frontendUrl') ?? process.env['FRONTEND_URL'] ?? 'http://localhost:3000').replace(/\/$/, '');
     const inviteLink = `${frontendUrl}/invite?token=${invitation.token}`;
     const businessName = business.name ?? 'a business';
     const roleLabel = input.role.charAt(0).toUpperCase() + input.role.slice(1);

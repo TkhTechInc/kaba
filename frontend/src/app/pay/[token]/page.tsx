@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useLocale } from "@/contexts/locale-context";
+import { LanguagePicker } from "@/components/LanguagePicker";
 
 function PayShell({ children }: { children: React.ReactNode }) {
   return (
@@ -314,9 +315,12 @@ function PayContent() {
     return (
       <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
-            <Logo />
-          </Link>
+          <div className="mb-10 flex w-full items-center justify-between gap-4">
+            <Link href="/" className="inline-flex origin-left scale-[1.2]">
+              <Logo />
+            </Link>
+            <LanguagePicker />
+          </div>
           <GlassCard>
             <div className="flex flex-1 flex-col items-center justify-center sm:p-4">
             <h1 className="mb-2 text-xl font-bold text-dark">
@@ -345,9 +349,12 @@ function PayContent() {
     return (
       <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
-            <Logo />
-          </Link>
+          <div className="mb-10 flex w-full items-center justify-between gap-4">
+            <Link href="/" className="inline-flex origin-left scale-[1.2]">
+              <Logo />
+            </Link>
+            <LanguagePicker />
+          </div>
           <GlassCard>
             <div className="mb-6 flex items-center gap-3">
               <Skeleton className="h-8 w-48" />
@@ -372,9 +379,12 @@ function PayContent() {
     return (
       <PayShell>
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col">
-          <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
-            <Logo />
-          </Link>
+          <div className="mb-10 flex w-full items-center justify-between gap-4">
+            <Link href="/" className="inline-flex origin-left scale-[1.2]">
+              <Logo />
+            </Link>
+            <LanguagePicker />
+          </div>
           <GlassCard>
             <div className="flex flex-1 flex-col items-center justify-center sm:p-4">
             <h1 className="mb-2 text-xl font-bold text-dark">
@@ -403,9 +413,12 @@ function PayContent() {
   return (
     <PayShell>
       <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col">
-        <Link href="/" className="mb-10 inline-flex origin-left scale-[1.2]">
-          <Logo />
-        </Link>
+        <div className="mb-10 flex w-full items-center justify-between gap-4">
+          <Link href="/" className="inline-flex origin-left scale-[1.2]">
+            <Logo />
+          </Link>
+          <LanguagePicker />
+        </div>
 
         <GlassCard>
           <div className="mb-6 border-b border-stroke pb-6">

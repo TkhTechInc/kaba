@@ -111,7 +111,8 @@ export class ApiKeyRepository {
         })
       );
 
-      return (result.Items || []).map((item) => this.mapFromDynamoDB(item));
+      const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
+      return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     } catch (e) {
       throw new DatabaseError('List API keys failed', e);
     }

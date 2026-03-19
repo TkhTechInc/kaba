@@ -31,7 +31,7 @@ export function configuration() {
   },
   email: {
     enabled: process.env['EMAIL_ENABLED'] === 'true',
-    from: process.env['EMAIL_FROM'] || process.env['AWS_SES_FROM'] || 'noreply@kabasika.com',
+    from: process.env['EMAIL_FROM'] || process.env['AWS_SES_FROM'] || (nodeEnv !== 'production' ? 'noreply@tkhtech.com' : 'noreply@kabasika.com'),
   },
   cors: {
     origins: [

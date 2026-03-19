@@ -78,25 +78,19 @@ export class LedgerService {
       if (!product) {
         throw new NotFoundError('Product', input.productId);
       }
-      if (input.quantitySold > product.quantityInStock) {
-        throw new ValidationError(
-          `Insufficient stock. Available: ${product.quantityInStock}, requested: ${input.quantitySold}`,
-        );
-      }
+      // Stock is informational — allow sale even when recorded stock is low (user may have forgotten to update).
       updatedProduct = await this.productRepository.decrementStock(
         input.businessId,
         input.productId,
         input.quantitySold,
       );
-      if (!updatedProduct) {
-        throw new ValidationError('Failed to decrement stock (concurrent update or insufficient stock)');
-      }
       amount = product.unitPrice * input.quantitySold;
       description = `${product.name} x ${input.quantitySold}`;
       productId = input.productId;
       quantitySold = input.quantitySold;
 
       if (
+        updatedProduct &&
         updatedProduct.lowStockThreshold != null &&
         updatedProduct.quantityInStock <= updatedProduct.lowStockThreshold
       ) {

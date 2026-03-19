@@ -240,7 +240,7 @@ export default function CreateInvoicePage() {
                   href="/settings/profile"
                   className="text-xs text-primary hover:underline"
                 >
-                  Change in settings
+                  {t("common.changeInSettings")}
                 </Link>
               </div>
             </div>

@@ -2,6 +2,7 @@ import {
   api,
   apiGetWithOfflineCache,
 } from "@/lib/api-client";
+import { apiUrl } from "@/lib/api";
 import { CACHE_KEYS, listCacheKey, getCached, setCached, deleteCachedByPrefix } from "@/lib/offline-cache";
 import type { ApiResponse } from "@/lib/api-client";
 import { offlineMutation } from "@/lib/offline-api";
@@ -200,14 +201,16 @@ export function createInvoicesApi(token: string | null) {
     },
 
     generatePaymentLink: async (invoiceId: string, businessId: string) => {
-      const result = await offlineMutation<{ paymentUrl: string }>(
+      const result = await offlineMutation<{ data?: { paymentUrl: string }; paymentUrl?: string }>(
         `/api/v1/invoices/${invoiceId}/payment-link`,
         "POST",
         { businessId },
         token,
         { paymentUrl: "pending" }
       );
-      return result.data;
+      const res = result.data;
+      // API returns { success, data: { paymentUrl } }; optimistic returns { paymentUrl }
+      return { paymentUrl: res?.data?.paymentUrl ?? res?.paymentUrl ?? "pending" };
     },
 
     getWhatsAppLink: (invoiceId: string, businessId: string) =>
@@ -244,27 +247,39 @@ export function createInvoicesApi(token: string | null) {
     createCustomer: async (body: {
       businessId: string;
       name: string;
-      email: string;
+      email?: string;
       phone?: string;
-    }) => {
+    }): Promise<Customer> => {
       const optimistic: Customer = {
         id: "pending-" + Date.now(),
         businessId: body.businessId,
         name: body.name,
-        email: body.email,
-        phone: body.phone,
+        ...(body.email && { email: body.email }),
+        ...(body.phone && { phone: body.phone }),
       };
-      const result = await offlineMutation<Customer>(
+      const result = await offlineMutation<unknown>(
         "/api/v1/customers",
         "POST",
         body,
         token,
         optimistic
       );
-      const customer = result.data;
 
-      // Invalidate all customer list caches so the next load fetches fresh data.
-      // This ensures new customers appear even when date filters or other params were used.
+      // Offline: return optimistic (caller should reject pending- ids)
+      if (result.queued) {
+        return optimistic;
+      }
+
+      const raw = result.data;
+      const customer: Customer | undefined =
+        raw && typeof raw === "object" && "data" in raw && (raw as { data?: Customer }).data
+          ? (raw as { data: Customer }).data
+          : (raw as Customer);
+
+      if (!customer?.id || typeof customer.id !== "string" || customer.id.startsWith("pending-")) {
+        throw new Error("INVALID_CUSTOMER_RESPONSE");
+      }
+
       try {
         await deleteCachedByPrefix(`${CACHE_KEYS.CUSTOMERS}:${body.businessId}`);
       } catch {
@@ -347,8 +362,7 @@ export function createInvoicesApi(token: string | null) {
      */
     downloadPdf: (invoiceId: string, businessId: string, mode: 'invoice' | 'receipt' | 'thermal' = 'invoice') => {
       const params = new URLSearchParams({ businessId, mode });
-      const url = `/api/v1/invoices/${encodeURIComponent(invoiceId)}/pdf?${params.toString()}`;
-      // Open via fetch so we can inject the auth header, then trigger browser download
+      const url = apiUrl(`/api/v1/invoices/${encodeURIComponent(invoiceId)}/pdf?${params.toString()}`);
       return fetch(url, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       }).then(async (res) => {

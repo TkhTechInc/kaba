@@ -38,7 +38,7 @@ export default function ReconciliationPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to reconcile");
+        else setError(e instanceof Error ? e.message : t("errors.reconcile"));
       })
       .finally(() => setLoading(false));
   };
@@ -78,7 +78,7 @@ export default function ReconciliationPage() {
     return (
       <>
         <Breadcrumb pageName={t("mobileMoney.pageName")} />
-        <PermissionDenied resource="Mobile Money Reconciliation" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.reconciliation")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }

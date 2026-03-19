@@ -103,7 +103,7 @@ export class InvitationRepository {
         items.push(...mapped);
         lastKey = result.LastEvaluatedKey;
       } while (lastKey);
-      return items;
+      return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     } catch (e) {
       throw new DatabaseError('List invitations failed', e);
     }

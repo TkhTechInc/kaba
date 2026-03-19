@@ -140,38 +140,29 @@ export class DebtRepository {
         return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
       }
 
-      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
-      for (let i = 0; i < pageNum - 1; i++) {
-        const skipResult = await this.docClient.send(
+      // Fetch all, sort by createdAt desc (newest first), then paginate
+      const allItems: Debt[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
           new QueryCommand({
             ...baseParams,
-            Limit: limitNum,
-            ...(cursor && { ExclusiveStartKey: cursor }),
+            ...(lastKey && { ExclusiveStartKey: lastKey }),
           } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
         );
-        cursor = skipResult.LastEvaluatedKey;
-        if (!cursor) {
-          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
-        }
-      }
+        allItems.push(...(result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-      const result = await this.docClient.send(
-        new QueryCommand({
-          ...baseParams,
-          Limit: limitNum,
-          ...(cursor && { ExclusiveStartKey: cursor }),
-        } as import('@aws-sdk/lib-dynamodb').QueryCommandInput)
-      );
-      const items = (result.Items ?? []).map((i) => this.mapFromDynamoDB(i as Record<string, unknown>));
-      const hasMore = !!result.LastEvaluatedKey;
-      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
+      allItems.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      const total = allItems.length;
+      const start = (pageNum - 1) * limitNum;
 
       return {
-        items,
+        items: allItems.slice(start, start + limitNum),
         total,
         page: pageNum,
         limit: limitNum,
-        lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {
       throw new DatabaseError('List debts failed', e);
@@ -214,7 +205,7 @@ export class DebtRepository {
         exclusiveStartKey = result.LastEvaluatedKey;
       } while (exclusiveStartKey);
 
-      return all;
+      return all.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     } catch (e) {
       throw new DatabaseError('List debts for aging failed', e);
     }

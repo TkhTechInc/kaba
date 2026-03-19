@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "@/contexts/locale-context";
 
 interface PermissionDeniedProps {
-  /** What the user tried to access, e.g. "API Keys" */
+  /** What the user tried to access (translated), e.g. t("permissionDenied.resource.customers") */
   resource?: string;
   /** Optional extra message (e.g. plan upgrade hint) */
   hint?: string;
   /** Show a link back to settings */
   backHref?: string;
+  /** Back link label (translated), e.g. t("common.goToDashboard") */
   backLabel?: string;
 }
 
@@ -20,8 +22,11 @@ export function PermissionDenied({
   resource,
   hint,
   backHref = "/settings",
-  backLabel = "Back to Settings",
+  backLabel,
 }: PermissionDeniedProps) {
+  const { t } = useLocale();
+  const resolvedBackLabel = backLabel ?? t("permissionDenied.backToSettings");
+
   return (
     <div className="flex min-h-[260px] flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 p-10 text-center dark:border-dark-3 dark:bg-gray-dark">
       {/* Lock icon */}
@@ -43,12 +48,11 @@ export function PermissionDenied({
       </span>
 
       <h2 className="mb-1.5 text-base font-semibold text-dark dark:text-white">
-        {resource ? `You don't have access to ${resource}` : "Access denied"}
+        {resource ? t("permissionDenied.title", { resource }) : t("permissionDenied.accessDenied")}
       </h2>
 
       <p className="mb-5 max-w-sm text-sm text-dark-4 dark:text-dark-6">
-        {hint ??
-          "Your current role or plan doesn't include this feature. Contact your workspace owner or upgrade your plan."}
+        {hint ?? t("permissionDenied.hint")}
       </p>
 
       <div className="flex flex-wrap items-center justify-center gap-3">
@@ -56,13 +60,13 @@ export function PermissionDenied({
           href={backHref}
           className="rounded-lg border border-stroke px-5 py-2 text-sm font-medium text-dark transition hover:bg-gray-2 dark:border-dark-3 dark:text-white dark:hover:bg-dark-3"
         >
-          {backLabel}
+          {resolvedBackLabel}
         </Link>
         <Link
           href="/settings/plans"
           className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-white transition hover:bg-opacity-90"
         >
-          View plans
+          {t("permissionDenied.viewPlans")}
         </Link>
       </div>
     </div>

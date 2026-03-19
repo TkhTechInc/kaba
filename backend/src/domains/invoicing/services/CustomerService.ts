@@ -19,12 +19,10 @@ export class CustomerService {
     if (!input.name?.trim()) {
       throw new ValidationError('name is required');
     }
-    if (!input.email?.trim()) {
-      throw new ValidationError('email is required');
-    }
+    // Email and phone are optional — customers may not have contact details yet.
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(input.email)) {
-      throw new ValidationError('email must be a valid email address');
+    if (input.email?.trim() && !emailRegex.test(input.email.trim())) {
+      throw new ValidationError('email must be a valid email address when provided');
     }
 
     const customer = await this.customerRepository.create(input);
@@ -81,10 +79,10 @@ export class CustomerService {
       throw new NotFoundError('Customer', id);
     }
 
-    if (input.email !== undefined) {
+    if (input.email !== undefined && input.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(input.email)) {
-        throw new ValidationError('email must be a valid email address');
+      if (!emailRegex.test(input.email.trim())) {
+        throw new ValidationError('email must be a valid email address when provided');
       }
     }
 

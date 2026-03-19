@@ -1,6 +1,7 @@
 "use client";
 import { useState, useCallback, useRef } from "react";
 import { createMcpApi } from "@/services/mcp.service";
+import { useLocale } from "@/contexts/locale-context";
 
 export interface ChatMessage {
   id: string;
@@ -17,6 +18,7 @@ export function useAgentChat(options: {
   customerEmail?: string;
   mode: "business" | "portal";
 }) {
+  const { locale } = useLocale();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,6 +39,8 @@ export function useAgentChat(options: {
       setIsLoading(true);
       setError(null);
 
+      const localeForApi = locale === "fr" ? "fr" : locale === "en" ? "en" : undefined;
+
       try {
         const mcpApi = createMcpApi(options.token);
         let response;
@@ -46,14 +50,16 @@ export function useAgentChat(options: {
             options.businessId,
             options.customerEmail,
             text.trim(),
-            sessionIdRef.current
+            sessionIdRef.current,
+            localeForApi
           );
           response = res.data;
         } else {
           const res = await mcpApi.chat(
             options.businessId,
             text.trim(),
-            sessionIdRef.current
+            sessionIdRef.current,
+            localeForApi
           );
           response = res.data;
         }
@@ -76,7 +82,7 @@ export function useAgentChat(options: {
         setIsLoading(false);
       }
     },
-    [options, isLoading]
+    [options, isLoading, locale]
   );
 
   const clearMessages = useCallback(() => {

@@ -167,52 +167,28 @@ export class LedgerRepository {
         FilterExpression: filterParts.join(' AND '),
         ExpressionAttributeValues: expressionAttributeValues,
         ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
-        ScanIndexForward: false,
       };
 
-      // When date filtering, fetch all and do in-app pagination + sort by date desc
-      if (fromDate || toDate) {
-        const allItems: LedgerEntry[] = [];
-        let lastKey: Record<string, unknown> | undefined;
-        do {
-          const result = await this.docClient.send(
-            new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
-          );
-          allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
-          lastKey = result.LastEvaluatedKey;
-        } while (lastKey);
-
-        allItems.sort((a, b) => b.date.localeCompare(a.date));
-        const total = allItems.length;
-        const start = (pageNum - 1) * limitNum;
-        return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
-      }
-
-      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
-      for (let i = 0; i < pageNum - 1; i++) {
-        const skipResult = await this.docClient.send(
-          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
+      // Always fetch all matching items, sort by date desc (newest first), then paginate.
+      // DynamoDB sort key is LEDGER#<uuid> (random), so we must sort in-app by date.
+      const allItems: LedgerEntry[] = [];
+      let lastKey: Record<string, unknown> | undefined = exclusiveStartKey;
+      do {
+        const result = await this.docClient.send(
+          new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
         );
-        cursor = skipResult.LastEvaluatedKey;
-        if (!cursor) {
-          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
-        }
-      }
+        allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-      const result = await this.docClient.send(
-        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
-      );
-      const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
-      const hasMore = !!result.LastEvaluatedKey;
-      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
-
-      return {
-        items,
-        total,
-        page: pageNum,
-        limit: limitNum,
-        lastEvaluatedKey: result.LastEvaluatedKey,
-      };
+      allItems.sort((a, b) => {
+        const dateCmp = b.date.localeCompare(a.date);
+        if (dateCmp !== 0) return dateCmp;
+        return (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
+      });
+      const total = allItems.length;
+      const start = (pageNum - 1) * limitNum;
+      return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
     } catch (e) {
       throw new DatabaseError('List ledger entries failed', e);
     }

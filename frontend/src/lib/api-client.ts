@@ -5,11 +5,12 @@
 
 import { getCached, setCached } from "@/lib/offline-cache";
 
-/** Typed error thrown for non-2xx responses. Check `status` to distinguish 403 from others. */
+/** Typed error thrown for non-2xx responses. Check `status` or `code` to distinguish error types. */
 export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number,
+    public readonly code?: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -56,7 +57,8 @@ async function handleResponse<T>(
   const text = await res.text();
 
   if (!res.ok) {
-    let message: string;
+    let message: string = text || res.statusText;
+    let code: string | undefined;
     try {
       const json = JSON.parse(text);
       const raw = json.message ?? json.error ?? text;
@@ -68,13 +70,15 @@ async function handleResponse<T>(
         const obj = raw as Record<string, unknown>;
         const msg = obj.message ?? obj.error ?? obj.msg ?? obj.en;
         message = typeof msg === "string" ? msg : JSON.stringify(raw);
-      } else {
-        message = text || res.statusText;
+        code = typeof obj.error === "string" ? obj.error : undefined;
+      }
+      if (code === undefined && json.error && typeof json.error === "object") {
+        code = (json.error as Record<string, unknown>).code as string | undefined;
       }
     } catch {
       message = text || res.statusText;
     }
-    throw new ApiError(message || `Request failed: ${res.status}`, res.status);
+    throw new ApiError(message || `Request failed: ${res.status}`, res.status, code);
   }
 
   if (isJson && text) {

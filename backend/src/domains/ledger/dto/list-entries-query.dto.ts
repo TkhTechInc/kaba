@@ -1,10 +1,11 @@
-import { IsString, IsOptional, IsInt, IsIn, Min, Max, Matches } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsIn, Min, Max, Matches, IsNotEmpty } from 'class-validator';
 import { Type } from 'class-transformer';
 
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 export class ListEntriesQueryDto {
   @IsString()
+  @IsNotEmpty({ message: 'businessId is required' })
   businessId!: string;
 
   @IsOptional()

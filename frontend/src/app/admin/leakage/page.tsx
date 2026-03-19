@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import type { LeakageAnomaly } from "@/services/admin.service";
 import {
@@ -14,6 +15,7 @@ import {
 import { useEffect, useState } from "react";
 
 export default function AdminLeakagePage() {
+  const { t } = useLocale();
   const { token } = useAuth();
   const [anomalies, setAnomalies] = useState<LeakageAnomaly[]>([]);
   const [loading, setLoading] = useState(false);
@@ -48,30 +50,29 @@ export default function AdminLeakagePage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Leakage Report
+        {t("admin.leakage.title")}
       </h1>
       <p className="mb-4 text-sm text-dark-6">
-        Flags users who created many invoices but had few MoMo reconciliations in
-        the same hour (potential internal fraud).
+        {t("admin.leakage.subtitle")}
       </p>
       <div className="mb-4 flex flex-wrap gap-4">
         <input
           type="text"
-          placeholder="Business ID (required)"
+          placeholder={t("admin.leakage.businessIdPlaceholder")}
           value={businessId}
           onChange={(e) => setBusinessId(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
         <input
           type="date"
-          placeholder="From"
+          placeholder={t("admin.leakage.from")}
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
         />
         <input
           type="date"
-          placeholder="To"
+          placeholder={t("admin.leakage.to")}
           value={to}
           onChange={(e) => setTo(e.target.value)}
           className="rounded-lg border border-gray-300 px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-800 dark:text-white"
@@ -81,7 +82,7 @@ export default function AdminLeakagePage() {
           disabled={loading || !businessId.trim()}
           className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? "Loading..." : "Run Report"}
+          {loading ? t("common.loading") : t("admin.leakage.runReport")}
         </button>
       </div>
       {error && (
@@ -90,15 +91,16 @@ export default function AdminLeakagePage() {
         </div>
       )}
       {anomalies.length > 0 ? (
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[700px]">
           <TableHeader>
             <TableRow>
-              <TableHead>User ID</TableHead>
-              <TableHead>Hour</TableHead>
-              <TableHead className="text-right">Invoices</TableHead>
-              <TableHead className="text-right">Reconciliations</TableHead>
-              <TableHead className="text-right">Gap</TableHead>
-              <TableHead>Severity</TableHead>
+              <TableHead>{t("admin.leakage.userId")}</TableHead>
+              <TableHead>{t("admin.leakage.hour")}</TableHead>
+              <TableHead className="text-right">{t("admin.leakage.invoices")}</TableHead>
+              <TableHead className="text-right">{t("admin.leakage.reconciliations")}</TableHead>
+              <TableHead className="text-right">{t("admin.leakage.gap")}</TableHead>
+              <TableHead>{t("admin.leakage.severity")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -128,12 +130,13 @@ export default function AdminLeakagePage() {
             ))}
           </TableBody>
         </Table>
+        </div>
       ) : (
         !loading && (
           <p className="text-dark-6">
             {businessId.trim()
-              ? "No anomalies found. Run the report with a business ID."
-              : "Enter a business ID and click Run Report."}
+              ? t("admin.leakage.noAnomalies")
+              : t("admin.leakage.enterBusinessId")}
           </p>
         )
       )}

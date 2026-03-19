@@ -1,7 +1,15 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useAgentChat } from "@/hooks/use-agent-chat";
+import { useLocale } from "@/contexts/locale-context";
 import { AgentMessage } from "./AgentMessage";
+
+const SUGGESTION_KEYS = [
+  "aiChat.suggestions.checkBalance",
+  "aiChat.suggestions.listUnpaidInvoices",
+  "aiChat.suggestions.whoOwesMe",
+  "aiChat.suggestions.monthlyProfit",
+] as const;
 
 interface AgentChatWidgetProps {
   token: string | null;
@@ -16,6 +24,7 @@ export function AgentChatWidget({
   customerEmail,
   mode = "business",
 }: AgentChatWidgetProps) {
+  const { t } = useLocale();
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -53,7 +62,7 @@ export function AgentChatWidget({
       <button
         onClick={() => setIsOpen((o) => !o)}
         className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-lg transition-all duration-200 hover:scale-105 hover:bg-primary/90 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        aria-label={isOpen ? "Close Kaba AI" : "Open Kaba AI"}
+        aria-label={isOpen ? t("aiChat.closeLabel") : t("aiChat.openLabel")}
       >
         {isOpen ? (
           <svg
@@ -98,19 +107,19 @@ export function AgentChatWidget({
                 K
               </div>
               <div>
-                <p className="text-sm font-semibold leading-none">Kaba AI</p>
+                <p className="text-sm font-semibold leading-none">{t("aiChat.title")}</p>
                 <p className="mt-0.5 text-xs text-white/70">
-                  Ask me about your business
+                  {t("aiChat.subtitle")}
                 </p>
               </div>
             </div>
             <button
               onClick={clearMessages}
               className="text-xs text-white/70 transition-colors hover:text-white"
-              title="Clear conversation"
+              title={t("aiChat.clearTitle")}
               type="button"
             >
-              Clear
+              {t("aiChat.clear")}
             </button>
           </div>
 
@@ -119,25 +128,22 @@ export function AgentChatWidget({
             {messages.length === 0 && (
               <div className="flex h-full flex-col items-center justify-center px-4 text-center text-dark-4 dark:text-dark-6">
                 <p className="mb-3 text-sm font-medium text-dark dark:text-white">
-                  Hi! I&apos;m Kaba AI. Ask me about your balance, invoices,
-                  debts, or anything about your business.
+                  {t("aiChat.greeting")}
                 </p>
                 <div className="w-full space-y-2 text-left text-xs">
-                  {[
-                    '"Check my balance"',
-                    '"List unpaid invoices"',
-                    '"Who owes me money?"',
-                    '"Monthly profit report"',
-                  ].map((suggestion) => (
-                    <button
-                      key={suggestion}
-                      type="button"
-                      onClick={() => sendMessage(suggestion.replace(/"/g, ""))}
-                      className="w-full rounded-xl bg-gray-2 px-3 py-2 text-left text-dark-4 transition-colors hover:bg-gray-3 dark:bg-dark-2 dark:text-dark-6 dark:hover:bg-dark-3"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
+                  {SUGGESTION_KEYS.map((key) => {
+                    const text = t(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => sendMessage(text)}
+                        className="w-full rounded-xl bg-gray-2 px-3 py-2 text-left text-dark-4 transition-colors hover:bg-gray-3 dark:bg-dark-2 dark:text-dark-6 dark:hover:bg-dark-3"
+                      >
+                        {text}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -166,7 +172,7 @@ export function AgentChatWidget({
             )}
 
             {error && (
-              <p className="px-2 text-xs text-red">{error}</p>
+              <p className="px-2 text-xs text-red">{t("aiChat.error")}</p>
             )}
 
             <div ref={messagesEndRef} />
@@ -184,7 +190,7 @@ export function AgentChatWidget({
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Ask about your business..."
+                placeholder={t("aiChat.placeholder")}
                 className="flex-1 rounded-xl border border-stroke bg-gray-2 px-3 py-2 text-sm text-dark placeholder-dark-4 outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-dark-3 dark:bg-dark-2 dark:text-white dark:placeholder-dark-4 dark:focus:border-primary"
                 disabled={isLoading}
               />

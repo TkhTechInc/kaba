@@ -90,7 +90,7 @@ export default function PendingApprovalsPage() {
     return (
       <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
         <Breadcrumb pageName={t("invoices.status.pendingApproval")} />
-        <PermissionDenied resource="Pending Approvals" backHref="/invoices" backLabel="Back to Invoices" />
+        <PermissionDenied resource={t("permissionDenied.resource.pendingApprovals")} backHref="/invoices" backLabel={t("common.backToInvoices")} />
       </div>
     );
   }

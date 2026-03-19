@@ -88,8 +88,11 @@ async function patchLedgerCaches(
 export function createLedgerApi(token: string | null) {
   return {
     listEntries: (businessId: string, page = 1, limit = 20, type?: string, fromDate?: string, toDate?: string) => {
+      if (!businessId?.trim()) {
+        return Promise.reject(new Error("Business ID is required"));
+      }
       const params: Record<string, string> = {
-        businessId,
+        businessId: businessId.trim(),
         page: String(page),
         limit: String(limit),
       };
@@ -104,6 +107,19 @@ export function createLedgerApi(token: string | null) {
     },
 
     createEntry: async (body: CreateLedgerEntryInput) => {
+      if (!body.businessId?.trim()) {
+        throw new Error("Business ID is required");
+      }
+      if (!body.currency?.trim() || body.currency.length !== 3) {
+        throw new Error("Currency must be a 3-letter code (e.g. XOF, NGN)");
+      }
+      if (!body.date?.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        throw new Error("Date must be in YYYY-MM-DD format");
+      }
+      const useProduct = body.type === "sale" && body.productId && (body.quantitySold ?? 0) > 0;
+      if (!useProduct && (typeof body.amount !== "number" || isNaN(body.amount) || body.amount < 0)) {
+        throw new Error("Amount is required and must be 0 or greater");
+      }
       const optimistic: LedgerEntry = {
         id: "pending-" + Date.now(),
         businessId: body.businessId,
@@ -129,11 +145,15 @@ export function createLedgerApi(token: string | null) {
       return result;
     },
 
-    getBalance: (businessId: string) =>
-      apiGetWithOfflineCache<BalanceResult>(
+    getBalance: (businessId: string) => {
+      if (!businessId?.trim()) {
+        return Promise.reject(new Error("Business ID is required"));
+      }
+      return apiGetWithOfflineCache<BalanceResult>(
         "/api/v1/ledger/balance",
         listCacheKey(CACHE_KEYS.LEDGER_BALANCE, businessId, { businessId }),
         { token: token ?? undefined, params: { businessId } }
-      ),
+      );
+    },
   };
 }

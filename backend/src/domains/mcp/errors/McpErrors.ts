@@ -10,7 +10,7 @@ export class BulkOperationError extends DomainError {
     public readonly failed: number,
     public readonly errors: Array<{ index: number; error: string }>,
   ) {
-    super(`BULK_OPERATION_FAILED: ${message}`, { succeeded, failed, errors });
+    super(`BULK_OPERATION_FAILED: ${message}`, 'BULK_OPERATION_FAILED', 422, { succeeded, failed, errors });
     this.name = 'BulkOperationError';
   }
 }
@@ -24,7 +24,10 @@ export class QueryTooLargeError extends ValidationError {
     public readonly maxItems: number,
     suggestion?: string,
   ) {
-    super(`Query would return ${itemCount} items, exceeding limit of ${maxItems}. ${suggestion || 'Please narrow your date range.'}`);
+    super(
+      `Query would return ${itemCount} items, exceeding limit of ${maxItems}. ${suggestion || 'Please narrow your date range.'}`,
+      { itemCount, maxItems },
+    );
     this.name = 'QueryTooLargeError';
   }
 }
@@ -38,12 +41,7 @@ export class AIQuotaExceededError extends QuotaExceededError {
     public readonly limit: number,
     public readonly tier: string,
   ) {
-    super(
-      `ai_tokens`,
-      used,
-      limit,
-      `AI quota exceeded for tier ${tier}. Upgrade to increase limits.`,
-    );
+    super('ai_tokens', limit, used, tier);
     this.name = 'AIQuotaExceededError';
   }
 }
@@ -60,6 +58,8 @@ export class ConcurrentModificationError extends DomainError {
   ) {
     super(
       `CONCURRENT_MODIFICATION: ${resourceType} ${resourceId} was modified by another process`,
+      'CONCURRENT_MODIFICATION',
+      409,
       { expectedVersion, actualVersion },
     );
     this.name = 'ConcurrentModificationError';

@@ -3,19 +3,20 @@ import { z } from 'zod';
 // Date validation
 const DateStringSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Invalid date format. Use YYYY-MM-DD');
 
-const DateRangeSchema = z.object({
+const DateRangeBaseSchema = z.object({
   startDate: DateStringSchema,
   endDate: DateStringSchema,
-}).refine(data => data.startDate <= data.endDate, {
-  message: 'startDate must be before or equal to endDate'
-}).refine(data => {
-  const start = new Date(data.startDate);
-  const end = new Date(data.endDate);
-  const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
-  return daysDiff <= 365;
-}, {
-  message: 'Date range cannot exceed 365 days'
 });
+
+const dateRangeRefines = <T extends z.ZodType<{ startDate: string; endDate: string }>>(schema: T) =>
+  schema
+    .refine((data) => data.startDate <= data.endDate, { message: 'startDate must be before or equal to endDate' })
+    .refine((data) => {
+      const start = new Date(data.startDate);
+      const end = new Date(data.endDate);
+      const daysDiff = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
+      return daysDiff <= 365;
+    }, { message: 'Date range cannot exceed 365 days' });
 
 // Invoice item schema
 const InvoiceItemSchema = z.object({
@@ -39,15 +40,19 @@ export const BulkInvoicesInputSchema = z.object({
 });
 
 // Tax report schema
-export const TaxReportInputSchema = DateRangeSchema.extend({
-  includeVAT: z.boolean().default(true),
-  vatRate: z.number().min(0).max(100).default(18),
-});
+export const TaxReportInputSchema = dateRangeRefines(
+  DateRangeBaseSchema.extend({
+    includeVAT: z.boolean().default(true),
+    vatRate: z.number().min(0).max(100).default(18),
+  }),
+);
 
 // Reconciliation schema
-export const ReconciliationInputSchema = DateRangeSchema.extend({
-  autoReconcile: z.boolean().default(false),
-});
+export const ReconciliationInputSchema = dateRangeRefines(
+  DateRangeBaseSchema.extend({
+    autoReconcile: z.boolean().default(false),
+  }),
+);
 
 // Cash shortage prediction schema
 export const CashShortageInputSchema = z.object({

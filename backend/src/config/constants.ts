@@ -34,6 +34,7 @@ export const AI_CONFIG = {
   },
   // Token limits per tier per month
   TOKEN_LIMITS: {
+    free: 50000, // ~50k tokens
     starter: 100000, // ~100k tokens
     pro: 1000000, // ~1M tokens
     enterprise: 10000000, // ~10M tokens

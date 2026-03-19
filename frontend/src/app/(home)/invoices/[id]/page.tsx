@@ -3,7 +3,9 @@
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { useLocale } from "@/contexts/locale-context";
 import { Price } from "@/components/ui/Price";
+import { toPaymentLinkErrorKey } from "@/lib/payment-link-errors";
 import { createInvoicesApi, type Invoice, type Customer } from "@/services/invoices.service";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
@@ -14,11 +16,13 @@ export default function InvoiceDetailPage() {
   const router = useRouter();
   const { token, businessId } = useAuth();
   const features = useFeatures(businessId);
+  const { t } = useLocale();
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [paymentLinkUrl, setPaymentLinkUrl] = useState<string | null>(null);
+  const [paymentLinkLoading, setPaymentLinkLoading] = useState(false);
   const [paymentLinkError, setPaymentLinkError] = useState<string | null>(null);
   const [whatsappDirectLoading, setWhatsappDirectLoading] = useState(false);
   const [whatsappShareLoading, setWhatsappShareLoading] = useState(false);
@@ -53,10 +57,15 @@ export default function InvoiceDetailPage() {
   const handlePaymentLink = () => {
     if (!businessId || !id) return;
     setPaymentLinkError(null);
+    setPaymentLinkLoading(true);
     api
       .generatePaymentLink(id, businessId)
       .then((r) => setPaymentLinkUrl(r.paymentUrl))
-      .catch((e) => setPaymentLinkError(e.message));
+      .catch((e) => {
+        const raw = e instanceof Error ? e.message : String(e);
+        setPaymentLinkError(t(toPaymentLinkErrorKey(raw)));
+      })
+      .finally(() => setPaymentLinkLoading(false));
   };
 
   const handleWhatsAppDirect = async () => {
@@ -88,7 +97,7 @@ export default function InvoiceDetailPage() {
       const url = await api.getWhatsAppLink(id, businessId);
       window.open(url, "_blank");
     } catch (e) {
-      setWhatsappError(e instanceof Error ? e.message : "Failed to get WhatsApp link");
+      setWhatsappError(e instanceof Error ? e.message : t("invoiceDetail.failedGetWhatsApp"));
     } finally {
       setWhatsappShareLoading(false);
     }
@@ -156,7 +165,7 @@ export default function InvoiceDetailPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Invoice" />
+        <Breadcrumb pageName={t("invoiceDetail.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to view invoices.</p>
         </div>
@@ -167,7 +176,7 @@ export default function InvoiceDetailPage() {
   if (features.loading) {
     return (
       <>
-        <Breadcrumb pageName="Invoice" />
+        <Breadcrumb pageName={t("invoiceDetail.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -178,9 +187,9 @@ export default function InvoiceDetailPage() {
   if (!features.isEnabled("invoicing")) {
     return (
       <>
-        <Breadcrumb pageName="Invoice" />
+        <Breadcrumb pageName={t("invoiceDetail.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="text-dark-6">Invoicing is not available on your plan.</p>
+          <p className="text-dark-6">{t("invoiceNew.notAvailable")}</p>
         </div>
       </>
     );
@@ -189,7 +198,7 @@ export default function InvoiceDetailPage() {
   if (loading) {
     return (
       <>
-        <Breadcrumb pageName="Invoice" />
+        <Breadcrumb pageName={t("invoiceDetail.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -200,9 +209,9 @@ export default function InvoiceDetailPage() {
   if (error || !invoice) {
     return (
       <>
-        <Breadcrumb pageName="Invoice" />
+        <Breadcrumb pageName={t("invoiceDetail.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="mb-4 text-dark-6">{error ?? "Invoice not found"}</p>
+          <p className="mb-4 text-dark-6">{error ?? t("invoiceDetail.notFound")}</p>
           <Link href="/invoices" className="text-primary hover:underline">
             ← Back to Invoices
           </Link>
@@ -215,7 +224,7 @@ export default function InvoiceDetailPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Invoice" />
+      <Breadcrumb pageName={t("invoiceDetail.pageName")} />
 
       <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -241,9 +250,10 @@ export default function InvoiceDetailPage() {
               <button
                 type="button"
                 onClick={handlePaymentLink}
-                className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 dark:border-primary dark:text-primary"
+                disabled={paymentLinkLoading}
+                className="rounded-lg border border-primary px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10 dark:border-primary dark:text-primary disabled:opacity-50"
               >
-                Payment link
+                {paymentLinkLoading ? "…" : "Payment link"}
               </button>
             )}
             {canShareViaWhatsApp && (
@@ -407,24 +417,88 @@ export default function InvoiceDetailPage() {
           )}
           {whatsappSent && (
             <div className="rounded bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
-              Invoice sent directly to customer via WhatsApp.
+              {t("invoiceDetail.whatsappSent")}
             </div>
           )}
           {whatsappError && (
-            <div className="rounded bg-red/10 p-3 text-sm text-red">{whatsappError}</div>
+            <div className="rounded bg-red/10 p-3 text-sm text-red">
+              {whatsappError.toLowerCase().includes("no phone number") || whatsappError.toLowerCase().includes("phone number") ? (
+                <>
+                  {t("invoiceDetail.customerNoPhone")}{" "}
+                  <Link href="/customers" className="font-medium underline hover:no-underline">
+                    {t("invoiceDetail.customerNoPhoneLink")}
+                  </Link>
+                </>
+              ) : (
+                whatsappError
+              )}
+            </div>
           )}
           {paymentLinkUrl && (
-            <div className="rounded-lg border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-              <p className="mb-2 text-sm font-medium text-dark-6">Payment link (copy and share):</p>
-              <a
-                href={paymentLinkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="break-all text-primary hover:underline"
+            <>
+              <div className="rounded-lg border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2 hidden sm:block">
+                <p className="mb-2 text-sm font-medium text-dark-6">{t("invoiceDetail.paymentLinkLabel")}</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href={paymentLinkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="break-all text-primary hover:underline"
+                  >
+                    {paymentLinkUrl}
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => navigator.clipboard.writeText(paymentLinkUrl).catch(() => {})}
+                    className="shrink-0 rounded border border-stroke px-2 py-1 text-xs dark:border-dark-3"
+                  >
+                    Copy
+                  </button>
+                </div>
+              </div>
+              {/* Modal on small screens so link is not missed */}
+              <div
+                className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 sm:hidden"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="payment-link-modal-title"
+                onClick={() => setPaymentLinkUrl(null)}
               >
-                {paymentLinkUrl}
-              </a>
-            </div>
+                <div
+                  className="w-full max-w-sm rounded-lg border border-stroke bg-white p-4 dark:border-dark-3 dark:bg-gray-dark"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h2 id="payment-link-modal-title" className="mb-3 text-lg font-semibold text-dark dark:text-white">
+                    {t("invoiceDetail.paymentLinkLabel")}
+                  </h2>
+                  <p className="mb-3 break-all text-sm text-primary">{paymentLinkUrl}</p>
+                  <div className="flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => navigator.clipboard.writeText(paymentLinkUrl).then(() => setPaymentLinkUrl(null)).catch(() => {})}
+                      className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
+                    >
+                      {t("invoiceDetail.paymentLinkModalCopyClose")}
+                    </button>
+                    <a
+                      href={paymentLinkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg border border-primary px-4 py-2 text-center text-sm font-medium text-primary"
+                    >
+                      {t("invoiceDetail.paymentLinkModalOpen")}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentLinkUrl(null)}
+                      className="rounded-lg border border-stroke px-4 py-2 text-sm dark:border-dark-3"
+                    >
+                      {t("invoiceDetail.paymentLinkModalClose")}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
       </div>

@@ -40,7 +40,7 @@ export class UsersServiceStack extends cdk.Stack {
         ? dynamodb.BillingMode.PAY_PER_REQUEST
         : dynamodb.BillingMode.PROVISIONED,
       removalPolicy: environment === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-      pointInTimeRecovery: enablePITR,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: enablePITR },
     });
 
     new cdk.CfnOutput(this, 'UsersTableName', {

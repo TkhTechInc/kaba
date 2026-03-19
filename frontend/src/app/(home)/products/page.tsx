@@ -68,7 +68,7 @@ export default function ProductsPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load products");
+        else setError(e instanceof Error ? e.message : t("errors.loadProducts"));
       })
       .finally(() => setLoading(false));
   };
@@ -169,7 +169,7 @@ export default function ProductsPage() {
     return (
       <>
         <Breadcrumb pageName={t("products.title")} />
-        <PermissionDenied resource="Products" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.products")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }

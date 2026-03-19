@@ -18,6 +18,7 @@ import * as wafv2 from 'aws-cdk-lib/aws-wafv2';
 import * as events from 'aws-cdk-lib/aws-events';
 import * as targets from 'aws-cdk-lib/aws-events-targets';
 import * as logs from 'aws-cdk-lib/aws-logs';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 import * as path from 'path';
 import { EnvironmentConfig } from '../config/environments';
@@ -111,13 +112,24 @@ export class KabaApiStack extends cdk.Stack {
         ...(config.paymentsServiceUrl && {
           PAYMENTS_SERVICE_URL: config.paymentsServiceUrl,
         }),
-        ...(config.tkhPaymentsApiKey && {
-          TKH_PAYMENTS_API_KEY: config.tkhPaymentsApiKey,
-        }),
+        // TKH Payments API key: from CDK -c tkhPaymentsApiKey=..., or SSM /kaba/{env}/payments-api-key.
+        // Value must match Payments service TKH_API_KEY_HASH (/tkh-payments/{env}/tkh-api-key-hash).
+        ...(config.paymentsServiceUrl && (config.tkhPaymentsApiKey
+          ? { TKH_PAYMENTS_API_KEY: config.tkhPaymentsApiKey }
+          : {
+              TKH_PAYMENTS_API_KEY: ssm.StringParameter.valueForStringParameter(
+                this,
+                `/kaba/${environment}/payments-api-key`,
+              ),
+            })),
         ...(config.kkiapayPublicKey && {
           KKIAPAY_PUBLIC_KEY: config.kkiapayPublicKey,
           KKIAPAY_SANDBOX: environment === 'prod' ? 'false' : 'true',
         }),
+        // Email (verification, welcome, password reset, invitations) via AWS SES
+        EMAIL_ENABLED: config.email?.enabled ? 'true' : 'false',
+        ...(config.email?.from && { EMAIL_FROM: config.email.from, AWS_SES_FROM: config.email.from }),
+        ...(config.email?.region && { AWS_SES_REGION: config.email.region }),
       },
     });
 
@@ -356,6 +368,16 @@ export class KabaApiStack extends cdk.Stack {
         },
       })
     );
+
+    // SES for email (verification codes, password reset, invitations, welcome)
+    if (config.email?.enabled) {
+      this.apiLambda.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ['ses:SendEmail', 'ses:SendRawEmail'],
+          resources: ['*'],
+        })
+      );
+    }
 
     // EventBridge PutEvents for ledger.entry.created (default event bus)
     const defaultEventBusArn = this.formatArn({

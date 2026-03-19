@@ -371,6 +371,11 @@ export class InvoiceService {
     return invoice;
   }
 
+  /** Soft-delete invoice (compliance/rollback). */
+  async softDelete(businessId: string, id: string): Promise<boolean> {
+    return this.invoiceRepository.softDelete(businessId, id);
+  }
+
   /**
    * Generate a payment link for an invoice. Uses TKH Payments to create intent.
    * gateway by currency and create payment intent.
@@ -426,8 +431,8 @@ export class InvoiceService {
         customerId: invoice.customerId ?? undefined,
         businessId: invoice.businessId,
         invoiceId: invoice.id,
-        // Customer phone → used by KkiaPay/MoMo to send USSD push to the paying customer
-        phoneNumber: customer?.phone ?? undefined,
+        // Customer phone → required by KkiaPay; fallback to business phone when customer has none
+        phoneNumber: customer?.phone ?? business?.phone ?? undefined,
         // Business phone → used by payments service to auto-disburse after collection
         businessPhone: business?.phone ?? undefined,
       },
@@ -476,14 +481,24 @@ export class InvoiceService {
   /**
    * Mark invoice as paid (e.g. from payment webhook). Emits invoice.paid webhook.
    * Creates a ledger sale entry so paid invoices appear in reports and balance.
+   * Pass paymentIntentId when available so refunds can be initiated later.
    */
-  async markPaidFromWebhook(businessId: string, invoiceId: string): Promise<Invoice | null> {
+  async markPaidFromWebhook(
+    businessId: string,
+    invoiceId: string,
+    paymentIntentId?: string,
+  ): Promise<Invoice | null> {
     if (!invoiceId?.trim()) return null;
     const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
     if (!invoice) return null;
-    if (invoice.status === 'paid') return invoice;
+    if (invoice.status === 'paid' || invoice.status === 'refunded') return invoice;
 
-    const updated = await this.invoiceRepository.updateStatus(businessId, invoiceId, 'paid');
+    const updated = await this.invoiceRepository.updateStatusWithPaymentIntent(
+      businessId,
+      invoiceId,
+      'paid',
+      paymentIntentId,
+    );
     if (updated) {
       this.webhookService.emit(businessId, 'invoice.paid', {
         invoiceId: updated.id,
@@ -522,6 +537,86 @@ export class InvoiceService {
       }
     }
     return updated;
+  }
+
+  /**
+   * Refund a paid invoice. Business-initiated; calls TKH Payments refund API.
+   * Creates a reverse ledger entry and updates invoice status to refunded.
+   */
+  async refund(
+    businessId: string,
+    invoiceId: string,
+    options?: { amount?: number; reason?: string },
+    userId?: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    const invoice = await this.invoiceRepository.getById(businessId, invoiceId);
+    if (!invoice) throw new NotFoundError('Invoice', invoiceId);
+    if (invoice.status !== 'paid') {
+      throw new ValidationError('Only paid invoices can be refunded');
+    }
+    const intentId = invoice.paymentIntentId;
+    if (!intentId?.trim()) {
+      throw new ValidationError(
+        'Invoice has no payment intent ID — refund not available (payment may predate refund support)',
+      );
+    }
+
+    const result = await this.paymentsClient.refund(intentId, {
+      amount: options?.amount,
+      reason: options?.reason,
+    });
+    if (!result.success) {
+      return { success: false, error: result.error };
+    }
+
+    const updated = await this.invoiceRepository.updateStatusWithPaymentIntent(
+      businessId,
+      invoiceId,
+      'refunded',
+    );
+    if (updated) {
+      if (this.ledgerService) {
+        try {
+          const today = new Date().toISOString().slice(0, 10);
+          const refundAmount = result.refund?.amount ?? options?.amount ?? invoice.amount;
+          await this.ledgerService.createEntry(
+            {
+              businessId,
+              type: 'expense',
+              amount: refundAmount,
+              currency: invoice.currency,
+              description: `Refund: Invoice #${invoice.id.slice(0, 8)}`,
+              category: 'Refunds',
+              date: today,
+              skipLimitCheck: true,
+            },
+            undefined,
+          );
+        } catch (ledgerErr) {
+          console.error('[InvoiceService] Failed to create refund ledger entry:', ledgerErr);
+        }
+      }
+      this.webhookService.emit(businessId, 'invoice.refunded', {
+        invoiceId,
+        amount: result.refund?.amount ?? invoice.amount,
+        currency: invoice.currency,
+      });
+      if (this.auditLogger && userId) {
+        this.auditLogger.log({
+          entityType: 'Invoice',
+          entityId: invoiceId,
+          businessId,
+          action: 'payment.refunded',
+          userId,
+          metadata: {
+            amount: result.refund?.amount,
+            reason: options?.reason,
+            refundStatus: result.refund?.status,
+          },
+        }).catch(() => {});
+      }
+    }
+    return { success: true };
   }
 
   /**

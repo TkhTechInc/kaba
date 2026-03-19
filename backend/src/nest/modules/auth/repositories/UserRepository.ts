@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   GetCommand,
   PutCommand,
   ScanCommand,
@@ -50,6 +51,7 @@ export class UserRepository {
       const items = (result.Items ?? []).map((item) =>
         this.mapFromDynamoDB(item as Record<string, unknown>),
       );
+      items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
       return {
         items,
         ...(result.LastEvaluatedKey && {
@@ -170,6 +172,39 @@ export class UserRepository {
       return user;
     } catch (e) {
       throw new DatabaseError('Update user failed', e);
+    }
+  }
+
+  async delete(userId: string): Promise<void> {
+    const user = await this.getById(userId);
+    if (!user) return;
+    try {
+      await this.docClient.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: { pk: `${PK_PREFIX}${userId}`, sk: SK_META },
+        }),
+      );
+      if (user.email) {
+        const normalized = normalizeEmail(user.email);
+        await this.docClient.send(
+          new DeleteCommand({
+            TableName: this.tableName,
+            Key: { pk: `${EMAIL_PREFIX}${normalized}`, sk: SK_META },
+          }),
+        );
+      }
+      if (user.phone) {
+        const normalized = normalizePhone(user.phone);
+        await this.docClient.send(
+          new DeleteCommand({
+            TableName: this.tableName,
+            Key: { pk: `${PHONE_PREFIX}${normalized}`, sk: SK_META },
+          }),
+        );
+      }
+    } catch (e) {
+      throw new DatabaseError('Delete user failed', e);
     }
   }
 

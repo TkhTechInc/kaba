@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v4 as uuidv4 } from 'uuid';
 import { InvoiceShareRepository } from '../repositories/InvoiceShareRepository';
-import { getBusinessCurrency } from '@/shared/utils/country-currency';
+import { getBusinessCurrency, getCountryForCurrency } from '@/shared/utils/country-currency';
 import { InvoiceRepository } from '../repositories/InvoiceRepository';
 import { CustomerRepository } from '../repositories/CustomerRepository';
 import { BusinessRepository } from '@/domains/business/BusinessRepository';
@@ -230,11 +230,11 @@ export class InvoiceShareService {
     let intentId: string | undefined;
     let useKkiaPayWidget = false;
     let useMomoRequest = false;
-    const forceKkiaPayUi = process.env['KKIAPAY_TEST_FORCE_UI'] === 'true';
-    if (invoice.status !== 'paid' && invoice.status !== 'cancelled') {
+    if (invoice.status !== 'paid' && invoice.status !== 'refunded' && invoice.status !== 'cancelled') {
       const currency = invoice.currency?.toUpperCase() ?? '';
+      const countryCode = business?.countryCode ?? getCountryForCurrency(currency);
       try {
-        const payConfig = await this.paymentsClient.getPayConfig(currency, business?.countryCode);
+        const payConfig = await this.paymentsClient.getPayConfig(currency, countryCode);
         useKkiaPayWidget = payConfig.useKkiaPayWidget;
         useMomoRequest = payConfig.useMomoRequest;
       } catch {
@@ -245,7 +245,7 @@ export class InvoiceShareService {
           const intent = await this.paymentsClient.createIntent({
             amount: invoice.amount,
             currency,
-            country: business?.countryCode,
+            country: countryCode,
             metadata: {
               appId: 'kaba',
               referenceId: invoice.id,
@@ -263,9 +263,6 @@ export class InvoiceShareService {
         } catch {
           // fall through; UI can still show other methods
         }
-      }
-      if (forceKkiaPayUi && !intentId) {
-        intentId = `dev-kkiapay-${record.token}`;
       }
       const widgetReady = useKkiaPayWidget && !!intentId;
       useKkiaPayWidget = widgetReady;
@@ -307,7 +304,7 @@ export class InvoiceShareService {
 
     const invoice = await this.invoiceRepository.getById(record.businessId, record.invoiceId);
     if (!invoice || invoice.deletedAt) return { success: false, error: 'Invoice not found' };
-    if (invoice.status === 'paid' || invoice.status === 'cancelled') {
+    if (invoice.status === 'paid' || invoice.status === 'refunded' || invoice.status === 'cancelled') {
       return { success: false, error: 'Invoice is already paid or cancelled' };
     }
 
@@ -362,7 +359,7 @@ export class InvoiceShareService {
     if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
 
     try {
-      await this.invoiceService.markPaidFromWebhook(record.businessId, record.invoiceId);
+      await this.invoiceService.markPaidFromWebhook(record.businessId, record.invoiceId, intentId);
       return { success: true };
     } catch (err) {
       return { success: false, error: (err as Error).message };

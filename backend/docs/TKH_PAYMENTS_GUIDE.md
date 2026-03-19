@@ -12,6 +12,7 @@
 | Check payment options (widget vs MoMo form) | `getPayConfig()` | currency, countryCode |
 | MoMo/Moov request-to-pay | `requestMoMoPayment()` | amount, currency, phone, countryCode, metadata |
 | Verify KkiaPay widget payment | `verifyKkiaPayTransaction()` | transactionId |
+| Refund succeeded payment | `refund()` | intentId, optional amount, reason |
 | Disburse to mobile money | `disburse()` | phone, amount, currency, externalId |
 
 ---

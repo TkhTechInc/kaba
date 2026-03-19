@@ -8,14 +8,7 @@ import { ApiError } from "@/lib/api-client";
 import { PermissionDenied } from "@/components/ui/permission-denied";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 
 type AuditItem = {
   id?: string;
@@ -133,9 +126,9 @@ export default function ActivityLogPage() {
     return (
       <div>
         <PermissionDenied
-          resource="Activity Log"
+          resource={t("permissionDenied.resource.activityLog")}
           backHref="/settings"
-          backLabel="Back to Settings"
+          backLabel={t("common.backToSettings")}
         />
       </div>
     );
@@ -209,57 +202,69 @@ export default function ActivityLogPage() {
           )}
 
           <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("activity.time")}</TableHead>
-                  <TableHead>{t("activity.what")}</TableHead>
-                  <TableHead>{t("activity.action")}</TableHead>
-                  <TableHead>{t("activity.user")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {items.map((row, i) => (
-                  <TableRow key={row.id ?? i}>
-                    <TableCell className="whitespace-nowrap text-sm text-dark-4 dark:text-dark-6">
-                      {formatTime(row)}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      <span className="font-medium text-dark dark:text-white">{row.entityType ?? "—"}</span>
-                      {row.entityId && (
-                        <span className="ml-1 font-mono text-xs text-gray-400">
-                          {row.entityId.length > 20 ? `${row.entityId.slice(0, 16)}…` : row.entityId}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm capitalize text-dark dark:text-white">
-                      {formatAction(row.action)}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-dark-4 dark:text-dark-6">
-                      {row.userId ? (
-                        row.userId.length > 12
-                          ? `${row.userId.slice(0, 8)}…${row.userId.slice(-4)}`
-                          : row.userId
-                      ) : "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-
-            {loading && items.length === 0 && (
+            {loading && items.length === 0 ? (
               <div className="flex min-h-[120px] items-center justify-center p-8">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               </div>
+            ) : (
+              <div className="-mx-4 sm:mx-0">
+                <ResponsiveDataList<AuditItem & { _key: string }>
+                  items={items.map((row, i) => ({ ...row, _key: row.id ?? `row-${i}` }))}
+                  keyExtractor={(row) => row._key}
+                  emptyMessage={t("activity.empty")}
+                  columns={[
+                    {
+                      key: "time",
+                      label: t("activity.time"),
+                      render: (row) => (
+                        <span className="whitespace-nowrap text-sm text-dark-4 dark:text-dark-6">
+                          {formatTime(row)}
+                        </span>
+                      ),
+                      prominent: true,
+                    },
+                    {
+                      key: "what",
+                      label: t("activity.what"),
+                      render: (row) => (
+                        <>
+                          <span className="font-medium text-dark dark:text-white">{row.entityType ?? "—"}</span>
+                          {row.entityId && (
+                            <span className="ml-1 font-mono text-xs text-gray-400">
+                              {row.entityId.length > 20 ? `${row.entityId.slice(0, 16)}…` : row.entityId}
+                            </span>
+                          )}
+                        </>
+                      ),
+                    },
+                    {
+                      key: "action",
+                      label: t("activity.action"),
+                      render: (row) => (
+                        <span className="capitalize text-dark dark:text-white">
+                          {formatAction(row.action)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: "user",
+                      label: t("activity.user"),
+                      render: (row) => (
+                        <span className="font-mono text-xs text-dark-4 dark:text-dark-6">
+                          {row.userId
+                            ? row.userId.length > 12
+                              ? `${row.userId.slice(0, 8)}…${row.userId.slice(-4)}`
+                              : row.userId
+                            : "—"}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
+              </div>
             )}
 
-            {!loading && items.length === 0 && (
-              <p className="p-8 text-center text-dark-4 dark:text-dark-6">
-                {t("activity.empty")}
-              </p>
-            )}
-
-            {lastKey && !loadingMore && (
+            {lastKey && !loadingMore && items.length > 0 && (
               <div className="border-t border-stroke p-4 dark:border-dark-3">
                 <button
                   type="button"

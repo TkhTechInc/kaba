@@ -1,4 +1,4 @@
-import { IsString, IsEmail, IsOptional } from 'class-validator';
+import { IsString, IsEmail, IsOptional, ValidateIf } from 'class-validator';
 
 export class UpdateCustomerDto {
   @IsString()
@@ -8,8 +8,9 @@ export class UpdateCustomerDto {
   @IsOptional()
   name?: string;
 
-  @IsEmail()
   @IsOptional()
+  @ValidateIf((o) => (o.email ?? '').trim() !== '')
+  @IsEmail({}, { message: 'email must be a valid email address when provided' })
   email?: string;
 
   @IsString()

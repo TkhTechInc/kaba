@@ -10,6 +10,7 @@ export type Preferences = {
   emailNotifications: boolean;
   inAppNotifications: boolean;
   smsReminders: boolean;
+  dailySummaryEnabled?: boolean;
 };
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -18,6 +19,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   emailNotifications: true,
   inAppNotifications: true,
   smsReminders: false,
+  dailySummaryEnabled: false,
 };
 
 function mergeWithDefaults(server: Partial<UserPreferences> | null): Preferences {

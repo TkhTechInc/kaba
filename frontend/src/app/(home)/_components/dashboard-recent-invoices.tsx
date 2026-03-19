@@ -6,6 +6,7 @@ import { Price } from "@/components/ui/Price";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { useDashboardHome } from "@/app/(home)/_components/dashboard-home-provider";
+import { useLocale } from "@/contexts/locale-context";
 import type { Invoice } from "@/services/invoices.service";
 
 function formatDate(s: string) {
@@ -20,7 +21,7 @@ function formatDate(s: string) {
   }
 }
 
-function StatusBadge({ status }: { status: string }) {
+function StatusBadge({ status, label }: { status: string; label: string }) {
   const variant =
     status === "paid"
       ? "bg-green/10 text-green"
@@ -34,7 +35,7 @@ function StatusBadge({ status }: { status: string }) {
         variant
       )}
     >
-      {status}
+      {label}
     </span>
   );
 }
@@ -42,9 +43,19 @@ function StatusBadge({ status }: { status: string }) {
 export function DashboardRecentInvoices({ className }: { className?: string }) {
   const { businessId } = useAuth();
   const { data: homeData, loading } = useDashboardHome();
+  const { t } = useLocale();
   const invoices = (homeData?.pendingInvoices?.items ?? []) as Invoice[];
 
   if (!businessId) return null;
+
+  const emptyMsg = (
+    <>
+      {t("dashboard.recentInvoices.noInvoices")}{" "}
+      <Link href="/invoices/new" className="text-primary hover:underline">
+        {t("dashboard.recentInvoices.createFirst")}
+      </Link>
+    </>
+  );
 
   return (
     <div
@@ -55,52 +66,40 @@ export function DashboardRecentInvoices({ className }: { className?: string }) {
     >
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-body-2xlg font-bold text-dark dark:text-white">
-          Recent Invoices
+          {t("dashboard.recentInvoices.title")}
         </h2>
         <Link
           href="/invoices"
           className="text-sm font-medium text-primary hover:underline"
         >
-          View all →
+          {t("dashboard.recentInvoices.viewAll")}
         </Link>
       </div>
 
       {loading ? (
         <div className="min-h-[120px] animate-pulse rounded-lg bg-gray-1 dark:bg-dark-2/50" />
       ) : invoices.length === 0 ? (
-        <p className="py-8 text-center text-dark-6">
-          No invoices yet.{" "}
-          <Link href="/invoices/new" className="text-primary hover:underline">
-            Create your first invoice
-          </Link>
-        </p>
+        <p className="py-8 text-center text-dark-6">{emptyMsg}</p>
       ) : (
         <ResponsiveDataList<Invoice>
           items={invoices}
           keyExtractor={(inv) => inv.id}
-          emptyMessage={
-            <>
-              No invoices yet.{" "}
-              <Link href="/invoices/new" className="text-primary hover:underline">
-                Create your first invoice
-              </Link>
-            </>
-          }
+          emptyMessage={emptyMsg}
           columns={[
             {
               key: "amount",
-              label: "Amount",
+              label: t("dashboard.recentInvoices.amount"),
               render: (inv) => <Price amount={inv.amount} currency={inv.currency} />,
               prominent: true,
               cellClassName: "font-semibold",
             },
-            { key: "dueDate", label: "Due Date", render: (inv) => formatDate(inv.dueDate) },
-            { key: "status", label: "Status", render: (inv) => <StatusBadge status={inv.status} /> },
+            { key: "dueDate", label: t("dashboard.recentInvoices.dueDate"), render: (inv) => formatDate(inv.dueDate) },
+            { key: "status", label: t("dashboard.recentInvoices.status"), render: (inv) => <StatusBadge status={inv.status} label={inv.status === "pending_approval" ? t("invoices.status.pendingApproval") : t(`invoices.filter.${inv.status}`) || inv.status} /> },
           ]}
           renderActions={(inv) =>
             inv.id ? (
               <Link href={`/invoices/${inv.id}`} className="text-primary hover:underline">
-                View
+                {t("dashboard.recentInvoices.view")}
               </Link>
             ) : null
           }

@@ -16,21 +16,22 @@ export interface AgentResponse {
 export function createMcpApi(token: string | null) {
   const opts = { token: token ?? undefined };
   return {
-    chat: (businessId: string, message: string, sessionId?: string) =>
+    chat: (businessId: string, message: string, sessionId?: string, locale?: string) =>
       api.post<AgentResponse>(
         "/api/v1/mcp/chat",
-        { businessId, message, sessionId },
+        { businessId, message, sessionId, locale },
         opts
       ),
     portalChat: (
       businessId: string,
       customerEmail: string,
       message: string,
-      sessionId?: string
+      sessionId?: string,
+      locale?: string
     ) =>
       api.post<AgentResponse>(
         "/api/v1/mcp/portal/chat",
-        { businessId, customerEmail, message, sessionId },
+        { businessId, customerEmail, message, sessionId, locale },
         opts
       ),
     adminChat: (message: string, sessionId?: string) =>

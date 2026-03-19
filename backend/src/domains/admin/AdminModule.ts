@@ -35,7 +35,7 @@ import { AdminGuard } from './AdminGuard';
     {
       provide: UserRepository,
       useFactory: (docClient: DynamoDBDocumentClient, config: ConfigService) => {
-        const tableName = config.get<string>('dynamodb.usersTable') ?? 'Kaba-Users-dev';
+        const tableName = config.get<string>('dynamodb.usersTable') ?? 'Kaba-UsersService-dev-users';
         return new UserRepository(docClient, tableName);
       },
       inject: [DYNAMODB_DOC_CLIENT, ConfigService],

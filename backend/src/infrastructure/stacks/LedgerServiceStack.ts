@@ -46,7 +46,7 @@ export class LedgerServiceStack extends cdk.Stack {
       removalPolicy: environment === 'prod' || environment === 'staging'
         ? cdk.RemovalPolicy.RETAIN
         : cdk.RemovalPolicy.DESTROY,
-      pointInTimeRecovery: enablePITR,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: enablePITR },
       timeToLiveAttribute: 'ttl',
       // Enable deletion protection in production
       deletionProtection: environment === 'prod',

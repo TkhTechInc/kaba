@@ -107,13 +107,6 @@ export class PlanPaymentService {
     const payConfig = await this.paymentsClient.getPayConfig(currency, business?.countryCode);
     let useKkiaPayWidget = payConfig.useKkiaPayWidget;
     const useMomoRequest = payConfig.useMomoRequest;
-    const isDev = process.env['NODE_ENV'] !== 'production';
-    const kkiapayCurrencies = new Set(['XOF', 'XAF', 'GNF']);
-    // In dev, force KkiaPay for XOF/XAF/GNF when TKH Payments may not have gateways configured
-    if (isDev && kkiapayCurrencies.has(currency)) {
-      useKkiaPayWidget = true;
-    }
-    const forceKkiaPayUi = process.env['KKIAPAY_TEST_FORCE_UI'] === 'true';
     let intentId: string | undefined;
     if (useKkiaPayWidget) {
       const intent = await this.paymentsClient.createIntent({
@@ -132,10 +125,6 @@ export class PlanPaymentService {
       if (intent.success) {
         intentId = intent.intentId;
       }
-    }
-    // Dev fallback: when createIntent fails (e.g. KkiaPay not configured in TKH Payments), use placeholder so widget still shows
-    if ((forceKkiaPayUi || isDev) && !intentId && useKkiaPayWidget) {
-      intentId = `dev-kkiapay-${record.token}`;
     }
     useKkiaPayWidget = useKkiaPayWidget && !!intentId;
 
@@ -256,12 +245,8 @@ export class PlanPaymentService {
       return { success: false, error: 'Payment was not successful' };
     }
 
-    const isDev = process.env['NODE_ENV'] !== 'production';
-    const isDevIntent = intentId.startsWith('dev-kkiapay-');
-    if (!(isDev && isDevIntent)) {
-      const verify = await this.paymentsClient.verifyKkiaPayTransaction(transactionId, intentId);
-      if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
-    }
+    const verify = await this.paymentsClient.verifyKkiaPayTransaction(transactionId, intentId);
+    if (!verify.success) return { success: false, error: verify.error ?? 'Payment verification failed' };
 
     try {
       await this.businessRepo.updateTierWithSubscription(record.businessId, record.targetTier);

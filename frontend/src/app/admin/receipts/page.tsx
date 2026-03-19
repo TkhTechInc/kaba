@@ -1,11 +1,13 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import type { AdminReceiptsStatus } from "@/services/admin.service";
 import { useEffect, useState } from "react";
 
 export default function AdminReceiptsPage() {
+  const { t } = useLocale();
   const { token } = useAuth();
   const [data, setData] = useState<AdminReceiptsStatus | null>(null);
   const [loading, setLoading] = useState(true);
@@ -51,21 +53,21 @@ export default function AdminReceiptsPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Receipts / Storage
+        {t("admin.receipts.title")}
       </h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
           <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-            Configured
+            {t("admin.receipts.configured")}
           </p>
           <p className="mt-2 text-lg font-medium text-dark dark:text-white">
-            {data?.configured ? "Yes" : "No"}
+            {data?.configured ? t("admin.features.yes") : t("admin.features.no")}
           </p>
         </div>
         {data?.bucket && (
           <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              Bucket
+              {t("admin.receipts.bucket")}
             </p>
             <p className="mt-2 text-lg font-medium text-dark dark:text-white">
               {data.bucket}
@@ -75,7 +77,7 @@ export default function AdminReceiptsPage() {
         {data?.region && (
           <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              Region
+              {t("admin.receipts.region")}
             </p>
             <p className="mt-2 text-lg font-medium text-dark dark:text-white">
               {data.region}
@@ -85,7 +87,7 @@ export default function AdminReceiptsPage() {
         {data?.status != null && (
           <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              Status
+              {t("admin.receipts.status")}
             </p>
             <span
               className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-medium capitalize ${statusColor}`}

@@ -50,7 +50,7 @@ export default function DebtsPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load debts");
+        else setError(e instanceof Error ? e.message : t("errors.loadDebts"));
       })
       .finally(() => setLoading(false));
   };
@@ -121,7 +121,7 @@ export default function DebtsPage() {
     return (
       <>
         <Breadcrumb pageName={t("dashboard.debtsToCollect.title")} />
-        <PermissionDenied resource="Debts" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.debts")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }
@@ -215,9 +215,9 @@ export default function DebtsPage() {
                 {
                   key: "status",
                   label: t("debts.column.status"),
-                    render: (d) => (
+                  render: (d) => (
                     <span
-                      className={`inline-block rounded px-2 py-0.5 text-xs font-medium ${
+                      className={`inline-flex min-h-[1.5rem] items-center justify-center rounded px-2.5 py-1 text-xs font-medium leading-none whitespace-nowrap ${
                         d.status === "overdue"
                           ? "bg-red/20 text-red"
                           : d.status === "paid"

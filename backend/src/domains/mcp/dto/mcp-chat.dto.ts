@@ -14,6 +14,11 @@ export class McpChatDto {
 
   @IsOptional()
   tier?: Tier;
+
+  /** User's preferred locale (e.g. "fr") so the AI responds in that language. */
+  @IsOptional()
+  @IsString()
+  locale?: string;
 }
 
 export class McpPortalChatDto {
@@ -29,6 +34,10 @@ export class McpPortalChatDto {
   @IsOptional()
   @IsString()
   sessionId?: string;
+
+  @IsOptional()
+  @IsString()
+  locale?: string;
 }
 
 export class McpAdminChatDto {

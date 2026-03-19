@@ -1,6 +1,7 @@
 import { Injectable, Logger, Inject } from '@nestjs/common';
 import type { IMcpTool, McpToolContext } from '../../interfaces/IMcpTool';
 import { LedgerRepository } from '@/domains/ledger/repositories/LedgerRepository';
+import { LedgerService } from '@/domains/ledger/services/LedgerService';
 import { InvoiceRepository } from '@/domains/invoicing/repositories/InvoiceRepository';
 import { DebtRepository } from '@/domains/debts/repositories/DebtRepository';
 import { AI_LEDGER_QA_PROVIDER } from '@/nest/modules/ai/ai.tokens';
@@ -41,6 +42,7 @@ export class PredictCashShortageTool implements IMcpTool {
 
   constructor(
     private readonly ledgerRepo: LedgerRepository,
+    private readonly ledgerService: LedgerService,
     private readonly invoiceRepo: InvoiceRepository,
     private readonly debtRepo: DebtRepository,
     @Inject(AI_LEDGER_QA_PROVIDER) private readonly llm: ILLMProvider,
@@ -127,7 +129,7 @@ export class PredictCashShortageTool implements IMcpTool {
     const expensesByDay: Record<string, number> = {};
 
     for (const entry of historicalEntries) {
-      const date = entry.entryDate;
+      const date = entry.date;
       if (entry.type === 'sale') {
         salesByDay[date] = (salesByDay[date] ?? 0) + entry.amount;
       } else {
@@ -144,7 +146,7 @@ export class PredictCashShortageTool implements IMcpTool {
       expenseDays.length > 0 ? expenseDays.reduce((a, b) => a + b, 0) / expenseDays.length : 0;
 
     // Get current balance
-    const balance = await this.ledgerRepo.getBalance(ctx.businessId);
+    const { balance } = await this.ledgerService.getBalance(ctx.businessId);
 
     // Get upcoming expected income
     const futureDate = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
@@ -157,8 +159,8 @@ export class PredictCashShortageTool implements IMcpTool {
     );
 
     const expectedIncome = upcomingInvoices
-      .filter(inv => inv.status === 'pending')
-      .reduce((sum, inv) => sum + inv.amount, 0);
+      .filter((inv: { status: string }) => inv.status === 'pending')
+      .reduce((sum: number, inv: { amount: number }) => sum + inv.amount, 0);
 
     // Get upcoming debts
     const { items: pendingDebts } = await this.debtRepo.listByBusiness(
@@ -269,10 +271,11 @@ Generate 3-5 specific recommendations:`;
 
     const aiStartTime = Date.now();
     const response = await Promise.race([
-      this.llm.generateText(userPrompt, {
+      this.llm.generateText({
+        prompt: userPrompt,
+        systemPrompt,
         maxTokens: AI_CONFIG.CASH_PREDICTION.MAX_TOKENS,
         temperature: AI_CONFIG.CASH_PREDICTION.TEMPERATURE,
-        systemPrompt,
       }),
       new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('AI timeout')), AI_CONFIG.CASH_PREDICTION.TIMEOUT_MS),
@@ -282,7 +285,8 @@ Generate 3-5 specific recommendations:`;
     const aiDuration = Date.now() - aiStartTime;
 
     // Track AI usage
-    const tokenCount = response.length / 4; // Rough estimate
+    const text = typeof response === 'string' ? response : response.text;
+    const tokenCount = text.length / 4; // Rough estimate
     const estimatedCost = (tokenCount / 1000000) * 3; // ~$3 per 1M tokens for Llama 3.3
     await this.aiCostTracker.recordUsage(ctx.userId!, ctx.tier, tokenCount, estimatedCost, 'cash_shortage_prediction');
 
@@ -293,7 +297,7 @@ Generate 3-5 specific recommendations:`;
     });
 
     // Parse and validate response
-    const recommendations = this.parseRecommendations(response);
+    const recommendations = this.parseRecommendations(text);
     return recommendations.slice(0, 5); // Max 5
   }
 

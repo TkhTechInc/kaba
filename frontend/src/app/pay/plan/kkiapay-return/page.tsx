@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { confirmPlanKkiaPay } from "@/services/plans.service";
@@ -18,6 +18,7 @@ const TIER_FEATURE_KEYS: Record<Tier, string[]> = {
 
 function PlanKkiaPayReturnContent() {
   const { t } = useLocale();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
   const transactionId =
@@ -32,12 +33,14 @@ function PlanKkiaPayReturnContent() {
   const [message, setMessage] = useState<string>("");
   const [targetTier, setTargetTier] = useState<Tier | null>(null);
 
-  useEffect(() => {
+  const runConfirm = useCallback(() => {
     if (!token || !transactionId || !intentId) {
       setStatus("error");
       setMessage("Missing payment details. Return to Settings and try again.");
       return;
     }
+    setStatus("loading");
+    setMessage("");
     confirmPlanKkiaPay(token, transactionId, intentId, redirectStatus ?? undefined)
       .then((result) => {
         if (result.success) {
@@ -55,8 +58,19 @@ function PlanKkiaPayReturnContent() {
       });
   }, [token, transactionId, intentId, redirectStatus]);
 
+  useEffect(() => {
+    runConfirm();
+  }, [runConfirm]);
+
   const handleGoToApp = (path: string) => {
-    window.location.href = path;
+    // If we're in a popup (e.g. KkiaPay opened new window), close popup and navigate opener
+    if (typeof window !== "undefined" && window.opener) {
+      window.opener.location.href = path;
+      window.close();
+      return;
+    }
+    // Client-side navigation preserves auth state; full reload can trigger 401 race and logout
+    router.push(path);
   };
 
   if (status === "loading") {
@@ -152,6 +166,13 @@ function PlanKkiaPayReturnContent() {
             {message}
           </p>
           <div className="mt-6 flex w-full flex-col gap-3">
+            <button
+              type="button"
+              onClick={runConfirm}
+              className="block w-full rounded-lg border border-amber-300 bg-amber-50 py-2.5 text-center text-sm font-semibold text-amber-900 hover:bg-amber-100 dark:border-amber-200 dark:bg-amber-900/20 dark:text-amber-200 dark:hover:bg-amber-900/40"
+            >
+              Retry confirmation
+            </button>
             <Link
               href="/settings"
               className="block w-full rounded-lg border border-amber-300 py-2.5 text-center text-sm font-semibold text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40"

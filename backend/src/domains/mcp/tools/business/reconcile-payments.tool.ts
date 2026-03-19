@@ -44,13 +44,15 @@ export class ReconcilePaymentsTool implements IMcpTool {
     const endDate = input.endDate as string;
     const autoReconcile = input.autoReconcile === true;
 
-    // Get unpaid/pending invoices
-    const { items: unpaidInvoices } = await this.invoiceRepo.listByBusiness(
-      ctx.businessId,
-      1,
-      1000,
-      'pending',
-    );
+    // Get unpaid invoices (sent to customer, awaiting payment)
+    const unpaidItems: Awaited<ReturnType<InvoiceRepository['listByBusinessAndStatus']>>['items'] = [];
+    let lastKey: Record<string, unknown> | undefined;
+    do {
+      const result = await this.invoiceRepo.listByBusinessAndStatus(ctx.businessId, 'sent', 500, lastKey);
+      unpaidItems.push(...result.items);
+      lastKey = result.lastEvaluatedKey;
+    } while (lastKey);
+    const unpaidInvoices = unpaidItems;
 
     // Get pending debts
     const { items: pendingDebts } = await this.debtRepo.listByBusiness(
@@ -170,7 +172,7 @@ export class ReconcilePaymentsTool implements IMcpTool {
         unmatchedPayments.push({
           id: entry.id,
           amount: entry.amount,
-          date: entry.entryDate,
+          date: entry.date,
           description: entry.description,
         });
       }

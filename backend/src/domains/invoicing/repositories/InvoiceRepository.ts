@@ -129,11 +129,33 @@ export class InvoiceRepository {
     id: string,
     status: InvoiceStatus
   ): Promise<Invoice | null> {
+    return this.updateStatusWithPaymentIntent(businessId, id, status);
+  }
+
+  /**
+   * Update invoice status and optionally set paymentIntentId (when marking paid).
+   */
+  async updateStatusWithPaymentIntent(
+    businessId: string,
+    id: string,
+    status: InvoiceStatus,
+    paymentIntentId?: string
+  ): Promise<Invoice | null> {
     const existing = await this.getById(businessId, id);
     if (!existing) return null;
 
-    const updated: Invoice = { ...existing, status };
+    const updated: Invoice = {
+      ...existing,
+      status,
+      ...(paymentIntentId != null && { paymentIntentId }),
+    };
     try {
+      const updateExpr = paymentIntentId != null
+        ? 'SET #status = :status, paymentIntentId = :pid'
+        : 'SET #status = :status';
+      const exprValues: Record<string, unknown> = { ':status': status };
+      if (paymentIntentId != null) exprValues[':pid'] = paymentIntentId;
+
       await this.docClient.send(
         new UpdateCommand({
           TableName: this.tableName,
@@ -141,9 +163,9 @@ export class InvoiceRepository {
             pk: businessId,
             sk: `${SK_PREFIX}${id}`,
           },
-          UpdateExpression: 'SET #status = :status',
+          UpdateExpression: updateExpr,
           ExpressionAttributeNames: { '#status': 'status' },
-          ExpressionAttributeValues: { ':status': status },
+          ExpressionAttributeValues: exprValues,
         })
       );
       return updated;
@@ -174,7 +196,7 @@ export class InvoiceRepository {
       lastKey = result.LastEvaluatedKey;
     } while (lastKey);
 
-    return items;
+    return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }
 
   /** Soft-delete invoice (compliance erasure). */
@@ -265,6 +287,47 @@ export class InvoiceRepository {
     }
   }
 
+  /**
+   * List invoices with dueDate in the given range (for reports).
+   */
+  async listByBusinessAndDateRange(
+    businessId: string,
+    fromDate: string,
+    toDate: string,
+  ): Promise<Invoice[]> {
+    const allItems: Invoice[] = [];
+    let lastKey: Record<string, unknown> | undefined;
+
+    const filterParts = [
+      'attribute_not_exists(deletedAt)',
+      '#dd >= :fromDate',
+      '#dd <= :toDate',
+    ];
+    const exprValues: Record<string, unknown> = {
+      ':pk': businessId,
+      ':skPrefix': SK_PREFIX,
+      ':fromDate': fromDate,
+      ':toDate': toDate,
+    };
+
+    do {
+      const result = await this.docClient.send(
+        new QueryCommand({
+          TableName: this.tableName,
+          KeyConditionExpression: 'pk = :pk AND begins_with(sk, :skPrefix)',
+          FilterExpression: filterParts.join(' AND '),
+          ExpressionAttributeNames: { '#dd': 'dueDate' },
+          ExpressionAttributeValues: exprValues,
+          ...(lastKey && { ExclusiveStartKey: lastKey }),
+        }),
+      );
+      allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+
+    return allItems.sort((a, b) => (b.createdAt ?? b.dueDate ?? '').localeCompare(a.createdAt ?? a.dueDate ?? ''));
+  }
+
   /** List invoices filtered by status. */
   async listByBusinessAndStatus(
     businessId: string,
@@ -290,8 +353,10 @@ export class InvoiceRepository {
           ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
         })
       );
+      const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+      items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
       return {
-        items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+        items,
         lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {
@@ -381,31 +446,26 @@ export class InvoiceRepository {
         };
       }
 
-      // Standard cursor-based pagination (no date filter)
-      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
-      for (let i = 0; i < pageNum - 1; i++) {
-        const skipResult = await this.docClient.send(
-          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
+      // Fetch all, sort by createdAt desc (newest first), then paginate
+      const allItems: Invoice[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
+          new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
         );
-        cursor = skipResult.LastEvaluatedKey;
-        if (!cursor) {
-          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
-        }
-      }
+        allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-      const result = await this.docClient.send(
-        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
-      );
-      const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
-      const hasMore = !!result.LastEvaluatedKey;
-      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
+      allItems.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      const total = allItems.length;
+      const start = (pageNum - 1) * limitNum;
 
       return {
-        items,
+        items: allItems.slice(start, start + limitNum),
         total,
         page: pageNum,
         limit: limitNum,
-        lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {
       throw new DatabaseError('List invoices failed', e);
@@ -445,7 +505,9 @@ export class InvoiceRepository {
       lastKey = result.LastEvaluatedKey;
     } while (lastKey && items.length < limit);
 
-    return items.slice(0, limit);
+    return items
+      .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+      .slice(0, limit);
   }
 
   async listWithCursor(
@@ -491,8 +553,10 @@ export class InvoiceRepository {
       ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
       : null;
 
+    const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+    items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     return {
-      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      items,
       nextCursor,
       hasMore: !!result.LastEvaluatedKey,
     };
@@ -543,6 +607,7 @@ export class InvoiceRepository {
       ...(invoice.mecefStatus != null && { mecefStatus: invoice.mecefStatus }),
       ...(invoice.mecefQrCode != null && { mecefQrCode: invoice.mecefQrCode }),
       ...(invoice.mecefSerialNumber != null && { mecefSerialNumber: invoice.mecefSerialNumber }),
+      ...(invoice.paymentIntentId != null && { paymentIntentId: invoice.paymentIntentId }),
     };
   }
 
@@ -573,6 +638,7 @@ export class InvoiceRepository {
         : undefined,
       mecefQrCode: item.mecefQrCode != null ? String(item.mecefQrCode) : undefined,
       mecefSerialNumber: item.mecefSerialNumber != null ? String(item.mecefSerialNumber) : undefined,
+      paymentIntentId: item.paymentIntentId != null ? String(item.paymentIntentId) : undefined,
     };
   }
 }

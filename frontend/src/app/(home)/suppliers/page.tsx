@@ -1,6 +1,7 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import { ResponsiveDataList } from "@/components/ui/responsive-data-list";
 import { useAuth } from "@/contexts/auth-context";
 import { useLocale } from "@/contexts/locale-context";
 import { useFeatures } from "@/hooks/use-features";
@@ -46,6 +47,7 @@ export default function SuppliersPage() {
     currency: features.currency ?? getCurrencyForCountry(features.countryCode ?? ""),
     description: "",
   });
+  const [payAmountStr, setPayAmountStr] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -96,6 +98,7 @@ export default function SuppliersPage() {
 
   const openPay = (supplier: Supplier) => {
     setPayForm({ amount: 0, currency: supplier.currency, description: "" });
+    setPayAmountStr("");
     setModal({ type: "pay", supplier });
   };
 
@@ -139,9 +142,11 @@ export default function SuppliersPage() {
 
   const handlePay = () => {
     if (!businessId || modal.type !== "pay") return;
+    const amount = parseFloat(payAmountStr) || 0;
+    if (amount <= 0) return;
     setSubmitting(true);
     suppliersApi
-      .paySupplier(businessId, modal.supplier.id, payForm)
+      .paySupplier(businessId, modal.supplier.id, { ...payForm, amount })
       .then(() => { closeModal(); setError(null); })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : t("suppliers.error.pay")))
       .finally(() => setSubmitting(false));
@@ -220,90 +225,88 @@ export default function SuppliersPage() {
           <div className="mx-4 mt-2 rounded bg-red/10 p-3 text-sm text-red">{error}</div>
         )}
 
-        <div className="p-4 sm:p-6">
+        <div className="-mx-4 sm:mx-0">
           {loading ? (
             <div className="flex justify-center py-8">
               <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
-          ) : (() => {
-            const q = search.trim().toLowerCase();
-            const visibleSuppliers = q
-              ? suppliers.filter(
-                  (s) =>
-                    (s.name ?? "").toLowerCase().includes(q) ||
-                    (s.phone ?? "").toLowerCase().includes(q) ||
-                    (s.momoPhone ?? "").toLowerCase().includes(q) ||
-                    (s.currency ?? "").toLowerCase().includes(q) ||
-                    (s.countryCode ?? "").toLowerCase().includes(q)
-                )
-              : suppliers;
-            return visibleSuppliers.length === 0 ? (
-              <p className="py-8 text-center text-dark-6">
-                {search.trim() ? t("suppliers.noResults") : t("suppliers.noSuppliersYet")}{" "}
-                {!search.trim() && (
-                  <button type="button" onClick={openCreate} className="text-primary hover:underline">
-                    {t("suppliers.addFirstSupplier")}
-                  </button>
-                )}
-              </p>
-            ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px] text-sm">
-                <thead>
-                  <tr className="border-b border-stroke dark:border-dark-3">
-                    <th className="pb-3 text-left font-medium text-dark-5 dark:text-dark-6">{t("suppliers.column.name")}</th>
-                    <th className="pb-3 text-left font-medium text-dark-5 dark:text-dark-6">{t("suppliers.column.phoneMomo")}</th>
-                    <th className="pb-3 text-left font-medium text-dark-5 dark:text-dark-6">{t("suppliers.column.currency")}</th>
-                    <th className="pb-3 text-left font-medium text-dark-5 dark:text-dark-6">{t("suppliers.column.country")}</th>
-                    <th className="pb-3 text-right font-medium text-dark-5 dark:text-dark-6">{t("suppliers.column.actions")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleSuppliers.map((s) => (
-                    <tr
-                      key={s.id}
-                      className="border-b border-stroke last:border-0 dark:border-dark-3"
-                    >
-                      <td className="py-3 font-medium text-dark dark:text-white">{s.name}</td>
-                      <td className="py-3 text-dark-6">
-                        {s.momoPhone
-                          ? <span title={t("suppliers.form.momoPhone")}>{s.momoPhone}</span>
-                          : s.phone ?? <span className="italic text-dark-5">—</span>}
-                      </td>
-                      <td className="py-3 text-dark-6">{s.currency}</td>
-                      <td className="py-3 text-dark-6">{s.countryCode}</td>
-                      <td className="py-3 text-right">
-                        <div className="inline-flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => openPay(s)}
-                            className="text-sm font-medium text-primary hover:underline"
-                          >
-                            {t("suppliers.action.pay")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => openEdit(s)}
-                            className="text-sm font-medium text-dark-6 hover:underline"
-                          >
-                            {t("suppliers.action.edit")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(s.id)}
-                            className="text-sm font-medium text-red hover:underline"
-                          >
-                            {t("suppliers.action.delete")}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            );
-          })()}
+          ) : (
+            (() => {
+              const q = search.trim().toLowerCase();
+              const visibleSuppliers = q
+                ? suppliers.filter(
+                    (s) =>
+                      (s.name ?? "").toLowerCase().includes(q) ||
+                      (s.phone ?? "").toLowerCase().includes(q) ||
+                      (s.momoPhone ?? "").toLowerCase().includes(q) ||
+                      (s.currency ?? "").toLowerCase().includes(q) ||
+                      (s.countryCode ?? "").toLowerCase().includes(q)
+                  )
+                : suppliers;
+              return (
+                <ResponsiveDataList<Supplier>
+                  items={visibleSuppliers}
+                  keyExtractor={(s) => s.id}
+                  emptyMessage={
+                    search.trim() ? (
+                      t("suppliers.noResults")
+                    ) : (
+                      <>
+                        {t("suppliers.noSuppliersYet")}{" "}
+                        <button
+                          type="button"
+                          onClick={openCreate}
+                          className="text-primary hover:underline"
+                        >
+                          {t("suppliers.addFirstSupplier")}
+                        </button>
+                      </>
+                    )
+                  }
+                  columns={[
+                    { key: "name", label: t("suppliers.column.name"), render: (s) => s.name, prominent: true },
+                    {
+                      key: "phoneMomo",
+                      label: t("suppliers.column.phoneMomo"),
+                      render: (s) =>
+                        s.momoPhone ? (
+                          <span title={t("suppliers.form.momoPhone")}>{s.momoPhone}</span>
+                        ) : (
+                          s.phone ?? <span className="italic text-dark-5">—</span>
+                        ),
+                    },
+                    { key: "currency", label: t("suppliers.column.currency"), render: (s) => s.currency },
+                    { key: "country", label: t("suppliers.column.country"), render: (s) => s.countryCode },
+                  ]}
+                  renderActions={(s) => (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openPay(s)}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        {t("suppliers.action.pay")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEdit(s)}
+                        className="text-sm font-medium text-dark-6 hover:underline"
+                      >
+                        {t("suppliers.action.edit")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(s.id)}
+                        className="text-sm font-medium text-red hover:underline"
+                      >
+                        {t("suppliers.action.delete")}
+                      </button>
+                    </>
+                  )}
+                />
+              );
+            })()
+          )}
         </div>
       </div>
 
@@ -386,8 +389,9 @@ export default function SuppliersPage() {
                 <input
                   type="number"
                   min={0}
-                  value={payForm.amount}
-                  onChange={(e) => setPayForm((f) => ({ ...f, amount: parseFloat(e.target.value) || 0 }))}
+                  inputMode="decimal"
+                  value={payAmountStr}
+                  onChange={(e) => setPayAmountStr(e.target.value)}
                   className="w-full rounded-lg border border-stroke bg-transparent px-4 py-2.5 text-sm text-dark outline-none focus:border-primary dark:border-dark-3 dark:text-white dark:focus:border-primary"
                 />
               </div>
@@ -415,7 +419,7 @@ export default function SuppliersPage() {
               <button
                 type="button"
                 onClick={handlePay}
-                disabled={submitting || payForm.amount <= 0}
+                disabled={submitting || !payAmountStr || parseFloat(payAmountStr) <= 0}
                 className="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
               >
                 {submitting ? t("suppliers.payModal.processing") : t("suppliers.payModal.recordPayment")}

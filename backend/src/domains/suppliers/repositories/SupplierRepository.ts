@@ -76,7 +76,7 @@ export class SupplierRepository {
         lastKey = result.LastEvaluatedKey;
       } while (lastKey && items.length < limit);
 
-      return items;
+      return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     } catch (e) {
       throw new DatabaseError('List suppliers failed', e);
     }

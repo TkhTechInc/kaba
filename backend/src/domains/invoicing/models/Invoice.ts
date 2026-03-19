@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled' | 'pending_approval';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'refunded' | 'overdue' | 'cancelled' | 'pending_approval';
 
 export interface InvoiceItem {
   description: string;
@@ -31,6 +31,8 @@ export interface Invoice {
   mecefQrCode?: string;
   /** MECeF: official fiscal serial number (NIM_Facture) from DGI. */
   mecefSerialNumber?: string;
+  /** TKH Payments intent ID — set when paid, used for refunds. */
+  paymentIntentId?: string;
 }
 
 export interface CreateInvoiceInput {

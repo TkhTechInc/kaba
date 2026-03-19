@@ -20,8 +20,8 @@
     "products": "Produits",
     "reports": "Rapports",
     "reportsSub": {
-      "pl": "P&L",
-      "cashFlow": "Flux de trésorerie",
+      "pLCFL": "Résultat & Trésorerie",
+      "plCashFlow": "Résultat & Trésorerie",
       "taxVat": "Taxe / TVA",
       "consolidated": "Consolidé"
     },
@@ -71,7 +71,31 @@
     }
   },
   "auth": {
-    "loginFailed": "Échec de connexion"
+    "loginFailed": "Échec de connexion",
+    "signIn": "Connexion",
+    "signUp": "Inscription",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "verificationCode": "Code de vérification",
+    "confirmPassword": "Confirmer le mot de passe",
+    "enterEmail": "Entrez votre e-mail",
+    "enterPassword": "Entrez votre mot de passe",
+    "enterVerificationCode": "Entrez le code à 6 chiffres envoyé par e-mail",
+    "passwordMinLength": "Au moins 8 caractères",
+    "reenterPassword": "Ressaisissez votre mot de passe",
+    "rememberMe": "Se souvenir de moi",
+    "createAccount": "Vérifier et créer le compte",
+    "creatingAccount": "Création du compte…",
+    "sendCode": "Envoyer le code",
+    "sendingCode": "Envoi du code…",
+    "requestCode": "Demander le code de vérification",
+    "invalidToken": "Jeton invalide. Veuillez réessayer de vous connecter.",
+    "noToken": "Aucun jeton reçu. Veuillez réessayer de vous connecter.",
+    "signInFailed": "Échec de connexion. Veuillez réessayer.",
+    "somethingWentWrong": "Une erreur s'est produite",
+    "passwordsDoNotMatch": "Les mots de passe ne correspondent pas",
+    "passwordMinError": "Le mot de passe doit contenir au moins 8 caractères",
+    "failedSendCode": "Échec de l'envoi du code de vérification"
   },
   "pay": {
     "requestFailed": "Échec de la requête",
@@ -100,7 +124,15 @@
     "noBusinessSelected": "Sélectionnez une entreprise pour continuer.",
     "loadError": "Impossible de charger les données.",
     "loadMore": "Charger plus",
-    "actions": "Actions"
+    "actions": "Actions",
+    "yes": "Oui",
+    "no": "Non",
+    "close": "Fermer",
+    "backToSettings": "Retour aux paramètres",
+    "goToDashboard": "Aller au tableau de bord",
+    "backToReports": "Retour aux rapports",
+    "backToInvoices": "Retour aux factures",
+    "changeInSettings": "Modifier dans les paramètres"
   },
   "dashboard": {
     "errorBanner": {
@@ -131,7 +163,10 @@
       "loadError": "Impossible de charger l'aperçu des paiements.",
       "noData": "Aucune donnée. Ajoutez des écritures ou des factures.",
       "receivedAmount": "Montant reçu",
-      "dueAmount": "Montant dû"
+      "dueAmount": "Montant dû",
+      "monthly": "Mensuel",
+      "yearly": "Annuel",
+      "timePeriod": "Période"
     },
     "weeksProfit": {
       "title": "Bénéfice {timeFrame}",
@@ -157,7 +192,7 @@
       "view": "Voir"
     },
     "debtsToCollect": {
-      "title": "Personnes qui me doivent",
+      "title": "Créances à recouvrer",
       "viewAll": "Voir tout →",
       "noPending": "Aucune dette en attente.",
       "addDebt": "Ajouter une dette",
@@ -203,6 +238,25 @@
     "upgradeToDownload": "Mettez à niveau pour télécharger le PDF",
     "search": "Rechercher des factures…",
     "noResults": "Aucune facture ne correspond à votre recherche."
+  },
+  "customerSelect": {
+    "placeholder": "Rechercher ou sélectionner un client",
+    "addNew": "+ Ajouter",
+    "addNewCustomer": "Ajouter un nouveau client",
+    "name": "Nom",
+    "emailOptional": "E-mail (optionnel)",
+    "phoneOptional": "Téléphone (optionnel)",
+    "addAndSelect": "Ajouter et sélectionner",
+    "adding": "Ajout…",
+    "cancel": "Annuler",
+    "nameRequired": "Le nom est obligatoire.",
+    "emailInvalid": "Veuillez entrer une adresse e-mail valide si fournie.",
+    "createdNotSelected": "Client créé mais impossible de le sélectionner. Actualisez et réessayez.",
+    "invalidResponse": "Réponse invalide du serveur pour le client",
+    "failedAdd": "Échec de l'ajout du client",
+    "noMatches": "Aucun résultat. Ajouter un nouveau client ?",
+    "noCustomersYet": "Aucun client pour l'instant.",
+    "showingFirst50": "Tapez pour affiner. Affichage des 50 premiers."
   },
   "customers": {
     "title": "Clients",
@@ -269,6 +323,21 @@
     "type": {
       "sale": "↑ Vente",
       "expense": "↓ Dépense"
+    },
+    "category": {
+      "supplier_payment": "Paiement fournisseur",
+      "Sales": "Ventes",
+      "Services": "Services",
+      "Supplies": "Fournitures",
+      "Transport": "Transport",
+      "Utilities": "Services publics",
+      "Salaries": "Salaires",
+      "Marketing": "Marketing",
+      "Rent": "Loyer",
+      "Food": "Alimentation",
+      "Refunds": "Remboursements",
+      "Mobile Money": "Mobile Money",
+      "Other": "Autre"
     }
   },
   "reports": {
@@ -357,6 +426,9 @@
       "updating": "Mise à jour…",
       "updateFailed": "Échec de la mise à jour",
       "perMonth": " / mois",
+      "mostPopular": "Le plus populaire",
+      "customPlanQuestion": "Besoin d'un plan personnalisé ? ",
+      "contactUs": "Contactez-nous",
       "tiers": {
         "free": {
           "name": "Gratuit",
@@ -703,11 +775,22 @@
     "pageOf": "Page {page} sur {total}"
   },
   "invoiceEdit": {
+    "pageName": "Modifier la facture",
     "unitPrice": "Prix unitaire",
     "qty": "Qté",
     "addLineItem": "+ Ajouter une ligne",
     "saving": "Enregistrement…",
-    "saveChanges": "Enregistrer les modifications"
+    "saveChanges": "Enregistrer les modifications",
+    "dueDate": "Date d'échéance",
+    "percentOff": "% de réduction",
+    "days": "Jours",
+    "description": "Description",
+    "unitPriceError": "Le prix unitaire doit être supérieur à zéro",
+    "addLineItemError": "Ajoutez au moins une ligne avec un prix supérieur à zéro",
+    "customerLabel": "Client",
+    "currencyLabel": "Devise",
+    "cannotEdit": "Cette facture ne peut pas être modifiée.",
+    "backToInvoice": "← Retour à la facture"
   },
   "invoiceNew": {
     "pageName": "Créer une facture",
@@ -773,7 +856,7 @@
     "subtitle": "Ajoutez un client pour créer des factures et suivre les paiements.",
     "nameLabel": "Nom",
     "namePlaceholder": "Nom du client",
-    "emailLabel": "Email",
+    "emailLabel": "Email (optionnel)",
     "emailPlaceholder": "Adresse email",
     "emailError": "Veuillez entrer une adresse email valide.",
     "phoneLabel": "Téléphone",
@@ -811,6 +894,55 @@
     },
     "viewInLedger": "Voir dans le grand livre →"
   },
+  "upgradePrompt": {
+    "featureNotAvailable": "{feature} n'est pas disponible sur votre abonnement",
+    "upgradeBody": "Mettez à niveau votre abonnement pour accéder à cette fonctionnalité, ou contactez votre administrateur.",
+    "upgradeButton": "Mettre à niveau"
+  },
+  "aiChat": {
+    "title": "Kaba AI",
+    "subtitle": "Posez-moi des questions sur votre entreprise",
+    "openLabel": "Ouvrir Kaba AI",
+    "closeLabel": "Fermer Kaba AI",
+    "greeting": "Bonjour ! Je suis Kaba AI. Demandez-moi votre solde, vos factures, vos dettes ou tout ce qui concerne votre entreprise.",
+    "placeholder": "Posez une question sur votre entreprise...",
+    "clear": "Effacer",
+    "clearTitle": "Effacer la conversation",
+    "error": "Une erreur s'est produite. Veuillez réessayer.",
+    "suggestions": {
+      "checkBalance": "Vérifier mon solde",
+      "listUnpaidInvoices": "Lister les factures impayées",
+      "whoOwesMe": "Qui me doit de l'argent ?",
+      "monthlyProfit": "Rapport de profit mensuel"
+    }
+  },
+  "invoiceDetail": {
+    "pageName": "Facture",
+    "apiKeyError": "Clé API invalide ou manquante. Le service de paiement n'est peut-être pas configuré. Contactez le support.",
+    "paymentLinkErrorUnavailable": "Impossible de créer le lien de paiement. Réessayez plus tard ou contactez le support.",
+    "paymentLinkErrorPaid": "Cette facture est déjà payée.",
+    "paymentLinkErrorCancelled": "Cette facture a été annulée.",
+    "customerNoPhone": "Le client n'a pas de numéro de téléphone. Ajoutez un numéro dans le profil client pour partager les factures via WhatsApp.",
+    "customerNoPhoneLink": "Ajouter le téléphone dans le profil client",
+    "whatsappSent": "Facture envoyée directement au client via WhatsApp.",
+    "paymentLinkLabel": "Lien de paiement (copiez et partagez) :",
+    "paymentLinkModalCopyClose": "Copier et fermer",
+    "paymentLinkModalOpen": "Ouvrir le lien",
+    "paymentLinkModalClose": "Fermer",
+    "customer": "Client",
+    "status": "Statut",
+    "dueDate": "Date d'échéance",
+    "currency": "Devise",
+    "lineItems": "Lignes",
+    "total": "Total",
+    "shareViaWhatsApp": "Partager via WhatsApp",
+    "sendToCustomer": "Envoyer au client",
+    "openWhatsApp": "Ouvrir WhatsApp…",
+    "upgradeToPro": "Passer à Pro…",
+    "pendingApproval": "En attente d'approbation",
+    "notFound": "Facture introuvable",
+    "failedGetWhatsApp": "Échec de l'obtention du lien WhatsApp"
+  },
   "tax": {
     "pageName": "Taxe / TVA",
     "noBusinessSelected": "Sélectionnez une entreprise pour voir les rapports fiscaux.",
@@ -842,7 +974,8 @@
     "shareLink": {
       "title": "Lien de partage",
       "subtitle": "Toute personne ayant ce lien peut voir votre badge de confiance.",
-      "copy": "Copier"
+      "copy": "Copier",
+      "copied": "Copié"
     },
     "breakdown": {
       "repaymentVelocity": "Vélocité de remboursement",
@@ -850,6 +983,12 @@
       "momoReconciliation": "Réconciliation MoMo",
       "customerRetention": "Fidélisation client",
       "networkDiversity": "Diversité du réseau"
+    },
+    "recommendation": {
+      "excellent": "Excellent",
+      "good": "Bon",
+      "fair": "Moyen",
+      "poor": "Faible"
     }
   },
   "profile": {
@@ -1064,6 +1203,33 @@
       "pay": "Impossible d'enregistrer le paiement"
     }
   },
+  "permissionDenied": {
+    "title": "Vous n'avez pas accès à {resource}",
+    "accessDenied": "Accès refusé",
+    "hint": "Votre rôle ou forfait actuel n'inclut pas cette fonctionnalité. Contactez le propriétaire de l'espace ou passez à un forfait supérieur.",
+    "viewPlans": "Voir les forfaits",
+    "backToSettings": "Retour aux paramètres",
+    "goToDashboard": "Aller au tableau de bord",
+    "backToReports": "Retour aux rapports",
+    "backToInvoices": "Retour aux factures",
+    "resource": {
+      "customers": "Clients",
+      "invoices": "Factures",
+      "products": "Produits",
+      "debts": "Dettes",
+      "ledger": "Grand livre",
+      "reports": "Rapports",
+      "trustScore": "Score de confiance",
+      "reconciliation": "Réconciliation Mobile Money",
+      "team": "Gestion d'équipe",
+      "activityLog": "Journal d'activité",
+      "webhooks": "Webhooks",
+      "apiKeys": "Clés API",
+      "taxReports": "Rapports fiscaux",
+      "consolidatedReports": "Rapports consolidés",
+      "pendingApprovals": "En attente d'approbation"
+    }
+  },
   "dateFilter": {
     "button": "Filtrer par date",
     "label": "Plage de dates",
@@ -1080,6 +1246,84 @@
       "last3Months": "3 derniers mois",
       "thisYear": "Cette année"
     }
+  },
+  "admin": {
+    "title": "Admin",
+    "backToApp": "Retour à l'app",
+    "sidebar": {
+      "dashboard": "Tableau de bord",
+      "health": "Santé",
+      "receipts": "Reçus",
+      "metrics": "Métriques",
+      "usage": "Utilisation",
+      "activity": "Activité",
+      "auditLogs": "Journaux d'audit",
+      "leakageReport": "Rapport de fuite",
+      "aiQuery": "Requête IA",
+      "businesses": "Entreprises",
+      "debts": "Dettes",
+      "users": "Utilisateurs",
+      "features": "Fonctionnalités"
+    },
+    "users": {
+      "createUser": "Créer un utilisateur",
+      "creating": "Création…",
+      "deleting": "Suppression…",
+      "confirm": "Confirmer",
+      "loadMore": "Charger plus",
+      "loading": "Chargement…",
+      "failedLoad": "Échec du chargement des utilisateurs",
+      "failedCreate": "Échec de la création de l'utilisateur",
+      "user": "Utilisateur",
+      "admin": "Admin",
+      "id": "ID",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "role": "Rôle",
+      "actions": "Actions",
+      "otpHint": "L'utilisateur reçoit l'OTP par SMS ou console dev"
+    },
+    "features": {
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "yes": "Oui",
+      "no": "Non"
+    },
+    "auditLogs": {
+      "loading": "Chargement…",
+      "search": "Rechercher",
+      "businessId": "ID entreprise",
+      "time": "Heure",
+      "entity": "Entité",
+      "action": "Action",
+      "business": "Entreprise",
+      "user": "Utilisateur"
+    },
+    "ai": {
+      "placeholder": "ex. Combien d'entreprises avons-nous ? Quel est le total des factures ?",
+      "querying": "Requête…",
+      "ask": "Demander"
+    }
+  },
+  "profile": {
+    "pageName": "Profil",
+    "editProfile": "Modifier le profil",
+    "enterName": "Entrez votre nom",
+    "failedSave": "Échec de l'enregistrement du profil"
+  },
+  "errors": {
+    "loadCustomers": "Échec du chargement des clients",
+    "loadInvoices": "Échec du chargement des factures",
+    "loadProducts": "Échec du chargement des produits",
+    "loadReports": "Échec du chargement des rapports",
+    "loadTaxReport": "Échec du chargement du rapport fiscal",
+    "loadLedger": "Échec du chargement des écritures",
+    "loadPreferences": "Échec du chargement des préférences",
+    "savePreferences": "Échec de l'enregistrement des préférences",
+    "loadTrustScore": "Échec du chargement du score de confiance",
+    "trustScoreTimeout": "Délai de chargement du score de confiance. Actualisez.",
+    "reconcile": "Échec de la réconciliation",
+    "loadDebts": "Échec du chargement des dettes"
   },
   "voice": {
     "recordTransaction": "Enregistrer une transaction"
@@ -1100,6 +1344,9 @@
     "terminal": "Terminal POS",
     "waitingForPayment": "En attente de paiement…",
     "clientScansQr": "Le client scanne le QR code pour payer par Mobile Money",
+    "shareViaWhatsApp": "Partager via WhatsApp",
+    "copyLink": "Copier le lien",
+    "linkCopied": "Lien copié",
     "or": "ou"
   },
   "onboarding": {

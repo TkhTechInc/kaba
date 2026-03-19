@@ -160,17 +160,47 @@ export default function SettingsPage() {
         </h2>
         <p className="mb-6 text-sm text-dark-4 dark:text-dark-6">
           {t("settings.plans.currentPlan")}{" "}
-          <span className="font-medium capitalize text-dark dark:text-white">
-            {tier ?? "—"}
-          </span>
-          {currency && (
+          {loading ? (
+            <span className="inline-block h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+          ) : (
             <>
-              {" · "}
-              {t("settings.plans.pricesIn", { currency })}
+              <span className="font-medium capitalize text-dark dark:text-white">
+                {tier ?? "—"}
+              </span>
+              {currency && (
+                <>
+                  {" · "}
+                  {t("settings.plans.pricesIn", { currency })}
+                </>
+              )}
             </>
           )}
         </p>
 
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="flex min-h-[280px] flex-col rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+              >
+                <div className="mb-2 flex items-baseline justify-between gap-2">
+                  <div className="h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+                  <div className="h-4 w-12 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+                </div>
+                <ul className="mb-4 flex-1 space-y-2">
+                  {[1, 2, 3].map((j) => (
+                    <li key={j}>
+                      <span className="inline-block h-4 w-full animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+                    </li>
+                  ))}
+                </ul>
+                <div className="h-10 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-dark-3" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
             {error}
@@ -273,6 +303,8 @@ export default function SettingsPage() {
             );
           })}
         </div>
+          </>
+        )}
       </section>
     </div>
   );

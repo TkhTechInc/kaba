@@ -89,10 +89,10 @@ export class SendBulkInvoicesTool implements IMcpTool {
     });
 
     // Pre-validate all customer IDs exist
-    await this.validateCustomers(validated.invoices.map(i => i.customerId), ctx.businessId);
+    await this.validateCustomers(validated.invoices.map((i: { customerId: string }) => i.customerId), ctx.businessId);
 
     // Build commands
-    const commands: CreateInvoiceCommand[] = validated.invoices.map(inv => ({
+    const commands: CreateInvoiceCommand[] = validated.invoices.map((inv: BulkInvoicesInput['invoices'][number]) => ({
       customerId: inv.customerId,
       amount: inv.amount,
       currency: inv.currency ?? 'XOF',
@@ -145,8 +145,8 @@ export class SendBulkInvoicesTool implements IMcpTool {
     results: any[];
     errors: Array<{ index: number; error: string }>;
   }> {
-    const results = [];
-    const errors = [];
+    const results: any[] = [];
+    const errors: Array<{ index: number; error: string }> = [];
     const createdIds: string[] = [];
 
     try {
@@ -162,7 +162,7 @@ export class SendBulkInvoicesTool implements IMcpTool {
               currency: cmd.currency,
               dueDate: cmd.dueDate,
               items: cmd.items,
-              status: 'pending',
+              status: 'sent',
             },
             ctx.userId,
           );
@@ -252,7 +252,7 @@ export class SendBulkInvoicesTool implements IMcpTool {
     // Delete in reverse order
     for (const id of invoiceIds.reverse()) {
       try {
-        await this.invoiceService.delete(id, ctx.businessId);
+        await this.invoiceService.softDelete(ctx.businessId, id);
       } catch (err) {
         this.logger.error('Failed to rollback invoice', { id, error: err });
         // Continue rolling back others even if one fails

@@ -32,18 +32,18 @@ export default function AddCustomerPage() {
     e.preventDefault();
     if (!businessId || !form.name.trim()) return;
     const email = form.email.trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError(t("customerNew.emailError"));
       return;
     }
     setSubmitting(true);
     setError(null);
     try {
-      const result = await api.createCustomer({
+      await api.createCustomer({
         businessId,
         name: form.name.trim(),
-        email,
-        phone: form.phone.trim() || undefined,
+        ...(email && { email }),
+        ...(form.phone.trim() && { phone: form.phone.trim() }),
       });
       router.push(`/customers?search=${encodeURIComponent(form.name.trim())}`);
     } catch (e) {
@@ -114,7 +114,6 @@ export default function AddCustomerPage() {
             label={t("customerNew.emailLabel")}
             type="text"
             placeholder={t("customerNew.emailPlaceholder")}
-            required
             value={form.email}
             handleChange={(e) =>
               setForm((f) => ({ ...f, email: e.target.value }))

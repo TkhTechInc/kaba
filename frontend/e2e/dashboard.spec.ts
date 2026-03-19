@@ -20,7 +20,7 @@ test.describe("Dashboard", () => {
       await page.getByRole("button", { name: /skip setup/i }).click();
       await expect(page).toHaveURL(/\/($|\?)/, { timeout: 10000 });
     }
-    await expect(page.getByText(/recent invoices|people who owe|dashboard/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/recent invoices|outstanding receivables|dashboard/i)).toBeVisible({ timeout: 10000 });
   });
 
   test("invoices page loads", async ({ page }) => {

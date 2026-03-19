@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsIn,
   IsOptional,
+  IsNotEmpty,
   Min,
   MaxLength,
   Matches,
@@ -16,6 +17,7 @@ const CURRENCY_PATTERN = /^[A-Za-z]{3}$/;
 
 export class CreateLedgerEntryDto {
   @IsString()
+  @IsNotEmpty({ message: 'businessId is required' })
   businessId!: string;
 
   @IsIn(['sale', 'expense'])

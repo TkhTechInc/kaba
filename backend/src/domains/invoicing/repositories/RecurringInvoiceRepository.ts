@@ -112,7 +112,7 @@ export class RecurringInvoiceRepository {
       lastKey = result.LastEvaluatedKey;
     } while (lastKey);
 
-    return items;
+    return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }
 
   /**

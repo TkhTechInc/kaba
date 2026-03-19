@@ -7,6 +7,7 @@ import { UpdateInvoiceDto } from './dto/update-invoice.dto';
 import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto';
 import { GetInvoiceQueryDto } from './dto/get-invoice-query.dto';
 import { GeneratePaymentLinkDto } from './dto/payment-link.dto';
+import { RefundInvoiceDto } from './dto/refund-invoice.dto';
 import { SendInvoiceDto } from './dto/send-invoice.dto';
 import { Auth, Public } from '@/nest/common/decorators/auth.decorator';
 import { Feature } from '@/nest/common/decorators/feature.decorator';
@@ -229,16 +230,36 @@ export class InvoiceController {
     return { success: true, data: invoice };
   }
 
+  @Post(':id/refund')
+  @Feature('payment_links')
+  @RequirePermission('invoices:write')
+  async refund(
+    @Param('id') id: string,
+    @Body() dto: RefundInvoiceDto,
+    @AuditUserId() userId?: string,
+  ) {
+    const result = await this.invoiceService.refund(
+      dto.businessId,
+      id,
+      { amount: dto.amount, reason: dto.reason },
+      userId,
+    );
+    if (!result.success) {
+      throw new NotFoundException(result.error ?? 'Refund failed');
+    }
+    return { success: true };
+  }
+
   @Post(':id/payment-link')
   @Feature('payment_links')
   @RequirePermission('invoices:write')
   async generatePaymentLink(
     @Param('id') id: string,
     @Body() dto: GeneratePaymentLinkDto,
-    @AuditUserId() userId?: string,
   ) {
-    const { paymentUrl } = await this.invoiceService.generatePaymentLink(dto.businessId, id, userId);
-    return { success: true, data: { paymentUrl } };
+    // Same URL as POS: share token → /pay/{token}. Customer opens it and pays on the pay page.
+    const { payUrl } = await this.invoiceShareService.generatePublicToken(id, dto.businessId);
+    return { success: true, data: { paymentUrl: payUrl } };
   }
 
   @Post(':id/share')

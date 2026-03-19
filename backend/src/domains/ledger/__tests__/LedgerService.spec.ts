@@ -267,19 +267,32 @@ describe('LedgerService', () => {
       ).rejects.toThrow(NotFoundError);
     });
 
-    it('throws ValidationError when stock is insufficient', async () => {
-      const { service, productRepository } = makeMocks();
-      (productRepository.getById as jest.Mock).mockResolvedValue({
+    it('allows sale when recorded stock is low (stock is informational, not a gate)', async () => {
+      const { service, ledgerRepository, productRepository } = makeMocks();
+      const product = {
         id: 'prod-001',
         businessId: 'biz-cotonou-001',
         name: 'Tissu Wax',
         unitPrice: 5000,
         quantityInStock: 1,
+      };
+      (productRepository.getById as jest.Mock).mockResolvedValue(product);
+      (productRepository.decrementStock as jest.Mock).mockResolvedValue({
+        ...product,
+        quantityInStock: -4,
       });
+      (ledgerRepository.countByBusinessInDateRange as jest.Mock).mockResolvedValue(0);
+      (ledgerRepository.create as jest.Mock).mockResolvedValue(
+        makeLedgerEntry({ type: 'sale', amount: 25000, description: 'Tissu Wax x 5', productId: 'prod-001', quantitySold: 5 }),
+      );
 
-      await expect(
-        service.createEntry(makeCreateInput({ type: 'sale', productId: 'prod-001', quantitySold: 5 })),
-      ).rejects.toThrow(ValidationError);
+      const result = await service.createEntry(
+        makeCreateInput({ type: 'sale', productId: 'prod-001', quantitySold: 5 }),
+      );
+
+      expect(productRepository.decrementStock).toHaveBeenCalledWith('biz-cotonou-001', 'prod-001', 5);
+      expect(result.amount).toBe(25000);
+      expect(result.quantitySold).toBe(5);
     });
 
     it('emits webhook on successful create', async () => {

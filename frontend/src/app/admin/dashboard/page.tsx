@@ -1,12 +1,14 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { AdminSummary } from "@/services/admin.service";
 
 export default function AdminDashboardPage() {
+  const { t } = useLocale();
   const { token } = useAuth();
   const [data, setData] = useState<AdminSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,27 +42,32 @@ export default function AdminDashboardPage() {
 
   const cards = [
     {
-      title: "Businesses",
+      id: "businesses",
+      title: t("admin.dashboard.businesses"),
       value: data?.businessesCount ?? 0,
       href: "/admin/businesses",
     },
     {
-      title: "Ledger Entries",
+      id: "ledgerEntries",
+      title: t("admin.dashboard.ledgerEntries"),
       value: data?.ledgerEntriesCount ?? 0,
       href: "/admin/activity",
     },
     {
-      title: "Invoices",
+      id: "invoices",
+      title: t("admin.dashboard.invoices"),
       value: data?.invoicesCount ?? 0,
       href: "/admin/metrics",
     },
     {
-      title: "Recent Activity",
+      id: "recentActivity",
+      title: t("admin.dashboard.recentActivity"),
       value: data?.recentActivityCount ?? 0,
       href: "/admin/activity",
     },
     {
-      title: "Debts",
+      id: "debts",
+      title: t("admin.dashboard.debts"),
       value: "—",
       href: "/admin/debts",
     },
@@ -69,12 +76,12 @@ export default function AdminDashboardPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Admin Dashboard
+        {t("admin.dashboard.title")}
       </h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => (
           <Link
-            key={card.title}
+            key={card.id}
             href={card.href}
             className="rounded-[10px] bg-white p-6 shadow-1 transition hover:shadow-md dark:bg-gray-dark dark:shadow-card dark:hover:shadow-lg"
           >
@@ -91,7 +98,7 @@ export default function AdminDashboardPage() {
       </div>
       {data?.timestamp && (
         <p className="mt-4 text-sm text-dark-6 dark:text-dark-6">
-          Last updated: {new Date(data.timestamp).toLocaleString()}
+          {t("admin.dashboard.lastUpdated", { date: new Date(data.timestamp).toLocaleString() })}
         </p>
       )}
     </div>

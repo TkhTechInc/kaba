@@ -65,17 +65,18 @@ export default function AdminActivityPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Recent Activity
+        {t("admin.activity.title")}
       </h1>
       <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Business</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead>{t("admin.activity.date")}</TableHead>
+              <TableHead>{t("admin.activity.business")}</TableHead>
+              <TableHead>{t("admin.activity.type")}</TableHead>
+              <TableHead>{t("admin.activity.amount")}</TableHead>
+              <TableHead>{t("admin.activity.description")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,6 +97,7 @@ export default function AdminActivityPage() {
             ))}
           </TableBody>
         </Table>
+        </div>
         {data?.lastEvaluatedKey && (
           <div className="border-t p-4">
             <button

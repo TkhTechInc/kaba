@@ -36,7 +36,7 @@ export class InventoryServiceStack extends cdk.Stack {
         ? dynamodb.BillingMode.PAY_PER_REQUEST
         : dynamodb.BillingMode.PROVISIONED,
       removalPolicy: environment === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY,
-      pointInTimeRecovery: enablePITR,
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: enablePITR },
     });
 
     this.inventoryTable.addGlobalSecondaryIndex({

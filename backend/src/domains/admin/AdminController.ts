@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Controller,
+  Delete,
   Get,
   Post,
   Body,
@@ -19,6 +20,7 @@ import { AdminMetricsService } from './AdminMetricsService';
 import { AdminAIQueryService } from './AdminAIQueryService';
 import { AdminGuard } from './AdminGuard';
 import { Auth } from '@/nest/common/decorators/auth.decorator';
+import { CurrentUser } from '@/nest/common/decorators/current-user.decorator';
 import { AdminAIQueryDto } from './dto/admin-ai-query.dto';
 import { CreateUserByPhoneDto } from './dto/create-user-by-phone.dto';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
@@ -501,5 +503,26 @@ export class AdminController {
     const updated: User = { ...user, role: dto.role, updatedAt: new Date().toISOString() };
     await this.userRepo.update(updated);
     return { success: true, data: { id: updated.id, role: updated.role } };
+  }
+
+  /**
+   * Delete a user. Admin cannot delete themselves.
+   * DELETE /api/v1/admin/users/:id
+   */
+  @Delete('users/:id')
+  async deleteUser(
+    @Param('id') userId: string,
+    @CurrentUser('sub') currentUserId: string,
+  ) {
+    const id = userId.trim();
+    if (id === currentUserId) {
+      throw new BadRequestException('You cannot delete your own account');
+    }
+    const user = await this.userRepo.getById(id);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.userRepo.delete(id);
+    return { success: true, message: 'User deleted' };
   }
 }

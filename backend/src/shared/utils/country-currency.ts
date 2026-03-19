@@ -4,6 +4,21 @@ import type { Tier } from '@/domains/features/feature.types';
 const XOF_COUNTRIES = new Set(['BJ', 'SN', 'CI', 'TG', 'ML', 'NE', 'BF']);
 
 /**
+ * Returns a default country code for a given currency when business has none.
+ * Used by payment config (KkiaPay, MoMo) so TKH Payments can return correct options.
+ * - XOF → BJ (Benin)
+ * - XAF → CM (Cameroon)
+ * - GNF → GN (Guinea)
+ */
+export function getCountryForCurrency(currency: string): string | undefined {
+  const cur = (currency ?? '').toUpperCase().trim();
+  if (cur === 'XOF') return 'BJ';
+  if (cur === 'XAF') return 'CM';
+  if (cur === 'GNF') return 'GN';
+  return undefined;
+}
+
+/**
  * Returns the currency code for a given country code.
  * - NG → NGN
  * - GH → GHS

@@ -8,6 +8,7 @@
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": false,
     "@aws-cdk/aws-apigateway:disableCloudWatchRole": true,
-    "@aws-cdk/core:bootstrapQualifier": "tkh"
+    "@aws-cdk/core:bootstrapQualifier": "tkh",
+    "@aws-cdk/customresources:installLatestAwsSdkDefault": false
   }
 }

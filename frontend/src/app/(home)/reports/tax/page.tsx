@@ -53,7 +53,7 @@ export default function TaxReportPage() {
       .then((res) => setVat(res.data))
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load tax report");
+        else setError(e instanceof Error ? e.message : t("errors.loadTaxReport"));
       })
       .finally(() => setLoading(false));
   }, [businessId, dates.fromDate, dates.toDate, countryCode]);
@@ -93,7 +93,7 @@ export default function TaxReportPage() {
     return (
       <>
         <Breadcrumb pageName={t("tax.pageName")} />
-        <PermissionDenied resource="Tax Reports" backHref="/reports" backLabel="Back to Reports" />
+        <PermissionDenied resource={t("permissionDenied.resource.taxReports")} backHref="/reports" backLabel={t("common.backToReports")} />
       </>
     );
   }

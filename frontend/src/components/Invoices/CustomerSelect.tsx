@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useId } from "react";
 import type { Customer } from "@/services/invoices.service";
+import { useLocale } from "@/contexts/locale-context";
 
 interface CustomerSelectProps {
   customers: Customer[];
@@ -11,9 +12,9 @@ interface CustomerSelectProps {
   createCustomer: (body: {
     businessId: string;
     name: string;
-    email: string;
+    email?: string;
     phone?: string;
-  }) => Promise<unknown>;
+  }) => Promise<Customer>;
   businessId: string;
   disabled?: boolean;
   placeholder?: string;
@@ -29,9 +30,11 @@ export function CustomerSelect({
   createCustomer,
   businessId,
   disabled,
-  placeholder = "Search or select customer",
+  placeholder,
   id: idProp,
 }: CustomerSelectProps) {
+  const { t } = useLocale();
+  const resolvedPlaceholder = placeholder ?? t("customerSelect.placeholder");
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -65,29 +68,27 @@ export function CustomerSelect({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleAddSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const email = addForm.email.trim();
-    if (!addForm.name.trim() || !email) {
-      setAddError("Name and email are required.");
+  const handleAddSubmit = async () => {
+    if (!addForm.name.trim()) {
+      setAddError(t("customerSelect.nameRequired"));
       return;
     }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setAddError("Please enter a valid email address.");
+    const email = addForm.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setAddError(t("customerSelect.emailInvalid"));
       return;
     }
     setAdding(true);
     setAddError(null);
     try {
-      const res = await createCustomer({
+      const created = await createCustomer({
         businessId,
         name: addForm.name.trim(),
-        email,
-        phone: addForm.phone.trim() || undefined,
+        ...(email && { email }),
+        ...(addForm.phone.trim() && { phone: addForm.phone.trim() }),
       });
-      const created = (res as { data?: Customer }).data ?? (res as unknown as Customer);
-      if (!created?.id) {
-        setAddError("Customer was created but could not be selected. Please refresh and try again.");
+      if (created.id.startsWith("pending-")) {
+        setAddError(t("customerSelect.createdNotSelected"));
         return;
       }
       onAddCustomer?.(created);
@@ -96,7 +97,12 @@ export function CustomerSelect({
       setShowAddForm(false);
       setOpen(false);
     } catch (err) {
-      setAddError(err instanceof Error ? err.message : "Failed to add customer");
+      const msg = err instanceof Error ? err.message : "";
+      setAddError(
+        msg === "INVALID_CUSTOMER_RESPONSE"
+          ? t("customerSelect.invalidResponse")
+          : msg || t("customerSelect.failedAdd")
+      );
     } finally {
       setAdding(false);
     }
@@ -108,7 +114,7 @@ export function CustomerSelect({
         <div className="relative flex-1">
           {!idProp && (
             <label htmlFor={inputId} className="sr-only">
-              {placeholder}
+              {resolvedPlaceholder}
             </label>
           )}
           <input
@@ -121,7 +127,7 @@ export function CustomerSelect({
               setOpen(true);
             }}
             onFocus={() => setOpen(true)}
-            placeholder={placeholder}
+            placeholder={resolvedPlaceholder}
             disabled={disabled}
             className="w-full rounded-lg border border-stroke bg-transparent px-5.5 py-3 pr-8 dark:border-dark-3 dark:bg-dark-2"
             autoComplete="off"
@@ -139,7 +145,7 @@ export function CustomerSelect({
             }}
             className="shrink-0 rounded-lg border border-dashed border-stroke px-3 py-2 text-sm text-dark-4 hover:border-primary hover:text-primary dark:border-dark-3 dark:text-dark-6 dark:hover:border-primary dark:hover:text-primary"
           >
-            + Add new
+            {t("customerSelect.addNew")}
           </button>
         )}
       </div>
@@ -151,7 +157,7 @@ export function CustomerSelect({
         >
           {filtered.length === 0 ? (
             <li className="px-4 py-3 text-sm text-dark-6">
-              {search ? "No matches. Add a new customer?" : "No customers yet."}
+              {search ? t("customerSelect.noMatches") : t("customerSelect.noCustomersYet")}
             </li>
           ) : (
             filtered.slice(0, 50).map((c) => (
@@ -175,7 +181,7 @@ export function CustomerSelect({
           )}
           {filtered.length > 50 && (
             <li className="border-t border-stroke px-4 py-2 text-xs text-dark-6 dark:border-dark-3">
-              Type to narrow down. Showing first 50.
+              {t("customerSelect.showingFirst50")}
             </li>
           )}
         </ul>
@@ -183,58 +189,61 @@ export function CustomerSelect({
 
       {showAddForm && (
         <div className="mt-3 rounded-lg border border-stroke bg-gray-50 p-4 dark:border-dark-3 dark:bg-dark-2">
-          <p className="mb-3 text-sm font-medium">Add new customer</p>
-          <form onSubmit={handleAddSubmit} className="space-y-2">
+          <p className="mb-3 text-sm font-medium">{t("customerSelect.addNewCustomer")}</p>
+          <div className="space-y-2" role="form" aria-label={t("customerSelect.addNewCustomer")}>
             {addError && (
               <div className="rounded bg-red/10 p-2 text-sm text-red">
                 {addError}
               </div>
             )}
-            <label htmlFor={addNameId} className="sr-only">Name</label>
+            <label htmlFor={addNameId} className="sr-only">{t("customerSelect.name")}</label>
             <input
               id={addNameId}
               name="name"
               type="text"
-              placeholder="Name"
+              placeholder={t("customerSelect.name")}
               required
               value={addForm.name}
               onChange={(e) =>
                 setAddForm((f) => ({ ...f, name: e.target.value }))
               }
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSubmit())}
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2"
             />
-            <label htmlFor={addEmailId} className="sr-only">Email</label>
+            <label htmlFor={addEmailId} className="sr-only">{t("customerSelect.emailOptional")}</label>
             <input
               id={addEmailId}
               name="email"
               type="email"
-              placeholder="Email"
-              required
+              placeholder={t("customerSelect.emailOptional")}
               value={addForm.email}
               onChange={(e) =>
                 setAddForm((f) => ({ ...f, email: e.target.value }))
               }
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSubmit())}
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2"
             />
-            <label htmlFor={addPhoneId} className="sr-only">Phone (optional)</label>
+            <label htmlFor={addPhoneId} className="sr-only">{t("customerSelect.phoneOptional")}</label>
             <input
               id={addPhoneId}
               name="phone"
               type="tel"
-              placeholder="Phone (optional)"
+              placeholder={t("customerSelect.phoneOptional")}
               value={addForm.phone}
               onChange={(e) =>
                 setAddForm((f) => ({ ...f, phone: e.target.value }))
               }
+              onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddSubmit())}
               className="w-full rounded border border-stroke px-3 py-2 text-sm dark:border-dark-3 dark:bg-dark-2"
             />
             <div className="flex gap-2">
               <button
-                type="submit"
+                type="button"
                 disabled={adding}
+                onClick={() => handleAddSubmit()}
                 className="rounded bg-primary px-3 py-1.5 text-sm text-white hover:bg-primary/90 disabled:opacity-50"
               >
-                {adding ? "Adding…" : "Add & select"}
+                {adding ? t("customerSelect.adding") : t("customerSelect.addAndSelect")}
               </button>
               <button
                 type="button"
@@ -245,10 +254,10 @@ export function CustomerSelect({
                 }}
                 className="rounded border px-3 py-1.5 text-sm"
               >
-                Cancel
+                {t("customerSelect.cancel")}
               </button>
             </div>
-          </form>
+          </div>
         </div>
       )}
     </div>

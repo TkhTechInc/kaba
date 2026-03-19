@@ -33,8 +33,8 @@ export class CustomerRepository {
       id,
       businessId: input.businessId,
       name: input.name,
-      email: input.email,
-      phone: input.phone,
+      ...(input.email?.trim() && { email: input.email.trim() }),
+      ...(input.phone?.trim() && { phone: input.phone.trim() }),
       createdAt: new Date().toISOString(),
     };
 
@@ -171,7 +171,7 @@ export class CustomerRepository {
       lastKey = result.LastEvaluatedKey;
     } while (lastKey);
 
-    return items;
+    return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }
 
   /**
@@ -283,30 +283,26 @@ export class CustomerRepository {
         return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
       }
 
-      let cursor: Record<string, unknown> | undefined = exclusiveStartKey;
-      for (let i = 0; i < pageNum - 1; i++) {
-        const skipResult = await this.docClient.send(
-          new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
+      // Fetch all, sort by createdAt desc (newest first), then paginate
+      const allItems: Customer[] = [];
+      let lastKey: Record<string, unknown> | undefined;
+      do {
+        const result = await this.docClient.send(
+          new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
         );
-        cursor = skipResult.LastEvaluatedKey;
-        if (!cursor) {
-          return { items: [], total: (pageNum - 1) * limitNum, page: pageNum, limit: limitNum };
-        }
-      }
+        allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
+        lastKey = result.LastEvaluatedKey;
+      } while (lastKey);
 
-      const result = await this.docClient.send(
-        new QueryCommand({ ...baseParams, Limit: limitNum, ...(cursor && { ExclusiveStartKey: cursor }) })
-      );
-      const items = (result.Items || []).map((item) => this.mapFromDynamoDB(item));
-      const hasMore = !!result.LastEvaluatedKey;
-      const total = (pageNum - 1) * limitNum + items.length + (hasMore ? limitNum : 0);
+      allItems.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+      const total = allItems.length;
+      const start = (pageNum - 1) * limitNum;
 
       return {
-        items,
+        items: allItems.slice(start, start + limitNum),
         total,
         page: pageNum,
         limit: limitNum,
-        lastEvaluatedKey: result.LastEvaluatedKey,
       };
     } catch (e) {
       throw new DatabaseError('List customers failed', e);
@@ -356,8 +352,10 @@ export class CustomerRepository {
       ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
       : null;
 
+    const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+    items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
     return {
-      items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
+      items,
       nextCursor,
       hasMore: !!result.LastEvaluatedKey,
     };
@@ -381,7 +379,8 @@ export class CustomerRepository {
         Limit: limit,
       })
     );
-    return (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+    const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+    return items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
   }
 
   private mapToDynamoDB(customer: Customer): Record<string, unknown> {
@@ -392,19 +391,21 @@ export class CustomerRepository {
       id: customer.id,
       businessId: customer.businessId,
       name: customer.name,
-      email: customer.email,
-      phone: customer.phone,
+      ...(customer.email != null && customer.email !== '' && { email: customer.email }),
+      ...(customer.phone != null && customer.phone !== '' && { phone: customer.phone }),
       ...(customer.createdAt != null && { createdAt: customer.createdAt }),
     };
   }
 
   private mapFromDynamoDB(item: Record<string, unknown>): Customer {
+    const email = item.email != null && String(item.email).trim() !== '' ? String(item.email) : undefined;
+    const phone = item.phone != null && String(item.phone).trim() !== '' ? String(item.phone) : undefined;
     return {
       id: String(item.id ?? ''),
       businessId: String(item.businessId ?? item.pk ?? ''),
       name: String(item.name ?? ''),
-      email: String(item.email ?? ''),
-      phone: item.phone != null ? String(item.phone) : undefined,
+      ...(email != null && { email }),
+      ...(phone != null && { phone }),
       createdAt: item.createdAt != null ? String(item.createdAt) : undefined,
     };
   }

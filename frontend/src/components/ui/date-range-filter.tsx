@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useId } from "react";
+import { useState, useCallback, useId, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocale } from "@/contexts/locale-context";
 
 export interface DateRange {
@@ -24,6 +25,8 @@ export function DateRangeFilter({
   const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<DateRange>(value);
+  const [popoverStyle, setPopoverStyle] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const fromId = useId();
   const toId = useId();
 
@@ -46,9 +49,35 @@ export function DateRangeFilter({
     setOpen(true);
   };
 
+  useLayoutEffect(() => {
+    if (!open) {
+      setPopoverStyle(null);
+      return;
+    }
+    if (!triggerRef.current || typeof document === "undefined") return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    const padding = 8;
+    const popoverWidth = 280;
+    const popoverHeight = 280;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let left = rect.left;
+    let top = rect.bottom + 4;
+    if (left + popoverWidth > viewportWidth - padding) {
+      left = Math.max(padding, viewportWidth - popoverWidth - padding);
+    }
+    if (left < padding) left = padding;
+    if (top + popoverHeight > viewportHeight - padding) {
+      top = rect.top - popoverHeight - 4;
+    }
+    if (top < padding) top = padding;
+    setPopoverStyle({ top, left });
+  }, [open]);
+
   return (
     <div className={`relative ${className}`}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={handleOpen}
         className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium transition ${
@@ -68,20 +97,27 @@ export function DateRangeFilter({
           : t("dateFilter.button")}
       </button>
 
-      {open && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
-          {/* Popover */}
-          <div
-            role="dialog"
-            aria-label={t("dateFilter.label")}
-            className="absolute left-0 top-full z-50 mt-1 min-w-[280px] rounded-xl border border-stroke bg-white p-4 shadow-lg dark:border-dark-3 dark:bg-gray-dark"
-          >
+      {open &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+              aria-hidden="true"
+            />
+            {/* Popover - fixed position via portal to avoid overflow clipping */}
+            <div
+              role="dialog"
+              aria-label={t("dateFilter.label")}
+              className="fixed z-50 min-w-[280px] rounded-xl border border-stroke bg-white p-4 shadow-lg dark:border-dark-3 dark:bg-gray-dark"
+              style={
+                popoverStyle
+                  ? { top: popoverStyle.top, left: popoverStyle.left }
+                  : { visibility: "hidden" }
+              }
+            >
             <p className="mb-3 text-sm font-semibold text-dark dark:text-white">
               {t("dateFilter.label")}
             </p>
@@ -152,7 +188,8 @@ export function DateRangeFilter({
               </button>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

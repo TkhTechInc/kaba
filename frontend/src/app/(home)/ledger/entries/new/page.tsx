@@ -1,14 +1,15 @@
 "use client";
 
 import Breadcrumb from "@/components/Breadcrumbs/Breadcrumb";
+import { CategoryCombobox } from "@/components/FormElements/CategoryCombobox";
 import InputGroup from "@/components/FormElements/InputGroup";
 import { useAuth } from "@/contexts/auth-context";
 import { useFeatures } from "@/hooks/use-features";
+import { formatPriceWithCurrency } from "@/lib/format-number";
 import { getCurrencyForCountry } from "@/lib/country-currency";
 import { usePermissions } from "@/hooks/use-permissions";
 import { useLocale } from "@/contexts/locale-context";
 import { UpgradePrompt } from "@/components/UpgradePrompt";
-import { Price } from "@/components/ui/Price";
 import { getPhonePlaceholder } from "@/lib/country-dial-codes";
 import {
   createLedgerApi,
@@ -225,8 +226,7 @@ export default function CreateEntryPage() {
                       <option value="">{t("entryNew.productManual")}</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
-                          {p.name} ({" "}
-                          <Price amount={p.unitPrice} currency={p.currency} />)
+                          {p.name} ({formatPriceWithCurrency(p.unitPrice, p.currency)})
                         </option>
                       ))}
                     </select>
@@ -315,16 +315,19 @@ export default function CreateEntryPage() {
                 setForm((f) => ({ ...f, description: e.target.value }))
               }
             />
-            <InputGroup
-              label={t("entryNew.categoryLabel")}
-              name="category"
-              type="text"
-              placeholder={t("common.noData")}
-              value={form.category || ""}
-              handleChange={(e) =>
-                setForm((f) => ({ ...f, category: e.target.value }))
-              }
-            />
+            <div>
+              <label htmlFor="entry-category" className="mb-3 block text-body-sm font-medium text-dark dark:text-white">
+                {t("entryNew.categoryLabel")}
+              </label>
+              <CategoryCombobox
+                id="entry-category"
+                name="category"
+                value={form.category || ""}
+                onChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                placeholder={t("common.noData")}
+                aria-label={t("entryNew.categoryLabel")}
+              />
+            </div>
             <InputGroup
               label={t("entryNew.smsPhoneLabel")}
               name="smsPhone"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import {
   Table,
@@ -17,6 +18,7 @@ const TIERS = ["free", "starter", "pro", "enterprise"] as const;
 
 export default function AdminBusinessesPage() {
   const { token } = useAuth();
+  const { t } = useLocale();
   const [items, setItems] = useState<AdminBusiness[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +67,7 @@ export default function AdminBusinessesPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Businesses
+        {t("admin.businesses.title")}
       </h1>
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-900/20 dark:text-red-400">
@@ -73,14 +75,15 @@ export default function AdminBusinessesPage() {
         </div>
       )}
       <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead>{t("admin.businesses.id")}</TableHead>
+              <TableHead>{t("admin.businesses.tier")}</TableHead>
+              <TableHead>{t("admin.businesses.name")}</TableHead>
+              <TableHead>{t("admin.businesses.created")}</TableHead>
+              <TableHead>{t("admin.businesses.actions")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -107,16 +110,17 @@ export default function AdminBusinessesPage() {
                 </TableCell>
                 <TableCell>
                   {updating === row.id ? (
-                    <span className="text-sm text-dark-6">Saving...</span>
+                    <span className="text-sm text-dark-6">{t("admin.businesses.saving")}</span>
                   ) : null}
                 </TableCell>
               </TableRow>
             ))}
           </TableBody>
         </Table>
+        </div>
         {items.length === 0 && !loading && (
           <p className="p-8 text-center text-dark-6 dark:text-dark-6">
-            No businesses found.
+            {t("admin.businesses.noBusinessesFound")}
           </p>
         )}
       </div>

@@ -60,11 +60,12 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
 
   const currency =
     data?.currency ??
-    features.currency ??
+    (features.loading ? null : features.currency) ??
     getCurrencyForCountry(features.countryCode ?? "");
   const hasData = data && (data.received.some((d) => d.y > 0) || data.due.some((d) => d.y > 0));
   const receivedTotal = data?.received.reduce((acc, { y }) => acc + y, 0) ?? 0;
   const dueTotal = data?.due.reduce((acc, { y }) => acc + y, 0) ?? 0;
+  const showAmounts = !!currency && (!features.loading || !!data?.currency);
 
   return (
     <div
@@ -93,7 +94,11 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
       <dl className="grid divide-stroke text-center dark:divide-dark-3 sm:grid-cols-2 sm:divide-x [&>div]:flex [&>div]:flex-col-reverse [&>div]:gap-1">
         <div className="dark:border-dark-3 max-sm:mb-3 max-sm:border-b max-sm:pb-3">
           <dt className="text-xl font-bold text-dark dark:text-white">
-            <Price amount={receivedTotal} currency={currency} />
+            {showAmounts ? (
+              <Price amount={receivedTotal} currency={currency!} />
+            ) : (
+              <span className="animate-pulse">—</span>
+            )}
           </dt>
           <dd className="flex items-center justify-center gap-1.5 font-medium dark:text-dark-6">
             <span className="inline-block size-2.5 rounded-full bg-[#22C55E]" />
@@ -102,7 +107,11 @@ export function DashboardPaymentsOverview({ className }: PropsType) {
         </div>
         <div>
           <dt className="text-xl font-bold text-dark dark:text-white">
-            <Price amount={dueTotal} currency={currency} />
+            {showAmounts ? (
+              <Price amount={dueTotal} currency={currency!} />
+            ) : (
+              <span className="animate-pulse">—</span>
+            )}
           </dt>
           <dd className="flex items-center justify-center gap-1.5 font-medium dark:text-dark-6">
             <span className="inline-block size-2.5 rounded-full bg-[#F97316]" />

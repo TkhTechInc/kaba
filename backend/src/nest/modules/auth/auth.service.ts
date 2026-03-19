@@ -187,7 +187,7 @@ export class AuthService {
     return user;
   }
 
-  async signUpRequest(email: string): Promise<{ success: boolean; message: string }> {
+  async signUpRequest(email: string, acceptLanguage?: string): Promise<{ success: boolean; message: string; devCode?: string }> {
     const normalizedEmail = email.toLowerCase().trim();
     const existing = await this.userRepo.getByEmail(normalizedEmail);
     if (existing) {
@@ -197,15 +197,20 @@ export class AuthService {
     const code = this.otpService.generateCode();
     const ttlMinutes = this.config?.get<number>('otp.ttlMinutes') ?? parseInt(process.env['OTP_TTL_MINUTES'] || '10', 10);
     await this.emailVerificationRepo.save(normalizedEmail, code, ttlMinutes);
-    await this.emailService.sendVerificationCode(normalizedEmail, code);
+    const emailResult = await this.emailService.sendVerificationCode(normalizedEmail, code, acceptLanguage);
+
+    const message = emailResult.devCode
+      ? `SES sandbox: email not sent. Use this code: ${emailResult.devCode}`
+      : `Verification code sent to ${normalizedEmail}. Check your inbox.`;
 
     return {
       success: true,
-      message: `Verification code sent to ${normalizedEmail}. Check your inbox.`,
+      message,
+      ...(emailResult.devCode && { devCode: emailResult.devCode }),
     };
   }
 
-  async signUpVerify(email: string, code: string, password: string): Promise<AuthResult> {
+  async signUpVerify(email: string, code: string, password: string, acceptLanguage?: string): Promise<AuthResult> {
     const normalizedEmail = email.toLowerCase().trim();
     const record = await this.emailVerificationRepo.getLatest(normalizedEmail);
     if (!record || record.code !== code) {
@@ -239,6 +244,12 @@ export class AuthService {
     await this.ensureDefaultBusiness(userId);
 
     await this.auditAuth('register', userId, { method: 'email' });
+
+    const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
+    const dashboardUrl = frontendUrl.replace(/\/$/, '');
+    this.emailService.sendWelcome(normalizedEmail, { dashboardUrl }, acceptLanguage).catch((err) => {
+      console.error('[AuthService] sendWelcome failed:', err);
+    });
 
     const payload = { sub: userId, email: normalizedEmail, role: user.role, emailVerified: true };
     const accessToken = this.jwtService.sign(payload);
@@ -286,7 +297,7 @@ export class AuthService {
   /**
    * Invite activation: request OTP for email or phone. Validates token first.
    */
-  async inviteRequestOtp(token: string): Promise<{ success: boolean; message: string }> {
+  async inviteRequestOtp(token: string, acceptLanguage?: string): Promise<{ success: boolean; message: string }> {
     const data = await this.invitationService.getByToken(token);
     if (!data) {
       throw new BadRequestException('Invalid or expired invitation');
@@ -302,7 +313,7 @@ export class AuthService {
       const code = this.otpService.generateCode();
       const ttlMinutes = this.config?.get<number>('otp.ttlMinutes') ?? parseInt(process.env['OTP_TTL_MINUTES'] || '10', 10);
       await this.emailVerificationRepo.save(normalizedEmail, code, ttlMinutes);
-      await this.emailService.sendVerificationCode(normalizedEmail, code);
+      await this.emailService.sendVerificationCode(normalizedEmail, code, acceptLanguage);
       return { success: true, message: `Verification code sent to ${normalizedEmail}` };
     } else {
       const phone = emailOrPhone.trim();
@@ -317,7 +328,7 @@ export class AuthService {
   /**
    * Invite activation: verify OTP, create user with password, accept invitation, return JWT.
    */
-  async inviteVerify(input: { token: string; emailOrPhone: string; code: string; password: string }): Promise<AuthResult> {
+  async inviteVerify(input: { token: string; emailOrPhone: string; code: string; password: string }, acceptLanguage?: string): Promise<AuthResult> {
     const { token, emailOrPhone, code, password } = input;
     if (!token?.trim() || !emailOrPhone?.trim() || !code?.trim() || !password?.trim()) {
       throw new BadRequestException('token, emailOrPhone, code, and password are required');
@@ -400,6 +411,14 @@ export class AuthService {
 
     await this.auditAuth('register', userId, { method: 'invite' });
 
+    if (user.email) {
+      const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
+      const dashboardUrl = frontendUrl.replace(/\/$/, '');
+      this.emailService.sendWelcome(user.email, { userName: user.name, dashboardUrl }, acceptLanguage).catch((err) => {
+        console.error('[AuthService] sendWelcome (invite) failed:', err);
+      });
+    }
+
     const payload = user.email
       ? { sub: user.id, email: user.email, role: user.role, emailVerified: true }
       : { sub: user.id, phone: user.phone, role: user.role, phoneVerified: true };
@@ -419,7 +438,7 @@ export class AuthService {
   }
 
   /** Request password reset. Works for both email signup and OAuth users (Google/Facebook). */
-  async forgotPasswordRequest(email: string): Promise<{ success: boolean; message: string }> {
+  async forgotPasswordRequest(email: string, acceptLanguage?: string): Promise<{ success: boolean; message: string }> {
     const normalized = email.toLowerCase().trim();
     if (!normalized) {
       throw new BadRequestException('Email is required');
@@ -438,8 +457,8 @@ export class AuthService {
     await this.passwordResetRepo.save(token, normalized);
 
     const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
-    const resetLink = `${frontendUrl}/auth/reset-password?token=${token}`;
-    await this.emailService.sendPasswordResetLink(normalized, resetLink);
+    const resetLink = `${frontendUrl.replace(/\/$/, '')}/auth/reset-password?token=${token}`;
+    await this.emailService.sendPasswordResetLink(normalized, resetLink, acceptLanguage);
 
     return {
       success: true,
@@ -493,13 +512,19 @@ export class AuthService {
     const user = await this.userRepo.getByEmail(normalizedEmail);
     if (!user || !user.passwordHash) {
       await this.auditAuth('login.failed', normalizedEmail, { reason: 'user_not_found', method: 'email' }, true);
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException({
+        error: 'USER_NOT_FOUND',
+        message: 'No account found with this email. Sign up instead.',
+      });
     }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) {
       await this.auditAuth('login.failed', user.id, { reason: 'invalid_password', method: 'email' });
-      throw new UnauthorizedException('Invalid email or password');
+      throw new UnauthorizedException({
+        error: 'INVALID_PASSWORD',
+        message: 'Invalid email or password',
+      });
     }
 
     await this.ensureDefaultBusiness(user.id);
@@ -535,6 +560,7 @@ export class AuthService {
     email?: string,
     name?: string,
     picture?: string,
+    acceptLanguage?: string,
   ): Promise<AuthResult> {
     const userId = `${provider}_${providerId}`;
     let user = await this.userRepo.getByProviderId(provider, providerId);
@@ -574,6 +600,13 @@ export class AuthService {
 
     if (isNewUser) {
       await this.auditAuth('register', user.id, { method: provider });
+      if (user.email) {
+        const frontendUrl = this.config?.get<string>('oauth.frontendUrl') || process.env['FRONTEND_URL'] || 'http://localhost:3000';
+        const dashboardUrl = frontendUrl.replace(/\/$/, '');
+        this.emailService.sendWelcome(user.email, { userName: user.name ?? name, dashboardUrl }, acceptLanguage).catch((err) => {
+          console.error('[AuthService] sendWelcome (OAuth) failed:', err);
+        });
+      }
     } else {
       await this.auditAuth('login', user.id, { method: provider });
     }

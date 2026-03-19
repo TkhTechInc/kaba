@@ -124,8 +124,7 @@ export const NAV_DATA: NavSection[] = [
         icon: Icons.PieChart,
         url: "/reports",
         items: [
-          { title: "P&L", url: "/reports" },
-          { title: "Cash Flow", url: "/reports/cash-flow" },
+          { title: "P&L & Cash Flow", url: "/reports" },
           { title: "Tax / VAT", url: "/reports/tax" },
           { title: "Consolidated", url: "/reports/consolidated" },
         ],

@@ -75,7 +75,7 @@ export function createReportsApi(token: string | null) {
       URL.revokeObjectURL(a.href);
     },
 
-    getConsolidatedPL: (organizationId: string, fromDate: string, toDate: string) =>
+    getConsolidatedPL: (businessId: string, organizationId: string, fromDate: string, toDate: string) =>
       api.get<{
         organizationId: string;
         period: { start: string; end: string };
@@ -89,7 +89,7 @@ export function createReportsApi(token: string | null) {
           report: PLReport;
         }>;
       }>(
-        `/api/v1/reports/consolidated?organizationId=${encodeURIComponent(organizationId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
+        `/api/v1/reports/consolidated?businessId=${encodeURIComponent(businessId)}&organizationId=${encodeURIComponent(organizationId)}&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`,
         { token: token ?? undefined }
       ),
 

@@ -34,7 +34,7 @@ interface AuthContextValue {
   login: (phone: string, otp?: string, password?: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
-  signUpRequest: (email: string) => Promise<{ success: boolean; message: string }>;
+  signUpRequest: (email: string) => Promise<{ success: boolean; message: string; devCode?: string }>;
   signUpVerify: (email: string, code: string, password: string) => Promise<void>;
   inviteRequestOtp: (token: string) => Promise<{ success: boolean; message: string }>;
   inviteVerify: (token: string, emailOrPhone: string, code: string, password: string) => Promise<void>;
@@ -137,12 +137,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       const list = Array.isArray(res.data) ? res.data : [];
       setBusinesses(list);
-      const stored = typeof window !== "undefined" ? localStorage.getItem(BUSINESS_KEY) : null;
-      if (list.length && !stored) {
-        setBusinessIdState(list[0].businessId);
-        localStorage.setItem(BUSINESS_KEY, list[0].businessId);
-      } else if (list.length && stored && list.some((b) => b.businessId === stored)) {
-        setBusinessIdState(stored);
+      if (list.length) {
+        const stored = typeof window !== "undefined" ? localStorage.getItem(BUSINESS_KEY) : null;
+        const validStored = stored && list.some((b) => b.businessId === stored);
+        const toSet = validStored ? stored : list[0].businessId;
+        setBusinessIdState(toSet);
+        if (typeof window !== "undefined") {
+          localStorage.setItem(BUSINESS_KEY, toSet);
+        }
       }
     } catch {
       setBusinesses([]);
@@ -243,12 +245,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signUpRequest = useCallback(async (email: string) => {
-    const res = await apiPost<{ success: boolean; message: string }>(
+    const res = await apiPost<{ success: boolean; message: string; devCode?: string }>(
       "/api/v1/auth/sign-up/request",
       { email },
       { skip401Redirect: true }
     );
-    return res as { success: boolean; message: string };
+    return res as { success: boolean; message: string; devCode?: string };
   }, []);
 
   const signUpVerify = useCallback(

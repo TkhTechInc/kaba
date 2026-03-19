@@ -75,14 +75,20 @@ export async function confirmPlanKkiaPay(
   intentId: string,
   redirectStatus?: string
 ): Promise<{ success: boolean; businessId?: string; targetTier?: string }> {
-  const res = await apiPost<{ success: boolean; businessId?: string; targetTier?: string }>(
-    "/api/v1/plans/pay/confirm-kkiapay",
-    { token, transactionId, intentId, ...(redirectStatus && { redirectStatus }) },
-    { skip401Redirect: true }
-  );
-  return {
-    success: res?.success ?? false,
-    businessId: res?.businessId,
-    targetTier: res?.targetTier,
-  };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  try {
+    const res = await apiPost<{ success: boolean; businessId?: string; targetTier?: string }>(
+      "/api/v1/plans/pay/confirm-kkiapay",
+      { token, transactionId, intentId, ...(redirectStatus && { redirectStatus }) },
+      { skip401Redirect: true, signal: controller.signal }
+    );
+    return {
+      success: res?.success ?? false,
+      businessId: res?.businessId,
+      targetTier: res?.targetTier,
+    };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }

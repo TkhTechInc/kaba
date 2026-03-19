@@ -85,7 +85,6 @@ export class StorefrontPaymentService {
     const payConfig = await this.paymentsClient.getPayConfig(currency, business?.countryCode);
     let useKkiaPayWidget = payConfig.useKkiaPayWidget;
     const useMomoRequest = payConfig.useMomoRequest;
-    const forceKkiaPayUi = process.env['KKIAPAY_TEST_FORCE_UI'] === 'true';
     let intentId: string | undefined;
     if (useKkiaPayWidget) {
       const intent = await this.paymentsClient.createIntent({
@@ -105,9 +104,6 @@ export class StorefrontPaymentService {
       if (intent.success) {
         intentId = intent.intentId;
       }
-    }
-    if (forceKkiaPayUi && !intentId) {
-      intentId = `dev-kkiapay-${record.token}`;
     }
     useKkiaPayWidget = useKkiaPayWidget && !!intentId;
 

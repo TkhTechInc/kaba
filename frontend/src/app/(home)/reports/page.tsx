@@ -54,7 +54,7 @@ export default function ReportsPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load reports");
+        else setError(e instanceof Error ? e.message : t("errors.loadReports"));
       })
       .finally(() => setLoading(false));
   }, [businessId, dates.fromDate, dates.toDate]);
@@ -112,7 +112,7 @@ export default function ReportsPage() {
     return (
       <>
         <Breadcrumb pageName={t("reports.title")} />
-        <PermissionDenied resource="Reports" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.reports")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }
@@ -159,11 +159,11 @@ export default function ReportsPage() {
           {t("reports.loading")}
         </div>
       ) : (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
           {pl && (
-            <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
-              <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
-                <h3 className="font-semibold text-dark dark:text-white">
+            <div className="min-w-0 overflow-x-auto rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
+                <h3 className="min-w-0 shrink text-base font-semibold text-dark dark:text-white sm:text-lg">
                   {t("reports.pl.title", { startDate: pl.period?.start ?? pl.fromDate ?? "", endDate: pl.period?.end ?? pl.toDate ?? "" })}
                 </h3>
                 <button
@@ -171,13 +171,13 @@ export default function ReportsPage() {
                   onClick={handleDownloadPl}
                   disabled={!!downloading || !canDownloadPdf}
                   title={!canDownloadPdf ? t("reports.pl.upgradeToDownload") : undefined}
-                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                  className="shrink-0 rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 sm:px-4 sm:py-2"
                 >
                   {downloading === "pl" ? t("reports.pl.downloading") : t("reports.pl.download")}
                 </button>
               </div>
-              <div className="p-6">
-                <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
+              <div className="min-w-0 overflow-x-auto p-4 sm:p-6">
+                <div className="mb-6 grid grid-cols-2 gap-3 rounded-lg bg-gray-2 p-3 dark:bg-dark-2 sm:flex sm:flex-nowrap sm:items-center sm:justify-between sm:gap-4 sm:p-4">
                   <div>
                     <p className="text-sm text-dark-6">{t("reports.pl.totalIncome")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">
@@ -218,9 +218,9 @@ export default function ReportsPage() {
           )}
 
           {cashFlow && (
-            <div className="rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
-              <div className="flex items-center justify-between border-b border-stroke px-6 py-4 dark:border-dark-3">
-                <h3 className="font-semibold text-dark dark:text-white">
+            <div className="min-w-0 overflow-x-auto rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stroke px-4 py-3 sm:px-6 sm:py-4 dark:border-dark-3">
+                <h3 className="min-w-0 shrink text-base font-semibold text-dark dark:text-white sm:text-lg">
                   {t("reports.cashFlow.title", { startDate: cashFlow.period?.start ?? cashFlow.fromDate ?? "", endDate: cashFlow.period?.end ?? cashFlow.toDate ?? "" })}
                 </h3>
                 <button
@@ -228,13 +228,13 @@ export default function ReportsPage() {
                   onClick={handleDownloadCashFlow}
                   disabled={!!downloading || !canDownloadPdf}
                   title={!canDownloadPdf ? t("reports.cashFlow.upgradeToDownload") : undefined}
-                  className="rounded bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+                  className="shrink-0 rounded bg-primary px-3 py-1.5 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50 sm:px-4 sm:py-2"
                 >
                   {downloading === "cash" ? t("reports.cashFlow.downloading") : t("reports.cashFlow.download")}
                 </button>
               </div>
-              <div className="p-6">
-                <div className="mb-6 flex items-center justify-between gap-4 rounded-lg bg-gray-2 p-4 dark:bg-dark-2">
+              <div className="min-w-0 overflow-x-auto p-4 sm:p-6">
+                <div className="mb-6 grid grid-cols-2 gap-3 rounded-lg bg-gray-2 p-3 dark:bg-dark-2 sm:flex sm:flex-nowrap sm:items-center sm:justify-between sm:gap-4 sm:p-4">
                   <div>
                     <p className="text-sm text-dark-6">{t("reports.cashFlow.openingBalance")}</p>
                     <p className="text-lg font-semibold text-dark dark:text-white">

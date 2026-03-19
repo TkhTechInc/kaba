@@ -82,9 +82,9 @@ export default function TeamPage() {
     return (
       <div>
         <PermissionDenied
-          resource="Team Management"
+          resource={t("permissionDenied.resource.team")}
           backHref="/settings"
-          backLabel="Back to Settings"
+          backLabel={t("common.backToSettings")}
         />
       </div>
     );

@@ -116,7 +116,7 @@ export default function AdminUsagePage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Usage Dashboard
+        {t("admin.usage.title")}
       </h1>
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 p-4 text-red-700 dark:bg-red-900/20 dark:text-red-400">
@@ -142,14 +142,15 @@ export default function AdminUsagePage() {
         </label>
       </div>
       <div className="rounded-[10px] bg-white shadow-1 dark:bg-gray-dark dark:shadow-card">
-        <Table>
+        <div className="overflow-x-auto">
+          <Table className="min-w-[600px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Business ID</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Tier</TableHead>
-              <TableHead>AI Queries</TableHead>
-              <TableHead>Mobile Money Recon</TableHead>
+              <TableHead>{t("admin.usage.businessId")}</TableHead>
+              <TableHead>{t("admin.usage.name")}</TableHead>
+              <TableHead>{t("admin.usage.tier")}</TableHead>
+              <TableHead>{t("admin.usage.aiQueries")}</TableHead>
+              <TableHead>{t("admin.usage.mobileMoneyRecon")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -173,9 +174,10 @@ export default function AdminUsagePage() {
             ))}
           </TableBody>
         </Table>
+        </div>
         {items.length === 0 && !loading && (
           <p className="p-8 text-center text-dark-6 dark:text-dark-6">
-            No usage data found for this month.
+            {t("admin.usage.noDataFound")}
           </p>
         )}
         {data?.lastEvaluatedKey && (

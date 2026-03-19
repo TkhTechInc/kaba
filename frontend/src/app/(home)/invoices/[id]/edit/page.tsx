@@ -92,7 +92,7 @@ export default function InvoiceEditPage() {
     const qty = parseFloat(form.itemQty) || 1;
     const price = parseFloat(form.itemPrice) || 0;
     if (price <= 0) {
-      setError("Unit price must be greater than zero");
+      setError(t("invoiceEdit.unitPriceError"));
       return;
     }
     setError(null);
@@ -126,7 +126,7 @@ export default function InvoiceEditPage() {
     if (!businessId || !id || !form.customerId || form.items.length === 0) return;
     const total = form.items.reduce((s, i) => s + i.amount, 0);
     if (total <= 0) {
-      setError("Add at least one line item with a price greater than zero");
+      setError(t("invoiceEdit.addLineItemError"));
       return;
     }
     setSubmitting(true);
@@ -153,7 +153,7 @@ export default function InvoiceEditPage() {
   if (!businessId) {
     return (
       <>
-        <Breadcrumb pageName="Edit Invoice" />
+        <Breadcrumb pageName={t("invoiceEdit.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="text-dark-6">Select a business to edit invoices.</p>
         </div>
@@ -164,7 +164,7 @@ export default function InvoiceEditPage() {
   if (features.loading || loading) {
     return (
       <>
-        <Breadcrumb pageName="Edit Invoice" />
+        <Breadcrumb pageName={t("invoiceEdit.pageName")} />
         <div className="flex min-h-[200px] items-center justify-center rounded-lg border border-stroke bg-white dark:border-dark-3 dark:bg-gray-dark">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
@@ -175,9 +175,9 @@ export default function InvoiceEditPage() {
   if (!features.isEnabled("invoicing") || error) {
     return (
       <>
-        <Breadcrumb pageName="Edit Invoice" />
+        <Breadcrumb pageName={t("invoiceEdit.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
-          <p className="mb-4 text-dark-6">{error ?? "Invoicing is not available on your plan."}</p>
+          <p className="mb-4 text-dark-6">{error ?? t("invoiceNew.notAvailable")}</p>
           <Link href="/invoices" className="text-primary hover:underline">
             ← Back to Invoices
           </Link>
@@ -189,7 +189,7 @@ export default function InvoiceEditPage() {
   if (!invoice || (invoice.status !== "draft" && invoice.status !== "pending_approval")) {
     return (
       <>
-        <Breadcrumb pageName="Edit Invoice" />
+        <Breadcrumb pageName={t("invoiceEdit.pageName")} />
         <div className="rounded-lg border border-stroke bg-white p-6 dark:border-dark-3 dark:bg-gray-dark">
           <p className="mb-4 text-dark-6">This invoice cannot be edited.</p>
           <Link href={`/invoices/${id}`} className="text-primary hover:underline">
@@ -202,7 +202,7 @@ export default function InvoiceEditPage() {
 
   return (
     <>
-      <Breadcrumb pageName="Edit Invoice" />
+      <Breadcrumb pageName={t("invoiceEdit.pageName")} />
 
       <div className="mx-auto max-w-2xl">
         <form
@@ -226,7 +226,7 @@ export default function InvoiceEditPage() {
           <div className="space-y-4">
             <div>
               <label htmlFor="invoice-edit-customer" className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                Customer
+                {t("invoiceEdit.customerLabel")}
               </label>
               <CustomerSelect
                 id="invoice-edit-customer"
@@ -236,12 +236,12 @@ export default function InvoiceEditPage() {
                 onAddCustomer={(c) => setCustomers((prev) => [c, ...prev])}
                 createCustomer={(body) => api.createCustomer(body)}
                 businessId={businessId}
-                placeholder="Search or select customer"
+                placeholder={t("customerSelect.placeholder")}
               />
             </div>
             <div>
               <label className="mb-2 block text-body-sm font-medium text-dark dark:text-white">
-                Currency
+                {t("invoiceEdit.currencyLabel")}
               </label>
               <div className="flex items-center justify-between rounded-lg border border-stroke bg-gray-2 px-4 py-2.5 dark:border-dark-3 dark:bg-dark-2">
                 <span className="text-dark dark:text-white">{form.currency}</span>
@@ -249,7 +249,7 @@ export default function InvoiceEditPage() {
                   href="/settings/profile"
                   className="text-xs text-primary hover:underline"
                 >
-                  Change in settings
+                  {t("common.changeInSettings")}
                 </Link>
               </div>
             </div>

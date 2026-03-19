@@ -20,7 +20,6 @@ const NAV_ROUTES: { url: string; label: string }[] = [
   { url: "/suppliers", label: "Suppliers" },
   { url: "/products", label: "Products" },
   { url: "/reports", label: "Reports" },
-  { url: "/reports/cash-flow", label: "Reports Cash Flow" },
   { url: "/reports/tax", label: "Reports Tax" },
   { url: "/reports/consolidated", label: "Reports Consolidated" },
   { url: "/trust", label: "Trust Score" },

@@ -19,7 +19,8 @@ export function AuthCallbackContent({
     if (token) {
       completeOAuth(token)
         .then(() => {
-          // Small delay to ensure auth state is fully updated
+          // Redirect to dashboard — OnboardingGuard will redirect to /onboarding if needed.
+          // Returning users with completed onboarding go straight to dashboard (no onboarding flash).
           setTimeout(() => router.replace("/"), 100);
         })
         .catch(() => setError("Invalid token. Please try signing in again."));
@@ -27,7 +28,6 @@ export function AuthCallbackContent({
       checkAuthFromCookie()
         .then((ok) => {
           if (ok) {
-            // Small delay to ensure auth state is fully updated
             setTimeout(() => router.replace("/"), 100);
           } else {
             setError("No token received. Please try signing in again.");

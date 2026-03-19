@@ -2,6 +2,7 @@ import SignUpForm from "@/components/Auth/SignUpForm";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { Suspense } from "react";
 
 export const metadata: Metadata = {
   title: "Sign up",
@@ -22,7 +23,9 @@ export default function SignUpPage() {
         </p>
       </div>
 
-      <SignUpForm />
+      <Suspense fallback={<div className="h-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />}>
+        <SignUpForm />
+      </Suspense>
 
       <div className="mt-6 text-center">
         <p>

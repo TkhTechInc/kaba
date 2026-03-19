@@ -24,6 +24,8 @@ export interface AgentChatInput {
   scope: McpScope;
   channelUserId?: string;
   channelName?: 'whatsapp' | 'telegram';
+  /** User's preferred locale (e.g. "fr") so the AI responds in that language. */
+  locale?: string;
 }
 
 export interface AgentChatResponse {
@@ -56,13 +58,18 @@ function buildMemorySection(memory: AgentMemory | null): string {
   return `\nMERCHANT PREFERENCES (use this to auto-suggest):\n${parts.join('\n')}\n`;
 }
 
-function buildSystemPrompt(toolList: string, memory?: AgentMemory | null): string {
+function buildSystemPrompt(toolList: string, memory?: AgentMemory | null, locale?: string): string {
   const memorySection = buildMemorySection(memory ?? null);
+  const langHint = locale === 'fr'
+    ? 'LANGUAGE: The user prefers French. Respond in French.'
+    : locale && locale.startsWith('fr')
+      ? 'LANGUAGE: The user prefers French. Respond in French.'
+      : 'LANGUAGE: Respond in the same language the user writes in. Support English, French, and West African expressions.';
   return `You are Kaba AI, the AI CFO for West African small businesses.
 You help merchants track sales, expenses, invoices, debts, inventory, suppliers, and get financial insights.
 You are friendly, concise, and culturally aware. You operate across Francophone and Anglophone West Africa.
 
-LANGUAGE: Respond in the same language the user writes in. Support English, French, and West African expressions.
+${langHint}
 - "CFA" or "francs" = XOF currency
 - "Cedi" = GHS currency
 - "Naira" = NGN currency
@@ -150,7 +157,7 @@ export class AgentOrchestrator {
   }
 
   async chat(input: AgentChatInput): Promise<AgentChatResponse> {
-    const { sessionId: inputSessionId, message, businessId, userId, customerEmail, tier, scope, channelUserId, channelName } = input;
+    const { sessionId: inputSessionId, message, businessId, userId, customerEmail, tier, scope, channelUserId, channelName, locale } = input;
     const sessionId = inputSessionId || uuidv4();
 
     if (!this.featureService.isEnabled('mcp_agent_basic', tier)) {
@@ -183,7 +190,7 @@ export class AgentOrchestrator {
       .join('\n');
 
     const memory = await this.getMemory(businessId);
-    const systemPrompt = buildSystemPrompt(toolList, memory);
+    const systemPrompt = buildSystemPrompt(toolList, memory, locale);
     const toolsUsed: string[] = [];
     let finalMessage = '';
 

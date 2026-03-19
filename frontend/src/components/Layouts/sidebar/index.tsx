@@ -29,12 +29,15 @@ export function Sidebar() {
       ...section,
       items: section.items.filter((item) => {
         if (item.adminOnly && !auth?.isAdmin) return false;
-        if (item.featureKey && !features.isEnabled(item.featureKey)) return false;
+        if (item.featureKey) {
+          if (features.loading) return true;
+          if (!features.isEnabled(item.featureKey)) return false;
+        }
         if (item.permission && !permissions.hasPermission(item.permission as import("@/types/permissions").Permission)) return false;
         return true;
       }),
     })).filter((section) => section.items.length > 0);
-  }, [auth?.isAdmin, auth?.businessId, features.enabled, permissions.role]);
+  }, [auth?.isAdmin, auth?.businessId, features.enabled, features.loading, permissions.role]);
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? [] : [title]));

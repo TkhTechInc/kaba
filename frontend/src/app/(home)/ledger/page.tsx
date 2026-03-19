@@ -57,7 +57,7 @@ export default function LedgerPage() {
       })
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
-        else setError(e instanceof Error ? e.message : "Failed to load entries");
+        else setError(e instanceof Error ? e.message : t("errors.loadLedger"));
       })
       .finally(() => setLoading(false));
   }, [businessId, page, limit, typeFilter, dateRange]);
@@ -107,7 +107,7 @@ export default function LedgerPage() {
     return (
       <>
         <Breadcrumb pageName={t("ledger.title")} />
-        <PermissionDenied resource="Ledger" backHref="/" backLabel="Go to Dashboard" />
+        <PermissionDenied resource={t("permissionDenied.resource.ledger")} backHref="/" backLabel={t("common.goToDashboard")} />
       </>
     );
   }
@@ -277,7 +277,17 @@ export default function LedgerPage() {
                   ),
                 },
                 { key: "description", label: t("ledger.column.description"), render: (e) => e.description || "—" },
-                { key: "category", label: t("ledger.column.category"), render: (e) => e.category || "—" },
+                {
+                  key: "category",
+                  label: t("ledger.column.category"),
+                  render: (e) => {
+                    const cat = e.category || "";
+                    if (!cat) return "—";
+                    const key = `ledger.category.${cat}`;
+                    const translated = t(key);
+                    return translated !== key ? translated : cat;
+                  },
+                },
                 {
                   key: "amount",
                   label: t("ledger.column.amount"),

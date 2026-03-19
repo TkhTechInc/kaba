@@ -32,5 +32,5 @@ export function Price({
   as: Component = "span",
 }: PriceProps) {
   const formatted = formatPriceWithCurrency(amount, currency, suffix, decimals);
-  return <Component className={cn(className)}>{formatted}</Component>;
+  return <Component className={cn("tabular-nums", className)}>{formatted}</Component>;
 }

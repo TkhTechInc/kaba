@@ -41,11 +41,11 @@ export default function ConsolidatedReportPage() {
 
   const handleLoad = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orgId.trim()) return;
+    if (!businessId || !orgId.trim()) return;
     setLoading(true);
     setError(null);
     api
-      .getConsolidatedPL(orgId.trim(), fromDate, toDate)
+      .getConsolidatedPL(businessId, orgId.trim(), fromDate, toDate)
       .then((r) => setReport(r.data))
       .catch((e: unknown) => {
         if (e instanceof ApiError && e.status === 403) setForbidden(true);
@@ -92,7 +92,7 @@ export default function ConsolidatedReportPage() {
     return (
       <div className="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
         <Breadcrumb pageName={t("reports.consolidated.breadcrumb")} />
-        <PermissionDenied resource="Consolidated Reports" backHref="/reports" backLabel="Back to Reports" />
+        <PermissionDenied resource={t("permissionDenied.resource.consolidatedReports")} backHref="/reports" backLabel={t("common.backToReports")} />
       </div>
     );
   }

@@ -4,7 +4,7 @@ import { EmailIcon, LockIcon } from "@/assets/icons8";
 import { useAuth } from "@/contexts/auth-context";
 import InputGroup from "@/components/FormElements/InputGroup";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState, useRef, useEffect } from "react";
 
 function friendlyError(raw: string): { message: string; suggestion?: React.ReactNode } {
@@ -69,8 +69,14 @@ function ErrorAlert({ message, suggestion }: AlertProps) {
 export default function SignUpForm() {
   const { signUpRequest, signUpVerify } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const emailFromUrl = searchParams.get("email") ?? "";
   const [step, setStep] = useState<"email" | "verify">("email");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(emailFromUrl);
+
+  useEffect(() => {
+    if (emailFromUrl && step === "email") setEmail(emailFromUrl);
+  }, [emailFromUrl, step]);
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -98,6 +104,7 @@ export default function SignUpForm() {
     try {
       const res = await signUpRequest(email);
       setSuccessMessage(res.message);
+      if (res.devCode) setCode(res.devCode);
       setStep("verify");
     } catch (err) {
       const raw = err instanceof Error ? err.message : typeof err === "string" ? err : "Failed to send verification code";

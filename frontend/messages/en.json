@@ -20,8 +20,8 @@
     "products": "Products",
     "reports": "Reports",
     "reportsSub": {
-      "pl": "P&L",
-      "cashFlow": "Cash Flow",
+      "pLCFL": "P&L & Cash Flow",
+      "plCashFlow": "P&L & Cash Flow",
       "taxVat": "Tax / VAT",
       "consolidated": "Consolidated"
     },
@@ -71,7 +71,31 @@
     }
   },
   "auth": {
-    "loginFailed": "Login failed"
+    "loginFailed": "Login failed",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "email": "Email",
+    "password": "Password",
+    "verificationCode": "Verification code",
+    "confirmPassword": "Confirm password",
+    "enterEmail": "Enter your email",
+    "enterPassword": "Enter your password",
+    "enterVerificationCode": "Enter the 6-digit code from your email",
+    "passwordMinLength": "At least 8 characters",
+    "reenterPassword": "Re-enter your password",
+    "rememberMe": "Remember me",
+    "createAccount": "Verify & create account",
+    "creatingAccount": "Creating account…",
+    "sendCode": "Send verification code",
+    "sendingCode": "Sending code…",
+    "requestCode": "Request verification code",
+    "invalidToken": "Invalid token. Please try signing in again.",
+    "noToken": "No token received. Please try signing in again.",
+    "signInFailed": "Sign-in failed. Please try again.",
+    "somethingWentWrong": "Something went wrong",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordMinError": "Password must be at least 8 characters",
+    "failedSendCode": "Failed to send verification code"
   },
   "pay": {
     "requestFailed": "Request failed",
@@ -100,7 +124,15 @@
     "noBusinessSelected": "Select a business to continue.",
     "loadError": "Unable to load data.",
     "loadMore": "Load more",
-    "actions": "Actions"
+    "actions": "Actions",
+    "yes": "Yes",
+    "no": "No",
+    "close": "Close",
+    "backToSettings": "Back to Settings",
+    "goToDashboard": "Go to Dashboard",
+    "backToReports": "Back to Reports",
+    "backToInvoices": "Back to Invoices",
+    "changeInSettings": "Change in settings"
   },
   "dashboard": {
     "errorBanner": {
@@ -131,7 +163,10 @@
       "loadError": "Unable to load payments overview.",
       "noData": "No data yet. Add ledger entries or invoices.",
       "receivedAmount": "Received Amount",
-      "dueAmount": "Due Amount"
+      "dueAmount": "Due Amount",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "timePeriod": "Time Period"
     },
     "weeksProfit": {
       "title": "Profit {timeFrame}",
@@ -157,7 +192,7 @@
       "view": "View"
     },
     "debtsToCollect": {
-      "title": "People who owe me",
+      "title": "Outstanding receivables",
       "viewAll": "View all →",
       "noPending": "No pending debts.",
       "addDebt": "Add a debt",
@@ -203,6 +238,25 @@
     "upgradeToDownload": "Upgrade to download PDF",
     "search": "Search invoices…",
     "noResults": "No invoices match your search."
+  },
+  "customerSelect": {
+    "placeholder": "Search or select customer",
+    "addNew": "+ Add new",
+    "addNewCustomer": "Add new customer",
+    "name": "Name",
+    "emailOptional": "Email (optional)",
+    "phoneOptional": "Phone (optional)",
+    "addAndSelect": "Add & select",
+    "adding": "Adding…",
+    "cancel": "Cancel",
+    "nameRequired": "Name is required.",
+    "emailInvalid": "Please enter a valid email address when provided.",
+    "createdNotSelected": "Customer was created but could not be selected. Please refresh and try again.",
+    "invalidResponse": "Invalid customer response from server",
+    "failedAdd": "Failed to add customer",
+    "noMatches": "No matches. Add a new customer?",
+    "noCustomersYet": "No customers yet.",
+    "showingFirst50": "Type to narrow down. Showing first 50."
   },
   "customers": {
     "title": "Customers",
@@ -269,6 +323,21 @@
     "type": {
       "sale": "↑ Sale",
       "expense": "↓ Expense"
+    },
+    "category": {
+      "supplier_payment": "Supplier payment",
+      "Sales": "Sales",
+      "Services": "Services",
+      "Supplies": "Supplies",
+      "Transport": "Transport",
+      "Utilities": "Utilities",
+      "Salaries": "Salaries",
+      "Marketing": "Marketing",
+      "Rent": "Rent",
+      "Food": "Food",
+      "Refunds": "Refunds",
+      "Mobile Money": "Mobile Money",
+      "Other": "Other"
     }
   },
   "reports": {
@@ -357,6 +426,9 @@
       "updating": "Updating…",
       "updateFailed": "Failed to update plan",
       "perMonth": " / month",
+      "mostPopular": "Most popular",
+      "customPlanQuestion": "Need a custom plan? ",
+      "contactUs": "Contact us",
       "tiers": {
         "free": {
           "name": "Free",
@@ -703,11 +775,22 @@
     "pageOf": "Page {page} of {total}"
   },
   "invoiceEdit": {
+    "pageName": "Edit Invoice",
     "unitPrice": "Unit price",
     "qty": "Qty",
     "addLineItem": "+ Add line item",
     "saving": "Saving...",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "dueDate": "Due Date",
+    "percentOff": "% off",
+    "days": "Days",
+    "description": "Description",
+    "unitPriceError": "Unit price must be greater than zero",
+    "addLineItemError": "Add at least one line item with a price greater than zero",
+    "customerLabel": "Customer",
+    "currencyLabel": "Currency",
+    "cannotEdit": "This invoice cannot be edited.",
+    "backToInvoice": "← Back to Invoice"
   },
   "invoiceNew": {
     "pageName": "Create Invoice",
@@ -773,7 +856,7 @@
     "subtitle": "Add a customer to create invoices and track payments.",
     "nameLabel": "Name",
     "namePlaceholder": "Customer name",
-    "emailLabel": "Email",
+    "emailLabel": "Email (optional)",
     "emailPlaceholder": "Email address",
     "emailError": "Please enter a valid email address.",
     "phoneLabel": "Phone",
@@ -811,6 +894,55 @@
     },
     "viewInLedger": "View in Ledger →"
   },
+  "upgradePrompt": {
+    "featureNotAvailable": "{feature} is not available on your plan",
+    "upgradeBody": "Upgrade your plan to access this feature, or contact your admin for assistance.",
+    "upgradeButton": "Upgrade"
+  },
+  "aiChat": {
+    "title": "Kaba AI",
+    "subtitle": "Ask me about your business",
+    "openLabel": "Open Kaba AI",
+    "closeLabel": "Close Kaba AI",
+    "greeting": "Hi! I'm Kaba AI. Ask me about your balance, invoices, debts, or anything about your business.",
+    "placeholder": "Ask about your business...",
+    "clear": "Clear",
+    "clearTitle": "Clear conversation",
+    "error": "Something went wrong. Please try again.",
+    "suggestions": {
+      "checkBalance": "Check my balance",
+      "listUnpaidInvoices": "List unpaid invoices",
+      "whoOwesMe": "Who owes me money?",
+      "monthlyProfit": "Monthly profit report"
+    }
+  },
+  "invoiceDetail": {
+    "pageName": "Invoice",
+    "apiKeyError": "Invalid or missing API key. Payment service may not be configured. Contact support.",
+    "paymentLinkErrorUnavailable": "We couldn't create the payment link. Please try again later or contact support.",
+    "paymentLinkErrorPaid": "This invoice is already paid.",
+    "paymentLinkErrorCancelled": "This invoice has been cancelled.",
+    "customerNoPhone": "Customer has no phone number. Add a phone number in the customer profile to share invoices via WhatsApp.",
+    "customerNoPhoneLink": "Add phone in customer profile",
+    "whatsappSent": "Invoice sent directly to customer via WhatsApp.",
+    "paymentLinkLabel": "Payment link (copy and share):",
+    "paymentLinkModalCopyClose": "Copy & close",
+    "paymentLinkModalOpen": "Open link",
+    "paymentLinkModalClose": "Close",
+    "customer": "Customer",
+    "status": "Status",
+    "dueDate": "Due Date",
+    "currency": "Currency",
+    "lineItems": "Line items",
+    "total": "Total",
+    "shareViaWhatsApp": "Share via WhatsApp",
+    "sendToCustomer": "Send to customer",
+    "openWhatsApp": "Open WhatsApp…",
+    "upgradeToPro": "Upgrade to Pro…",
+    "pendingApproval": "Pending Approval",
+    "notFound": "Invoice not found",
+    "failedGetWhatsApp": "Failed to get WhatsApp link"
+  },
   "tax": {
     "pageName": "Tax / VAT",
     "noBusinessSelected": "Select a business to view tax reports.",
@@ -842,7 +974,8 @@
     "shareLink": {
       "title": "Share link",
       "subtitle": "Anyone with this link can view your trust badge.",
-      "copy": "Copy"
+      "copy": "Copy",
+      "copied": "Copied"
     },
     "breakdown": {
       "repaymentVelocity": "Repayment velocity",
@@ -850,6 +983,12 @@
       "momoReconciliation": "MoMo reconciliation",
       "customerRetention": "Customer retention",
       "networkDiversity": "Network diversity"
+    },
+    "recommendation": {
+      "excellent": "Excellent",
+      "good": "Good",
+      "fair": "Fair",
+      "poor": "Poor"
     }
   },
   "profile": {
@@ -1064,6 +1203,33 @@
       "pay": "Failed to record payment"
     }
   },
+  "permissionDenied": {
+    "title": "You don't have access to {resource}",
+    "accessDenied": "Access denied",
+    "hint": "Your current role or plan doesn't include this feature. Contact your workspace owner or upgrade your plan.",
+    "viewPlans": "View plans",
+    "backToSettings": "Back to Settings",
+    "goToDashboard": "Go to Dashboard",
+    "backToReports": "Back to Reports",
+    "backToInvoices": "Back to Invoices",
+    "resource": {
+      "customers": "Customers",
+      "invoices": "Invoices",
+      "products": "Products",
+      "debts": "Debts",
+      "ledger": "Ledger",
+      "reports": "Reports",
+      "trustScore": "Trust Score",
+      "reconciliation": "Mobile Money Reconciliation",
+      "team": "Team Management",
+      "activityLog": "Activity Log",
+      "webhooks": "Webhooks",
+      "apiKeys": "API Keys",
+      "taxReports": "Tax Reports",
+      "consolidatedReports": "Consolidated Reports",
+      "pendingApprovals": "Pending Approvals"
+    }
+  },
   "dateFilter": {
     "button": "Filter by date",
     "label": "Date range",
@@ -1080,6 +1246,84 @@
       "last3Months": "Last 3 months",
       "thisYear": "This year"
     }
+  },
+  "admin": {
+    "title": "Admin",
+    "backToApp": "Back to App",
+    "sidebar": {
+      "dashboard": "Dashboard",
+      "health": "Health",
+      "receipts": "Receipts",
+      "metrics": "Metrics",
+      "usage": "Usage",
+      "activity": "Activity",
+      "auditLogs": "Audit Logs",
+      "leakageReport": "Leakage Report",
+      "aiQuery": "AI Query",
+      "businesses": "Businesses",
+      "debts": "Debts",
+      "users": "Users",
+      "features": "Features"
+    },
+    "users": {
+      "createUser": "Create user",
+      "creating": "Creating…",
+      "deleting": "Deleting…",
+      "confirm": "Confirm",
+      "loadMore": "Load more",
+      "loading": "Loading…",
+      "failedLoad": "Failed to load users",
+      "failedCreate": "Failed to create user",
+      "user": "User",
+      "admin": "Admin",
+      "id": "ID",
+      "phone": "Phone",
+      "email": "Email",
+      "role": "Role",
+      "actions": "Actions",
+      "otpHint": "User receives OTP via SMS or dev console"
+    },
+    "features": {
+      "saving": "Saving...",
+      "save": "Save",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "auditLogs": {
+      "loading": "Loading...",
+      "search": "Search",
+      "businessId": "Business ID",
+      "time": "Time",
+      "entity": "Entity",
+      "action": "Action",
+      "business": "Business",
+      "user": "User"
+    },
+    "ai": {
+      "placeholder": "e.g. How many businesses do we have? What's the total invoice count?",
+      "querying": "Querying...",
+      "ask": "Ask"
+    }
+  },
+  "profile": {
+    "pageName": "Profile",
+    "editProfile": "Edit Profile",
+    "enterName": "Enter your name",
+    "failedSave": "Failed to save profile"
+  },
+  "errors": {
+    "loadCustomers": "Failed to load customers",
+    "loadInvoices": "Failed to load invoices",
+    "loadProducts": "Failed to load products",
+    "loadReports": "Failed to load reports",
+    "loadTaxReport": "Failed to load tax report",
+    "loadLedger": "Failed to load entries",
+    "loadPreferences": "Failed to load preferences",
+    "savePreferences": "Failed to save preferences",
+    "loadTrustScore": "Failed to load trust score",
+    "trustScoreTimeout": "Loading trust score timed out. Please refresh.",
+    "reconcile": "Failed to reconcile",
+    "loadDebts": "Failed to load debts"
   },
   "voice": {
     "recordTransaction": "Record transaction"
@@ -1100,6 +1344,9 @@
     "terminal": "POS Terminal",
     "waitingForPayment": "Waiting for payment…",
     "clientScansQr": "Customer scans the QR code to pay via Mobile Money",
+    "shareViaWhatsApp": "Share via WhatsApp",
+    "copyLink": "Copy link",
+    "linkCopied": "Link copied",
     "or": "or"
   },
   "onboarding": {

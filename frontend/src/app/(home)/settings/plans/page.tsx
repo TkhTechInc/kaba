@@ -129,6 +129,52 @@ export default function PlansPage() {
   const currentTier = (tier ?? "free") as Tier;
   const currentIdx = tierIndex(currentTier);
 
+  if (loading) {
+    return (
+      <div>
+        <div className="mb-6 flex items-center gap-2 text-sm text-dark-4 dark:text-dark-6">
+          <Link href="/settings" className="hover:text-primary">
+            {t("settings.nav.plans")}
+          </Link>
+          <span>/</span>
+          <span className="text-dark dark:text-white">{t("settings.plans.title")}</span>
+        </div>
+        <h1 className="mb-1 text-heading-4 font-bold text-dark dark:text-white">
+          {t("settings.plans.title")}
+        </h1>
+        <p className="mb-6 text-sm text-dark-4 dark:text-dark-6">
+          {t("settings.plans.currentPlan")} <span className="inline-block h-4 w-24 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+        </p>
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-dark"
+            >
+              <div className="mb-2 h-5 w-24 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+              <div className="mb-4 h-8 w-16 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+              <ul className="mb-6 flex-1 space-y-2">
+                {[1, 2, 3].map((j) => (
+                  <li key={j} className="flex items-start gap-2">
+                    <span className="h-4 w-4 shrink-0 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+                    <span className="h-4 flex-1 animate-pulse rounded bg-gray-200 dark:bg-dark-3" />
+                  </li>
+                ))}
+              </ul>
+              <div className="h-10 w-full animate-pulse rounded-lg bg-gray-200 dark:bg-dark-3" />
+            </div>
+          ))}
+        </div>
+        <p className="mt-8 text-center text-sm text-dark-4 dark:text-dark-6">
+          {t("settings.plans.customPlanQuestion")}
+          <a href="mailto:support@kabasika.com" className="text-primary underline">
+            {t("settings.plans.contactUs")}
+          </a>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -137,7 +183,7 @@ export default function PlansPage() {
           {t("settings.nav.plans")}
         </Link>
         <span>/</span>
-        <span className="text-dark dark:text-white">Plans</span>
+        <span className="text-dark dark:text-white">{t("settings.plans.title")}</span>
       </div>
 
       <h1 className="mb-1 text-heading-4 font-bold text-dark dark:text-white">
@@ -218,7 +264,7 @@ export default function PlansPage() {
             >
               {plan.highlight && !isCurrent && (
                 <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-0.5 text-xs font-semibold text-white">
-                  Most popular
+                  {t("settings.plans.mostPopular")}
                 </span>
               )}
 
@@ -282,9 +328,9 @@ export default function PlansPage() {
       </div>
 
       <p className="mt-8 text-center text-sm text-dark-4 dark:text-dark-6">
-        Need a custom plan?{" "}
+        {t("settings.plans.customPlanQuestion")}
         <a href="mailto:support@kabasika.com" className="text-primary underline">
-          Contact us
+          {t("settings.plans.contactUs")}
         </a>
       </p>
     </div>

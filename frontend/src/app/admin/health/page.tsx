@@ -1,11 +1,13 @@
 "use client";
 
 import { useAuth } from "@/contexts/auth-context";
+import { useLocale } from "@/contexts/locale-context";
 import { createAdminApi } from "@/services/admin.service";
 import { useEffect, useState } from "react";
 import type { AdminHealth } from "@/services/admin.service";
 
 export default function AdminHealthPage() {
+  const { t } = useLocale();
   const { token } = useAuth();
   const [data, setData] = useState<AdminHealth | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,12 +59,12 @@ export default function AdminHealthPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-dark dark:text-white">
-        Health
+        {t("admin.health.title")}
       </h1>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
           <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-            Status
+            {t("admin.health.status")}
           </p>
           <span
             className={`mt-2 inline-block rounded-full px-3 py-1 text-sm font-medium capitalize ${statusColor}`}
@@ -72,7 +74,7 @@ export default function AdminHealthPage() {
         </div>
         <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card sm:col-span-2">
           <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-            Last checked
+            {t("admin.health.lastChecked")}
           </p>
           <p className="mt-2 text-lg font-medium text-dark dark:text-white">
             {data?.timestamp ? formatTimestamp(data.timestamp) : "—"}
@@ -80,13 +82,13 @@ export default function AdminHealthPage() {
         </div>
         <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
           <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-            DynamoDB
+            {t("admin.health.dynamodb")}
           </p>
           <p className="mt-2 text-lg font-medium text-dark dark:text-white">
             {data?.dynamodb?.ok ? (
-              <span className="text-green-600 dark:text-green-400">OK</span>
+              <span className="text-green-600 dark:text-green-400">{t("admin.health.ok")}</span>
             ) : (
-              <span className="text-red-600 dark:text-red-400">Degraded</span>
+              <span className="text-red-600 dark:text-red-400">{t("admin.health.degraded")}</span>
             )}
           </p>
           {data?.dynamodb?.latencyMs != null && (
@@ -98,13 +100,13 @@ export default function AdminHealthPage() {
         {data?.s3?.configured && (
           <div className="rounded-[10px] bg-white p-6 shadow-1 dark:bg-gray-dark dark:shadow-card">
             <p className="text-sm font-medium text-dark-6 dark:text-dark-6">
-              S3
+              {t("admin.health.s3")}
             </p>
             <p className="mt-2 text-lg font-medium text-dark dark:text-white">
               {data.s3.ok === true ? (
-                <span className="text-green-600 dark:text-green-400">OK</span>
+                <span className="text-green-600 dark:text-green-400">{t("admin.health.ok")}</span>
               ) : data.s3.ok === false ? (
-                <span className="text-red-600 dark:text-red-400">Degraded</span>
+                <span className="text-red-600 dark:text-red-400">{t("admin.health.degraded")}</span>
               ) : (
                 <span className="text-dark-6 dark:text-dark-6">—</span>
               )}

@@ -80,6 +80,12 @@ export interface EnvironmentConfig {
   paymentsSnsTopicArn?: string;
   /** KkiaPay public key for widget (returned in plan pay data). Set via -c kkiapayPublicKey=... or GitHub secret. */
   kkiapayPublicKey?: string;
+  /** Email (verification, welcome, password reset, invitations). Uses AWS SES. */
+  email?: {
+    enabled: boolean;
+    from?: string;
+    region?: string;
+  };
 }
 
 export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
@@ -123,6 +129,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       visionModel: 'qwen/qwen3-vl-235b-a22b-instruct',
       embeddingModel: 'qwen/qwen3-embedding-8b',
     },
+    email: { enabled: true, from: 'noreply@tkhtech.com', region: 'ca-central-1' },
   },
   staging: {
     name: 'Staging',
@@ -161,6 +168,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
       visionModel: 'qwen/qwen3-vl-235b-a22b-instruct',
       embeddingModel: 'qwen/qwen3-embedding-8b',
     },
+    email: { enabled: true, from: 'noreply@kabasika.com', region: 'af-south-1' },
   },
   prod: {
     name: 'Production',
@@ -188,6 +196,7 @@ export const ENVIRONMENTS: Record<string, EnvironmentConfig> = {
     paymentsServiceUrl: undefined,
     tkhPaymentsApiKey: undefined,
     paymentsSnsTopicArn: undefined,
+    email: { enabled: true, from: 'noreply@kabasika.com', region: 'af-south-1' },
   },
 };
 

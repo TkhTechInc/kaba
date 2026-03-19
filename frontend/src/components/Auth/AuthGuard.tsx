@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 
 const PUBLIC_PATHS = ["/auth/sign-in", "/auth/sign-up", "/auth/forgot-password", "/auth/reset-password", "/auth/callback", "/pay"];
+const TOKEN_KEY = "qb_auth_token";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
   const auth = useAuthOptional();
@@ -23,6 +24,22 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   // router excluded — not stable in Next.js App Router
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isLoading, isPublic, pathname]);
+
+  // When page is restored from bfcache (back button), React state can be stale.
+  // Re-check localStorage and redirect to sign-in if on protected route with no token.
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (!e.persisted) return;
+      const hasToken = typeof window !== "undefined" && !!localStorage.getItem(TOKEN_KEY);
+      const path = typeof window !== "undefined" ? window.location.pathname : "";
+      const publicPath = PUBLIC_PATHS.some((p) => path.startsWith(p));
+      if (!publicPath && !hasToken) {
+        router.replace("/auth/sign-in");
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [router]);
 
   if (isLoading) {
     return (

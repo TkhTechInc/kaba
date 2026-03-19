@@ -43,6 +43,7 @@ export async function offlineMutation<T = unknown>(
     method,
     headers,
     body: JSON.stringify(body),
+    credentials: "include",
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as {

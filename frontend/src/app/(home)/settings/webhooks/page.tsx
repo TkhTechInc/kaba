@@ -60,10 +60,10 @@ export default function WebhooksPage() {
   if (!canRead || forbidden) {
     return (
       <PermissionDenied
-        resource="Webhooks"
+        resource={t("permissionDenied.resource.webhooks")}
         hint={forbidden ? undefined : t("webhooks.noPermission")}
         backHref="/settings"
-        backLabel="Back to Settings"
+        backLabel={t("common.backToSettings")}
       />
     );
   }

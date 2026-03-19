@@ -58,6 +58,7 @@ function makeServiceWithMocks() {
     getById: jest.fn(),
     update: jest.fn(),
     updateStatus: jest.fn(),
+    updateStatusWithPaymentIntent: jest.fn(),
     listAllByBusiness: jest.fn(),
     listByBusiness: jest.fn(),
     listByBusinessAndStatus: jest.fn(),
@@ -291,13 +292,18 @@ describe('InvoiceService', () => {
       const paidInvoice = { ...invoice, status: 'paid' as InvoiceStatus };
 
       invoiceRepository.getById.mockResolvedValue(invoice);
-      invoiceRepository.updateStatus.mockResolvedValue(paidInvoice);
+      invoiceRepository.updateStatusWithPaymentIntent.mockResolvedValue(paidInvoice);
       webhookService.emit.mockReturnValue(undefined);
 
       const result = await service.markPaidFromWebhook('biz-sn-001', 'inv-abc-001');
 
       expect(result?.status).toBe('paid');
-      expect(invoiceRepository.updateStatus).toHaveBeenCalledWith('biz-sn-001', 'inv-abc-001', 'paid');
+      expect(invoiceRepository.updateStatusWithPaymentIntent).toHaveBeenCalledWith(
+        'biz-sn-001',
+        'inv-abc-001',
+        'paid',
+        undefined,
+      );
     });
 
     it('emits invoice.paid webhook after marking paid', async () => {
@@ -307,7 +313,7 @@ describe('InvoiceService', () => {
       const paidInvoice = { ...invoice, status: 'paid' as InvoiceStatus };
 
       invoiceRepository.getById.mockResolvedValue(invoice);
-      invoiceRepository.updateStatus.mockResolvedValue(paidInvoice);
+      invoiceRepository.updateStatusWithPaymentIntent.mockResolvedValue(paidInvoice);
 
       await service.markPaidFromWebhook('biz-sn-001', 'inv-abc-001');
 
@@ -327,7 +333,7 @@ describe('InvoiceService', () => {
       const result = await service.markPaidFromWebhook('biz-sn-001', 'inv-abc-001');
 
       expect(result?.status).toBe('paid');
-      expect(invoiceRepository.updateStatus).not.toHaveBeenCalled();
+      expect(invoiceRepository.updateStatusWithPaymentIntent).not.toHaveBeenCalled();
     });
 
     it('returns null for empty invoiceId', async () => {
