@@ -31,7 +31,10 @@ cdk deploy -c environment=dev -c apiUrl=https://api.dev.example.com -c frontendU
 2. **API Gateway custom domain**: Map the custom domain to your REST API stage.
 3. **GitHub secrets** (per environment):
    - `NEXT_PUBLIC_API_URL` — must match the real API domain (e.g. `https://api.dev.kabasika.com`)
-   - `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY`, `NEXT_PUBLIC_KKIAPAY_SANDBOX` — for payments (frontend build + backend Lambda via CDK context)
+   - **KkiaPay** (dev vs prod use different keys):
+     - **Dev**: `KKIAPAY_SANDBOX_PUBLIC_KEY` = sandbox public key from [KkiaPay sandbox](https://app.kkiapay.me). Fallback: `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY`.
+     - **Prod**: `NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY` = live public key from KkiaPay.
+     - Dev uses `sandbox: true`, prod uses `sandbox: false`. Key and sandbox flag must match or KkiaPay shows "Your API key is incorrect".
 4. **Google OAuth**: Add redirect URI `https://api.<env>.kabasika.com/api/v1/auth/google/callback` in Google Console.
 
 ## Validation

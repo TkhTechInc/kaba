@@ -58,14 +58,15 @@ jobs:
         working-directory: frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
-          NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
+          # Dev uses sandbox key: KKIAPAY_SANDBOX_PUBLIC_KEY if set, else NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY
+          NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY: ${{ secrets.KKIAPAY_SANDBOX_PUBLIC_KEY || secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
           NEXT_PUBLIC_KKIAPAY_SANDBOX: "true"
 
       - name: Deploy to dev
         run: npm run cdk:deploy
         working-directory: backend
         env:
-          CDK_CONTEXT_kkiapayPublicKey: ${{ secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
+          CDK_CONTEXT_kkiapayPublicKey: ${{ secrets.KKIAPAY_SANDBOX_PUBLIC_KEY || secrets.NEXT_PUBLIC_KKIAPAY_PUBLIC_KEY }}
 
       - name: Post-deploy health check (dev)
         run: |
