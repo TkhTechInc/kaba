@@ -24,6 +24,20 @@ export interface LedgerEntry {
   forexGainLoss?: number;
   /** Supplier ID when entry is a supplier payment (type=expense, category=supplier_payment). */
   supplierId?: string;
+  /** Accounting category for OHADA chart of accounts. */
+  accountingCategory?: string;
+  /** Debit entries for double-entry bookkeeping. */
+  debits?: Array<{ account: string; amount: number }>;
+  /** Credit entries for double-entry bookkeeping. */
+  credits?: Array<{ account: string; amount: number }>;
+  /** Metadata for reversing entries and audit trail. */
+  metadata?: {
+    reversalOf?: string;
+    reversalReason?: string;
+    reversedAt?: string;
+    reversedBy?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface CreateLedgerEntryInput {
@@ -43,4 +57,18 @@ export interface CreateLedgerEntryInput {
   supplierId?: string;
   /** When true, skip ledger limit check (e.g. for system-generated entries from invoice payment). */
   skipLimitCheck?: boolean;
+  /** Accounting category for OHADA chart of accounts. */
+  accountingCategory?: string;
+  /** Debit entries for double-entry bookkeeping. */
+  debits?: Array<{ account: string; amount: number }>;
+  /** Credit entries for double-entry bookkeeping. */
+  credits?: Array<{ account: string; amount: number }>;
+  /** Metadata for reversing entries and audit trail. */
+  metadata?: {
+    reversalOf?: string;
+    reversalReason?: string;
+    reversedAt?: string;
+    reversedBy?: string;
+    [key: string]: unknown;
+  };
 }

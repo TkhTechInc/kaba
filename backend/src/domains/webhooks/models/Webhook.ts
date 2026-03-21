@@ -1,6 +1,7 @@
 export type WebhookEvent =
   | 'ledger.entry.created'
   | 'ledger.entry.deleted'
+  | 'ledger.entry.reversed'
   | 'invoice.paid'
   | 'invoice.refunded'
   | 'invoice.created'
