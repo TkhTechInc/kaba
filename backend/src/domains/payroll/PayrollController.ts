@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PayrollService } from './services/PayrollService';
 import { PayrollReportService } from './services/PayrollReportService';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -75,6 +76,7 @@ export class PayrollController {
   }
 
   @Post('pay-runs')
+  @Throttle({ expensive: { limit: 5, ttl: 60000 } })
   @RequirePermission('ledger:write')
   async createPayRun(
     @Query('businessId') businessId: string,
@@ -86,6 +88,7 @@ export class PayrollController {
   }
 
   @Post('pay-runs/:id/finalize')
+  @Throttle({ expensive: { limit: 5, ttl: 60000 } })
   @RequirePermission('ledger:write')
   async finalizePayRun(
     @Query('businessId') businessId: string,
@@ -97,6 +100,7 @@ export class PayrollController {
   }
 
   @Post('pay-runs/:id/pay')
+  @Throttle({ expensive: { limit: 5, ttl: 60000 } })
   @RequirePermission('ledger:write')
   async payPayRun(
     @Query('businessId') businessId: string,

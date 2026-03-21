@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 type SVGPropsType = SVGProps<SVGSVGElement>;
 
-export function Views(props: SVGPropsType) {
+export const Views = memo(function Views(props: SVGPropsType) {
   return (
     <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
       <circle cx={29} cy={29} r={29} fill="#3FD97F" />
@@ -18,9 +18,9 @@ export function Views(props: SVGPropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Profit(props: SVGPropsType) {
+export const Profit = memo(function Profit(props: SVGPropsType) {
   return (
     <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
       <circle cx={29} cy={29} r={29} fill="#FF9C55" />
@@ -32,9 +32,9 @@ export function Profit(props: SVGPropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Product(props: SVGPropsType) {
+export const Product = memo(function Product(props: SVGPropsType) {
   return (
     <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
       <circle cx={29} cy={29} r={29} fill="#8155FF" />
@@ -44,9 +44,9 @@ export function Product(props: SVGPropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Users(props: SVGPropsType) {
+export const Users = memo(function Users(props: SVGPropsType) {
   return (
     <svg width={58} height={58} viewBox="0 0 58 58" fill="none" {...props}>
       <circle cx={29} cy={29} r={29} fill="#18BFFF" />
@@ -70,4 +70,4 @@ export function Users(props: SVGPropsType) {
       />
     </svg>
   );
-}
+});

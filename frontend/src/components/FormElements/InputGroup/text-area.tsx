@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { useId } from "react";
+import { useId, memo } from "react";
 
 interface PropsType {
   label: string;
@@ -12,7 +12,7 @@ interface PropsType {
   defaultValue?: string;
 }
 
-export function TextAreaGroup({
+export const TextAreaGroup = memo(function TextAreaGroup({
   label,
   placeholder,
   required,
@@ -52,4 +52,7 @@ export function TextAreaGroup({
       </div>
     </div>
   );
-}
+}, (prev, next) => {
+  return prev.defaultValue === next.defaultValue &&
+         prev.disabled === next.disabled;
+});

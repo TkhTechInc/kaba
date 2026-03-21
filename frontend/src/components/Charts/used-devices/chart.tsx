@@ -3,6 +3,7 @@
 import { compactFormat } from "@/lib/format-number";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { memo } from "react";
 
 type PropsType = {
   data: { name: string; amount: number }[];
@@ -14,7 +15,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function DonutChart({ data, centerLabel = "Visitors" }: PropsType) {
+export const DonutChart = memo(function DonutChart({ data, centerLabel = "Visitors" }: PropsType) {
   const chartOptions: ApexOptions = {
     chart: {
       type: "donut",
@@ -96,4 +97,4 @@ export function DonutChart({ data, centerLabel = "Visitors" }: PropsType) {
       type="donut"
     />
   );
-}
+}, (prev, next) => JSON.stringify(prev.data) === JSON.stringify(next.data));

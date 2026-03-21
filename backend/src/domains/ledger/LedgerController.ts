@@ -116,6 +116,32 @@ export class LedgerController {
     return { success: true, data: { lockedPeriods: periods } };
   }
 
+  /**
+   * Create a reversing entry for OHADA compliance.
+   * Required for correcting entries in locked periods.
+   */
+  @Post('entries/:id/reverse')
+  @RequirePermission('ledger:write')
+  async reverseEntry(
+    @Param('id') id: string,
+    @Body() body: { businessId: string; reason: string },
+    @AuditUserId() userId?: string,
+    @AuditIpAddress() ipAddress?: string,
+    @AuditUserAgent() userAgent?: string,
+  ) {
+    if (!userId) {
+      return { success: false, error: 'Authentication required' };
+    }
+    const entry = await this.ledgerService.createReversingEntry(
+      body.businessId,
+      id,
+      userId,
+      body.reason,
+      { ipAddress, userAgent },
+    );
+    return { success: true, data: entry };
+  }
+
   @Delete('entries/:id')
   @RequirePermission('ledger:delete')
   async softDeleteEntry(

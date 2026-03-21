@@ -1,6 +1,6 @@
 import type { IconProps } from "@/types/icon-props";
 
-export function MenuIcon(props: IconProps) {
+export const MenuIcon = memo(function MenuIcon(props: IconProps) {
   return (
     <svg
       width="25"
@@ -14,4 +14,4 @@ export function MenuIcon(props: IconProps) {
       <path d="M4.3125 11.25C3.89829 11.25 3.5625 11.5858 3.5625 12C3.5625 12.4142 3.89829 12.75 4.3125 12.75L20.3125 12.75C20.7267 12.75 21.0625 12.4142 21.0625 12C21.0625 11.5858 20.7267 11.25 20.3125 11.25L4.3125 11.25Z" />
     </svg>
   );
-}
+});

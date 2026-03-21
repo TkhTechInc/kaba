@@ -2,7 +2,7 @@ import React from "react";
 
 export type PropsType = React.SVGProps<SVGSVGElement>;
 
-export function CameraIcon(props: PropsType) {
+export const CameraIcon = memo(function CameraIcon(props: PropsType) {
   return (
     <svg
       width="18"
@@ -18,9 +18,9 @@ export function CameraIcon(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function FacebookIcon(props: PropsType) {
+export const FacebookIcon = memo(function FacebookIcon(props: PropsType) {
   return (
     <svg
       width="22"
@@ -39,9 +39,9 @@ export function FacebookIcon(props: PropsType) {
       </defs>
     </svg>
   );
-}
+});
 
-export function XIcon(props: PropsType) {
+export const XIcon = memo(function XIcon(props: PropsType) {
   return (
     <svg
       className="fill-current"
@@ -58,9 +58,9 @@ export function XIcon(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function LinkedInIcon(props: PropsType) {
+export const LinkedInIcon = memo(function LinkedInIcon(props: PropsType) {
   return (
     <svg
       width="23"
@@ -84,9 +84,9 @@ export function LinkedInIcon(props: PropsType) {
       </defs>
     </svg>
   );
-}
+});
 
-export function DribbleIcon(props: PropsType) {
+export const DribbleIcon = memo(function DribbleIcon(props: PropsType) {
   return (
     <svg
       width="22"
@@ -105,9 +105,9 @@ export function DribbleIcon(props: PropsType) {
       </defs>
     </svg>
   );
-}
+});
 
-export function GitHubIcon(props: PropsType) {
+export const GitHubIcon = memo(function GitHubIcon(props: PropsType) {
   return (
     <svg
       width="23"
@@ -131,4 +131,4 @@ export function GitHubIcon(props: PropsType) {
       </defs>
     </svg>
   );
-}
+});

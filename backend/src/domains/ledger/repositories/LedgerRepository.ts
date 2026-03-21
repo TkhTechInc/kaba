@@ -9,6 +9,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { LedgerEntry, CreateLedgerEntryInput } from '../models/LedgerEntry';
 import { DatabaseError } from '@/shared/errors/DomainError';
+import { QueryTooLargeError } from '@/domains/mcp/errors/McpErrors';
 import { v4 as uuidv4 } from 'uuid';
 
 const ENTITY_TYPE = 'LEDGER';
@@ -169,26 +170,47 @@ export class LedgerRepository {
         ...(Object.keys(expressionAttributeNames).length > 0 && { ExpressionAttributeNames: expressionAttributeNames }),
       };
 
-      // Always fetch all matching items, sort by date desc (newest first), then paginate.
-      // DynamoDB sort key is LEDGER#<uuid> (random), so we must sort in-app by date.
-      const allItems: LedgerEntry[] = [];
-      let lastKey: Record<string, unknown> | undefined = exclusiveStartKey;
-      do {
-        const result = await this.docClient.send(
-          new QueryCommand({ ...baseParams, ...(lastKey && { ExclusiveStartKey: lastKey }) })
-        );
-        allItems.push(...(result.Items ?? []).map((item) => this.mapFromDynamoDB(item)));
-        lastKey = result.LastEvaluatedKey;
-      } while (lastKey);
+      // Use GSI for date-sorted queries instead of loading everything
+      // Circuit breaker: prevent queries that would scan too many items
+      const maxItems = 10000;
 
-      allItems.sort((a, b) => {
-        const dateCmp = b.date.localeCompare(a.date);
-        if (dateCmp !== 0) return dateCmp;
-        return (b.createdAt ?? '').localeCompare(a.createdAt ?? '');
-      });
-      const total = allItems.length;
-      const start = (pageNum - 1) * limitNum;
-      return { items: allItems.slice(start, start + limitNum), total, page: pageNum, limit: limitNum };
+      const result = await this.docClient.send(
+        new QueryCommand({
+          ...baseParams,
+          IndexName: 'businessId-createdAt-index',
+          KeyConditionExpression: 'pk = :pk',
+          ExpressionAttributeValues: {
+            ':pk': businessId,
+            ...(baseParams.FilterExpression && baseParams.ExpressionAttributeValues
+              ? Object.fromEntries(
+                  Object.entries(baseParams.ExpressionAttributeValues).filter(([k]) => k !== ':pk')
+                )
+              : {}),
+          },
+          Limit: limitNum,
+          ScanIndexForward: false, // Newest first
+          ...(exclusiveStartKey && { ExclusiveStartKey: exclusiveStartKey }),
+        })
+      );
+
+      const itemCount = result.Items?.length ?? 0;
+      if (itemCount >= maxItems) {
+        throw new QueryTooLargeError(
+          itemCount,
+          maxItems,
+          'Please use date range filters to narrow your search.'
+        );
+      }
+
+      const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
+
+      return {
+        items,
+        total: items.length,
+        page: pageNum,
+        limit: limitNum,
+        lastEvaluatedKey: result.LastEvaluatedKey,
+      };
     } catch (e) {
       throw new DatabaseError('List ledger entries failed', e);
     }
@@ -460,12 +482,12 @@ export class LedgerRepository {
 
   async listWithCursor(
     businessId: string,
-    limit: number = 20,
+    limit: number = 50,
     cursor?: string,
     type?: 'sale' | 'expense',
     fromDate?: string,
     toDate?: string,
-  ): Promise<{ items: LedgerEntry[]; nextCursor: string | null; hasMore: boolean }> {
+  ): Promise<{ items: LedgerEntry[]; nextCursor?: string; hasMore: boolean }> {
     const exclusiveStartKey = cursor
       ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
       : undefined;
@@ -508,7 +530,7 @@ export class LedgerRepository {
 
     const nextCursor = result.LastEvaluatedKey
       ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
-      : null;
+      : undefined;
 
     return {
       items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),

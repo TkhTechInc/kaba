@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { memo } from "react";
 
 type PropsType = {
   data: {
@@ -14,7 +15,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function CampaignVisitorsChart({ data }: PropsType) {
+export const CampaignVisitorsChart = memo(function CampaignVisitorsChart({ data }: PropsType) {
   const options: ApexOptions = {
     colors: ["#FF8C00"],
     chart: {
@@ -87,4 +88,6 @@ export function CampaignVisitorsChart({ data }: PropsType) {
       />
     </div>
   );
-}
+}, (prev, next) => {
+  return JSON.stringify(prev.data) === JSON.stringify(next.data);
+});

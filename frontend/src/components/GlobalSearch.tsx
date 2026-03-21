@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SearchIcon } from "@/assets/icons8";
@@ -10,7 +10,7 @@ import { useGlobalSearch, type SearchResult, type SearchResultKind } from "@/hoo
 
 // ─── kind → icon ────────────────────────────────────────────────────────────
 
-function KindIcon({ kind }: { kind: SearchResultKind }) {
+const KindIcon = memo(function KindIcon({ kind }: { kind: SearchResultKind }) {
   const cls = "h-4 w-4 shrink-0";
   if (kind === "invoice")
     return (
@@ -38,7 +38,7 @@ function KindIcon({ kind }: { kind: SearchResultKind }) {
       <path d="M10 6v4l3 3" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
-}
+});
 
 const KIND_COLORS: Record<SearchResultKind, string> = {
   invoice: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",

@@ -1,4 +1,5 @@
 import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ReconciliationService } from './services/ReconciliationService';
 import { BankStatementImportService } from './services/BankStatementImportService';
 import { MobileMoneyReconDto } from './dto/mobile-money-recon.dto';
@@ -32,6 +33,7 @@ export class ReconciliationController {
   }
 
   @Post('import-csv/preview')
+  @Throttle({ expensive: { limit: 5, ttl: 60000 } })
   @Feature('mobile_money_recon')
   @RequirePermission('ledger:write')
   async importCsvPreview(@Body() dto: BankStatementImportDto) {
@@ -44,6 +46,7 @@ export class ReconciliationController {
   }
 
   @Post('import-csv')
+  @Throttle({ expensive: { limit: 5, ttl: 60000 } })
   @Feature('mobile_money_recon')
   @RequirePermission('ledger:write')
   async importCsv(@Body() dto: BankStatementImportDto, @AuditUserId() userId?: string) {

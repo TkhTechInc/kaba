@@ -1,8 +1,8 @@
-import { SVGProps } from "react";
+import { SVGProps, memo } from "react";
 
 export type PropsType = SVGProps<SVGSVGElement>;
 
-export function ChevronUp(props: PropsType) {
+export const ChevronUp = memo(function ChevronUp(props: PropsType) {
   return (
     <svg
       width={16}
@@ -18,9 +18,9 @@ export function ChevronUp(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function HomeIcon(props: PropsType) {
+export const HomeIcon = memo(function HomeIcon(props: PropsType) {
   return (
     <svg
       width={24}
@@ -37,9 +37,9 @@ export function HomeIcon(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Calendar(props: PropsType) {
+export const Calendar = memo(function Calendar(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -61,9 +61,9 @@ export function Calendar(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function User(props: PropsType) {
+export const User = memo(function User(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -81,9 +81,9 @@ export function User(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Alphabet(props: PropsType) {
+export const Alphabet = memo(function Alphabet(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -101,9 +101,9 @@ export function Alphabet(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Table(props: PropsType) {
+export const Table = memo(function Table(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -120,9 +120,9 @@ export function Table(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function ChartBarIcon(props: PropsType) {
+export const ChartBarIcon = memo(function ChartBarIcon(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -140,9 +140,9 @@ export function ChartBarIcon(props: PropsType) {
       <path d="M7 16v-5M12 16v-9M17 16v-2" />
     </svg>
   );
-}
+});
 
-export function PieChart(props: PropsType) {
+export const PieChart = memo(function PieChart(props: PropsType) {
   return (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
       <path
@@ -157,9 +157,9 @@ export function PieChart(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function FourCircle(props: PropsType) {
+export const FourCircle = memo(function FourCircle(props: PropsType) {
   return (
     <svg width={24} height={24} viewBox="0 0 24 24" fill="none" {...props}>
       <path
@@ -170,9 +170,9 @@ export function FourCircle(props: PropsType) {
       />
     </svg>
   );
-}
+});
 
-export function Authentication(props: PropsType) {
+export const Authentication = memo(function Authentication(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -186,9 +186,9 @@ export function Authentication(props: PropsType) {
       <path d="M2.001 11.249a.75.75 0 000 1.5h11.973l-1.961 1.68a.75.75 0 10.976 1.14l3.5-3a.75.75 0 000-1.14l-3.5-3a.75.75 0 00-.976 1.14l1.96 1.68H2.002z" />
     </svg>
   );
-}
+});
 
-export function ReceiptIcon(props: PropsType) {
+export const ReceiptIcon = memo(function ReceiptIcon(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -206,9 +206,9 @@ export function ReceiptIcon(props: PropsType) {
       <path d="M16 8H8M16 12H8M16 16H8" />
     </svg>
   );
-}
+});
 
-export function DocumentIcon(props: PropsType) {
+export const DocumentIcon = memo(function DocumentIcon(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -226,9 +226,9 @@ export function DocumentIcon(props: PropsType) {
       <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
     </svg>
   );
-}
+});
 
-export function SettingsIcon(props: PropsType) {
+export const SettingsIcon = memo(function SettingsIcon(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -246,9 +246,9 @@ export function SettingsIcon(props: PropsType) {
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
-}
+});
 
-export function ShieldIcon(props: PropsType) {
+export const ShieldIcon = memo(function ShieldIcon(props: PropsType) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -265,9 +265,9 @@ export function ShieldIcon(props: PropsType) {
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
-}
+});
 
-export function ArrowLeftIcon(props: PropsType) {
+export const ArrowLeftIcon = memo(function ArrowLeftIcon(props: PropsType) {
   return (
     <svg
       width="18"
@@ -284,4 +284,4 @@ export function ArrowLeftIcon(props: PropsType) {
       />
     </svg>
   );
-}
+});

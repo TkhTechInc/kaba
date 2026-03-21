@@ -2,6 +2,7 @@
 
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { memo } from "react";
 
 type PropsType = {
   data: {
@@ -14,7 +15,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function WeeksProfitChart({ data }: PropsType) {
+export const WeeksProfitChart = memo(function WeeksProfitChart({ data }: PropsType) {
   const options: ApexOptions = {
     colors: ["#FF8C00", "#F43F5E"],
     chart: {
@@ -110,4 +111,4 @@ export function WeeksProfitChart({ data }: PropsType) {
       />
     </div>
   );
-}
+}, (prev, next) => JSON.stringify(prev.data) === JSON.stringify(next.data));

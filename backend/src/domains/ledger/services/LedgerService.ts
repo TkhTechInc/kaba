@@ -329,6 +329,75 @@ export class LedgerService {
     }
   }
 
+  /**
+   * Create a reversing entry for OHADA compliance.
+   * Swaps debits/credits to cancel out the original entry.
+   */
+  async createReversingEntry(
+    businessId: string,
+    originalEntryId: string,
+    userId: string,
+    reason: string,
+    auditContext?: { ipAddress?: string; userAgent?: string },
+  ): Promise<LedgerEntry> {
+    // 1. Validate original entry exists and not deleted
+    const original = await this.ledgerRepository.getById(businessId, originalEntryId);
+    if (!original) {
+      throw new NotFoundError('LedgerEntry', originalEntryId);
+    }
+    if (original.deletedAt) {
+      throw new ValidationError('Cannot reverse a deleted entry');
+    }
+
+    // 2. Check period not locked
+    const entryPeriod = original.date.slice(0, 7); // YYYY-MM
+    const lockedPeriods = await this.businessRepo.getLockedPeriods(businessId);
+    if (lockedPeriods.includes(entryPeriod)) {
+      throw new ValidationError(
+        `Cannot reverse entry in locked period (${entryPeriod})`
+      );
+    }
+
+    // 3. Prevent double-reversal
+    if (original.metadata?.reversalOf) {
+      throw new ValidationError(
+        'Cannot reverse a reversal entry. Reverse the original entry instead.'
+      );
+    }
+
+    // 4. Create reversed entry (swap debits/credits)
+    const reversedEntry: CreateLedgerEntryInput = {
+      businessId,
+      type: original.type,
+      amount: original.amount,
+      currency: original.currency,
+      description: `REVERSAL: ${original.description} (Reason: ${reason})`,
+      date: original.date,
+      category: original.category,
+      accountingCategory: original.accountingCategory,
+      debits: original.credits, // Swap
+      credits: original.debits,  // Swap
+      metadata: {
+        ...original.metadata,
+        reversalOf: originalEntryId,
+        reversalReason: reason,
+        reversedAt: new Date().toISOString(),
+        reversedBy: userId,
+      },
+    };
+
+    const created = await this.createEntry(reversedEntry, userId, auditContext);
+
+    this.webhookService.emit(businessId, 'ledger.entry.reversed', {
+      originalEntryId,
+      reversingEntryId: created.id,
+      reason,
+      userId,
+    });
+
+    return created;
+  }
+
   async listWithCursor(
     businessId: string,
     limit: number = 20,

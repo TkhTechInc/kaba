@@ -2,7 +2,7 @@
 
 import { VisibilityIcon, VisibilityOffIcon } from "@/assets/icons8";
 import { cn } from "@/lib/utils";
-import { type HTMLInputTypeAttribute, useId, useState } from "react";
+import { type HTMLInputTypeAttribute, useId, useState, memo } from "react";
 import { TTSButton } from "@/components/A11y/TTSButton";
 
 type InputGroupProps = {
@@ -35,7 +35,7 @@ type InputGroupProps = {
   showPasswordToggle?: boolean;
 };
 
-const InputGroup: React.FC<InputGroupProps> = ({
+const InputGroup: React.FC<InputGroupProps> = memo(function InputGroup({
   className,
   label,
   type,
@@ -127,7 +127,11 @@ const InputGroup: React.FC<InputGroupProps> = ({
       )}
     </div>
   );
-};
+}, (prev, next) => {
+  return prev.value === next.value &&
+         prev.error === next.error &&
+         prev.disabled === next.disabled;
+});
 
 export default InputGroup;
 

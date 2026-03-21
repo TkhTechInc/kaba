@@ -8,6 +8,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Product, CreateProductInput, UpdateProductInput } from '../models/Product';
 import { DatabaseError, ValidationError } from '@/shared/errors/DomainError';
+import { ConcurrentModificationError } from '@/domains/mcp/errors/McpErrors';
 import { v4 as uuidv4 } from 'uuid';
 
 const SK_PREFIX = 'PRODUCT#';
@@ -40,6 +41,7 @@ export class ProductRepository {
       lowStockThreshold: input.lowStockThreshold,
       createdAt: now,
       updatedAt: now,
+      version: 1,
     };
 
     const item = this.mapToDynamoDB(product);
@@ -163,9 +165,16 @@ export class ProductRepository {
     if (updates.length === 0) return existing;
 
     const now = new Date().toISOString();
+    const newVersion = existing.version + 1;
+
     updates.push('#ua = :updatedAt');
     exprNames['#ua'] = 'updatedAt';
     exprValues[':updatedAt'] = now;
+
+    updates.push('#v = :newVersion');
+    exprNames['#v'] = 'version';
+    exprValues[':newVersion'] = newVersion;
+    exprValues[':currentVersion'] = existing.version;
 
     try {
       await this.docClient.send(
@@ -176,14 +185,18 @@ export class ProductRepository {
             sk: `${SK_PREFIX}${id}`,
           },
           UpdateExpression: `SET ${updates.join(', ')}`,
+          ConditionExpression: '#v = :currentVersion',
           ExpressionAttributeNames: exprNames,
           ExpressionAttributeValues: exprValues,
         })
       );
 
-      return { ...existing, ...input, updatedAt: now };
-    } catch (e) {
-      throw new DatabaseError('Update product failed', e);
+      return { ...existing, ...input, updatedAt: now, version: newVersion };
+    } catch (error: unknown) {
+      if ((error as { name?: string }).name === 'ConditionalCheckFailedException') {
+        throw new ConcurrentModificationError('Product', id, existing.version);
+      }
+      throw new DatabaseError('Update product failed', error);
     }
   }
 
@@ -251,9 +264,9 @@ export class ProductRepository {
 
   async listWithCursor(
     businessId: string,
-    limit: number = 20,
+    limit: number = 50,
     cursor?: string,
-  ): Promise<{ items: Product[]; nextCursor: string | null; hasMore: boolean }> {
+  ): Promise<{ items: Product[]; nextCursor?: string; hasMore: boolean }> {
     const exclusiveStartKey = cursor
       ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
       : undefined;
@@ -274,7 +287,7 @@ export class ProductRepository {
 
     const nextCursor = result.LastEvaluatedKey
       ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
-      : null;
+      : undefined;
 
     return {
       items: (result.Items ?? []).map((item) => this.mapFromDynamoDB(item)),
@@ -316,6 +329,7 @@ export class ProductRepository {
       quantityInStock: product.quantityInStock,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
+      version: product.version,
       ...(product.brand != null && { brand: product.brand }),
       ...(product.lowStockThreshold != null && { lowStockThreshold: product.lowStockThreshold }),
     };
@@ -333,6 +347,7 @@ export class ProductRepository {
       lowStockThreshold: item.lowStockThreshold != null ? Number(item.lowStockThreshold) : undefined,
       createdAt: item.createdAt as string,
       updatedAt: item.updatedAt as string,
+      version: (item.version as number) ?? 1,
     };
   }
 }

@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Res, UseGuards, ForbiddenException } from '@nestjs/common';
 import { Response } from 'express';
+import { Throttle } from '@nestjs/throttler';
 import { ReportService } from './ReportService';
 import { ReportCsvService } from './ReportCsvService';
 import { PdfExportService } from './PdfExportService';
@@ -47,6 +48,7 @@ export class ReportController {
   }
 
   @Get('pl.csv')
+  @Throttle({ export: { limit: 10, ttl: 60000 } })
   @Feature('reports')
   @RequirePermission('reports:read')
   async getPLCsv(@Query() query: ReportQueryDto, @Res() res: Response) {
@@ -62,6 +64,7 @@ export class ReportController {
   }
 
   @Get('pl/pdf')
+  @Throttle({ export: { limit: 10, ttl: 60000 } })
   @Feature('reports_pdf')
   @RequirePermission('reports:read')
   async getPLPdf(@Query() query: ReportQueryDto, @Res() res: Response) {
@@ -117,6 +120,7 @@ export class ReportController {
   }
 
   @Get('balance-sheet.csv')
+  @Throttle({ export: { limit: 10, ttl: 60000 } })
   @Feature('reports')
   @RequirePermission('reports:read')
   async getBalanceSheetCsv(@Query() query: BalanceSheetQueryDto, @Res() res: Response) {
@@ -131,6 +135,7 @@ export class ReportController {
   }
 
   @Get('cash-flow.csv')
+  @Throttle({ export: { limit: 10, ttl: 60000 } })
   @Feature('reports')
   @RequirePermission('reports:read')
   async getCashFlowCsv(@Query() query: ReportQueryDto, @Res() res: Response) {
@@ -146,6 +151,7 @@ export class ReportController {
   }
 
   @Get('cash-flow/pdf')
+  @Throttle({ export: { limit: 10, ttl: 60000 } })
   @Feature('reports_pdf')
   @RequirePermission('reports:read')
   async getCashFlowPdf(@Query() query: ReportQueryDto, @Res() res: Response) {

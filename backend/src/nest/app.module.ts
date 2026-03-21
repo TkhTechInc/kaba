@@ -62,7 +62,12 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
 @Module({
   imports: [
     AppConfigModule,
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 200 }]),
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60000, limit: 200 },
+      { name: 'export', ttl: 60000, limit: 10 },
+      { name: 'expensive', ttl: 60000, limit: 5 },
+      { name: 'bulk', ttl: 60000, limit: 3 },
+    ]),
     AuthModule,
     DynamoDBModule,
     FeaturesModule,

@@ -174,6 +174,42 @@ export class InvoiceRepository {
     }
   }
 
+  async markPaidWithTimestamp(
+    businessId: string,
+    invoiceId: string,
+    paymentIntentId?: string,
+  ): Promise<Invoice | null> {
+    const now = new Date().toISOString();
+
+    try {
+      const result = await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { pk: businessId, sk: `${SK_PREFIX}${invoiceId}` },
+          UpdateExpression: 'SET #status = :paid, #paidAt = :paidAt' +
+            (paymentIntentId ? ', paymentIntentId = :pid' : ''),
+          ConditionExpression: '#status IN (:pending, :sent)',
+          ExpressionAttributeNames: {
+            '#status': 'status',
+            '#paidAt': 'paidAt',
+          },
+          ExpressionAttributeValues: {
+            ':paid': 'paid',
+            ':paidAt': now,
+            ':pending': 'pending',
+            ':sent': 'sent',
+            ...(paymentIntentId && { ':pid': paymentIntentId }),
+          },
+          ReturnValues: 'ALL_NEW',
+        })
+      );
+
+      return result.Attributes ? this.mapFromDynamoDB(result.Attributes) : null;
+    } catch (e) {
+      throw new DatabaseError('Mark invoice paid failed', e);
+    }
+  }
+
   /** List all invoices for a business (for compliance export, includes soft-deleted). */
   async listAllByBusiness(businessId: string): Promise<Invoice[]> {
     const items: Invoice[] = [];
@@ -332,7 +368,7 @@ export class InvoiceRepository {
   async listByBusinessAndStatus(
     businessId: string,
     status: InvoiceStatus,
-    limit = 20,
+    limit = 50,
     exclusiveStartKey?: Record<string, unknown>
   ): Promise<{ items: Invoice[]; lastEvaluatedKey?: Record<string, unknown> }> {
     try {
@@ -512,11 +548,11 @@ export class InvoiceRepository {
 
   async listWithCursor(
     businessId: string,
-    limit: number = 20,
+    limit: number = 50,
     cursor?: string,
     fromDate?: string,
     toDate?: string,
-  ): Promise<{ items: Invoice[]; nextCursor: string | null; hasMore: boolean }> {
+  ): Promise<{ items: Invoice[]; nextCursor?: string; hasMore: boolean }> {
     const exclusiveStartKey = cursor
       ? (JSON.parse(Buffer.from(cursor, 'base64url').toString('utf-8')) as Record<string, unknown>)
       : undefined;
@@ -551,7 +587,7 @@ export class InvoiceRepository {
 
     const nextCursor = result.LastEvaluatedKey
       ? Buffer.from(JSON.stringify(result.LastEvaluatedKey)).toString('base64url')
-      : null;
+      : undefined;
 
     const items = (result.Items ?? []).map((item) => this.mapFromDynamoDB(item));
     items.sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
@@ -608,6 +644,7 @@ export class InvoiceRepository {
       ...(invoice.mecefQrCode != null && { mecefQrCode: invoice.mecefQrCode }),
       ...(invoice.mecefSerialNumber != null && { mecefSerialNumber: invoice.mecefSerialNumber }),
       ...(invoice.paymentIntentId != null && { paymentIntentId: invoice.paymentIntentId }),
+      ...(invoice.paidAt != null && { paidAt: invoice.paidAt }),
     };
   }
 
@@ -639,6 +676,7 @@ export class InvoiceRepository {
       mecefQrCode: item.mecefQrCode != null ? String(item.mecefQrCode) : undefined,
       mecefSerialNumber: item.mecefSerialNumber != null ? String(item.mecefSerialNumber) : undefined,
       paymentIntentId: item.paymentIntentId != null ? String(item.paymentIntentId) : undefined,
+      paidAt: item.paidAt != null ? String(item.paidAt) : undefined,
     };
   }
 }

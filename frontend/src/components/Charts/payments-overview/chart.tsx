@@ -3,6 +3,7 @@
 import { useIsMobile } from "@/hooks/use-mobile";
 import type { ApexOptions } from "apexcharts";
 import dynamic from "next/dynamic";
+import { memo } from "react";
 
 type PropsType = {
   data: {
@@ -15,7 +16,7 @@ const Chart = dynamic(() => import("react-apexcharts"), {
   ssr: false,
 });
 
-export function PaymentsOverviewChart({ data }: PropsType) {
+export const PaymentsOverviewChart = memo(function PaymentsOverviewChart({ data }: PropsType) {
   const isMobile = useIsMobile();
 
   const options: ApexOptions = {
@@ -113,4 +114,4 @@ export function PaymentsOverviewChart({ data }: PropsType) {
       />
     </div>
   );
-}
+}, (prev, next) => JSON.stringify(prev.data) === JSON.stringify(next.data));
