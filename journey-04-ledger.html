@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ledger Journey - Kaba Mobile</title>
+    <style>
+        :root {
+            --primary: #5750F1;
+            --stroke: #E6EBF1;
+            --dark: #111928;
+            --green: #22AD5C;
+            --red: #F23030;
+            --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.12);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --text-primary: #111928;
+            --text-secondary: #6B7280;
+            --border-color: #E6EBF1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #F3F4F6;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+
+        .screen-grid {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .screen {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 393px;
+            height: 852px;
+            margin: 0 auto;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .screen-label {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .screen-content {
+            background: var(--bg-secondary);
+            min-height: 100%;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            padding: var(--space-6) var(--space-4);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Balance Card */
+        .balance-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #4641d1 100%);
+            margin: var(--space-4);
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            color: white;
+        }
+
+        .balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: var(--space-2);
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: var(--space-4);
+        }
+
+        .balance-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-4);
+        }
+
+        .balance-stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .balance-stat-value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: var(--space-2);
+            padding: var(--space-4);
+            overflow-x: auto;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Transaction List */
+        .transaction-list {
+            padding: 0 var(--space-4) var(--space-4);
+        }
+
+        .date-group {
+            margin-bottom: var(--space-5);
+        }
+
+        .date-header {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--space-3);
+        }
+
+        .transaction-item {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .transaction-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-right: var(--space-3);
+        }
+
+        .transaction-icon.credit {
+            background: #E9FBF0;
+        }
+
+        .transaction-icon.debit {
+            background: #FEEBEB;
+        }
+
+        .transaction-left {
+            display: flex;
+            align-items: center;
+            flex: 1;
+        }
+
+        .transaction-info {
+            flex: 1;
+        }
+
+        .transaction-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .transaction-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .transaction-amount {
+            font-size: 16px;
+            font-weight: 700;
+            text-align: right;
+        }
+
+        .transaction-amount.credit {
+            color: var(--green);
+        }
+
+        .transaction-amount.debit {
+            color: var(--red);
+        }
+
+        /* Form */
+        .form-section {
+            padding: var(--space-4);
+            background: white;
+        }
+
+        .input-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: white;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(87, 80, 241, 0.1);
+        }
+
+        /* Radio Group */
+        .radio-group {
+            display: flex;
+            gap: var(--space-3);
+            margin-bottom: var(--space-4);
+        }
+
+        .radio-option {
+            flex: 1;
+            padding: var(--space-4);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .radio-option.active {
+            border-color: var(--primary);
+            background: #E1E8FF;
+        }
+
+        .radio-option-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: var(--space-2);
+        }
+
+        .radio-option-icon {
+            width: 32px;
+            height: 32px;
+            margin: 0 auto var(--space-2);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 393px;
+            width: 100%;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-2) var(--space-4);
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: var(--space-2);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: calc(50% - 196px + 20px);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(87, 80, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Ledger Journey</h1>
+
+    <div class="screen-grid">
+        <!-- Screen 1: Ledger List -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <div class="header-title">Ledger</div>
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="balance-card">
+                        <div class="balance-label">Current Balance</div>
+                        <div class="balance-amount">XOF 12,450,000</div>
+                        <div class="balance-stats">
+                            <div>
+                                <div class="balance-stat-label">Income</div>
+                                <div class="balance-stat-value">+XOF 3,200,000</div>
+                            </div>
+                            <div>
+                                <div class="balance-stat-label">Expenses</div>
+                                <div class="balance-stat-value">-XOF 1,100,000</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-tabs">
+                        <button class="filter-tab active">All</button>
+                        <button class="filter-tab">Income</button>
+                        <button class="filter-tab">Expenses</button>
+                        <button class="filter-tab">This Month</button>
+                    </div>
+
+                    <div class="transaction-list">
+                        <div class="date-group">
+                            <div class="date-header">Today</div>
+
+                            <div class="transaction-item">
+                                <div class="transaction-left">
+                                    <div class="transaction-icon credit">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="5 12 12 5 19 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-title">Payment Received</div>
+                                        <div class="transaction-meta">Invoice #INV-001 • Acme Corp</div>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount credit">+XOF 1,250,000</div>
+                            </div>
+
+                            <div class="transaction-item">
+                                <div class="transaction-left">
+                                    <div class="transaction-icon debit">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="19 12 12 19 5 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-title">Office Supplies</div>
+                                        <div class="transaction-meta">Expense • Cash</div>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount debit">-XOF 45,000</div>
+                            </div>
+                        </div>
+
+                        <div class="date-group">
+                            <div class="date-header">Yesterday</div>
+
+                            <div class="transaction-item">
+                                <div class="transaction-left">
+                                    <div class="transaction-icon credit">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="5 12 12 5 19 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-title">Service Revenue</div>
+                                        <div class="transaction-meta">Invoice #INV-004 • Delta Corp</div>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount credit">+XOF 450,000</div>
+                            </div>
+
+                            <div class="transaction-item">
+                                <div class="transaction-left">
+                                    <div class="transaction-icon debit">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="19 12 12 19 5 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-title">Internet Bill</div>
+                                        <div class="transaction-meta">Expense • Bank Transfer</div>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount debit">-XOF 25,000</div>
+                            </div>
+
+                            <div class="transaction-item">
+                                <div class="transaction-left">
+                                    <div class="transaction-icon debit">
+                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="19 12 12 19 5 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="transaction-info">
+                                        <div class="transaction-title">Salary Payment</div>
+                                        <div class="transaction-meta">Payroll • March 2026</div>
+                                    </div>
+                                </div>
+                                <div class="transaction-amount debit">-XOF 850,000</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="fab">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+
+                    <div class="bottom-nav">
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            </svg>
+                            <span>Home</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span>Invoices</span>
+                        </div>
+                        <div class="nav-item active">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                            <span>Ledger</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                            </svg>
+                            <span>Products</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                            <span>More</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">01 - Ledger List</div>
+        </div>
+
+        <!-- Screen 2: Add Ledger Entry -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div class="header-title">Add Entry</div>
+                            <button class="icon-btn" style="visibility: hidden;"></button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="input-group">
+                            <label class="input-label">Entry Type</label>
+                            <div class="radio-group">
+                                <div class="radio-option active">
+                                    <div class="radio-option-icon">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="5 12 12 5 19 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="radio-option-label">Income</div>
+                                </div>
+                                <div class="radio-option">
+                                    <div class="radio-option-icon">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                                            <polyline points="19 12 12 19 5 12"></polyline>
+                                        </svg>
+                                    </div>
+                                    <div class="radio-option-label">Expense</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Description</label>
+                            <input type="text" class="input" placeholder="e.g., Payment received from client" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Amount (XOF)</label>
+                            <input type="number" class="input" placeholder="0.00" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Category</label>
+                            <select class="input">
+                                <option>Select category...</option>
+                                <option>Revenue</option>
+                                <option>Service Income</option>
+                                <option>Product Sales</option>
+                                <option>Office Expenses</option>
+                                <option>Utilities</option>
+                                <option>Salaries</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Payment Method</label>
+                            <select class="input">
+                                <option>Select payment method...</option>
+                                <option>Cash</option>
+                                <option>Bank Transfer</option>
+                                <option>Mobile Money</option>
+                                <option>Credit Card</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Date</label>
+                            <input type="date" class="input" value="2026-03-21" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Notes (Optional)</label>
+                            <textarea class="input" rows="3" placeholder="Add any additional notes..."></textarea>
+                        </div>
+
+                        <button class="btn btn-primary" style="margin-top: var(--space-4);">Save Entry</button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">02 - Add Ledger Entry</div>
+        </div>
+
+        <!-- Screen 3: Transaction Detail -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <div class="header-title">Transaction</div>
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="5" r="1"></circle>
+                                    <circle cx="12" cy="19" r="1"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="background: white; margin: var(--space-4); border-radius: var(--radius-lg); padding: var(--space-6); box-shadow: var(--shadow-card);">
+                        <div style="text-align: center; margin-bottom: var(--space-6);">
+                            <div style="width: 64px; height: 64px; border-radius: 50%; background: #E9FBF0; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4);">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <polyline points="5 12 12 5 19 12"></polyline>
+                                </svg>
+                            </div>
+                            <div style="font-size: 32px; font-weight: 700; color: var(--green); margin-bottom: var(--space-2);">
+                                +XOF 1,250,000
+                            </div>
+                            <div style="font-size: 14px; color: var(--text-secondary);">
+                                Mar 21, 2026 at 10:30 AM
+                            </div>
+                        </div>
+
+                        <div style="border-top: 1px solid var(--border-color); padding-top: var(--space-5);">
+                            <div style="margin-bottom: var(--space-4);">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Description</div>
+                                <div style="font-size: 14px;">Payment Received</div>
+                            </div>
+
+                            <div style="margin-bottom: var(--space-4);">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Category</div>
+                                <div style="font-size: 14px;">Service Income</div>
+                            </div>
+
+                            <div style="margin-bottom: var(--space-4);">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Payment Method</div>
+                                <div style="font-size: 14px;">Bank Transfer</div>
+                            </div>
+
+                            <div style="margin-bottom: var(--space-4);">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Reference</div>
+                                <div style="font-size: 14px;">Invoice #INV-001</div>
+                            </div>
+
+                            <div style="margin-bottom: var(--space-4);">
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Customer</div>
+                                <div style="font-size: 14px;">Acme Corporation</div>
+                            </div>
+
+                            <div>
+                                <div style="font-size: 12px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; margin-bottom: var(--space-2);">Notes</div>
+                                <div style="font-size: 14px; color: var(--text-secondary);">Payment for website development project completed in March.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">03 - Transaction Detail</div>
+        </div>
+    </div>
+</body>
+</html>

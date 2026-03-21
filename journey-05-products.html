@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Products Journey - Kaba Mobile</title>
+    <style>
+        :root {
+            --primary: #5750F1;
+            --stroke: #E6EBF1;
+            --dark: #111928;
+            --green: #22AD5C;
+            --red: #F23030;
+            --yellow: #F59E0B;
+            --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.12);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --text-primary: #111928;
+            --text-secondary: #6B7280;
+            --border-color: #E6EBF1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #F3F4F6;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+
+        .screen-grid {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .screen {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 393px;
+            height: 852px;
+            margin: 0 auto;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .screen-label {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .screen-content {
+            background: var(--bg-secondary);
+            min-height: 100%;
+            padding-bottom: 80px;
+        }
+
+        .header {
+            background: var(--bg-primary);
+            padding: var(--space-6) var(--space-4);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .search-bar {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background-color: var(--bg-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-secondary);
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--space-3);
+            padding: var(--space-4);
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-card);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        /* Product Cards */
+        .product-list {
+            padding: 0 var(--space-4) var(--space-4);
+        }
+
+        .product-card {
+            background: white;
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+            box-shadow: var(--shadow-card);
+            display: flex;
+            gap: var(--space-4);
+        }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-md);
+            background: var(--bg-secondary);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-name {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-sku {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-2);
+        }
+
+        .product-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .product-price {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .product-stock {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .product-stock.low {
+            color: var(--red);
+        }
+
+        .product-stock.medium {
+            color: var(--yellow);
+        }
+
+        .product-stock.high {
+            color: var(--green);
+        }
+
+        /* Form */
+        .form-section {
+            padding: var(--space-4);
+            background: white;
+        }
+
+        .input-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: white;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(87, 80, 241, 0.1);
+        }
+
+        .image-upload {
+            width: 100%;
+            height: 150px;
+            border: 2px dashed var(--border-color);
+            border-radius: var(--radius-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .image-upload:hover {
+            border-color: var(--primary);
+            background: #E1E8FF;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 393px;
+            width: 100%;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-2) var(--space-4);
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: var(--space-2);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: calc(50% - 196px + 20px);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(87, 80, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Products Journey</h1>
+
+    <div class="screen-grid">
+        <!-- Screen 1: Product List -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <div class="header-title">Products</div>
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="search-bar">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="search" class="search-input" placeholder="Search products..." />
+                        </div>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Total Products</div>
+                            <div class="stat-value">142</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Low Stock</div>
+                            <div class="stat-value" style="color: var(--red);">8</div>
+                        </div>
+                    </div>
+
+                    <div class="product-list">
+                        <div class="product-card">
+                            <div class="product-image">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2">
+                                    <rect x="2" y="7" width="20" height="15" rx="2"></rect>
+                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                                </svg>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-name">Premium Cotton T-Shirt</div>
+                                <div class="product-sku">SKU: TSHIRT-001</div>
+                                <div class="product-meta">
+                                    <div class="product-price">XOF 15,000</div>
+                                    <div class="product-stock high">234 in stock</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="product-card">
+                            <div class="product-image">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2">
+                                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path>
+                                    <line x1="7" y1="7" x2="7.01" y2="7"></line>
+                                </svg>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-name">Leather Wallet</div>
+                                <div class="product-sku">SKU: WALLET-002</div>
+                                <div class="product-meta">
+                                    <div class="product-price">XOF 25,000</div>
+                                    <div class="product-stock medium">45 in stock</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="product-card">
+                            <div class="product-image">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2">
+                                    <circle cx="12" cy="12" r="7"></circle>
+                                    <polyline points="12 9 12 12 13.5 13.5"></polyline>
+                                    <path d="M16.51 17.35l-.35 3.83a2 2 0 0 1-2 1.82H9.83a2 2 0 0 1-2-1.82l-.35-3.83m.01-10.7l.35-3.83A2 2 0 0 1 9.83 1h4.35a2 2 0 0 1 2 1.82l.35 3.83"></path>
+                                </svg>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-name">Smart Watch Pro</div>
+                                <div class="product-sku">SKU: WATCH-003</div>
+                                <div class="product-meta">
+                                    <div class="product-price">XOF 150,000</div>
+                                    <div class="product-stock low">3 in stock</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="product-card">
+                            <div class="product-image">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2">
+                                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
+                                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
+                                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+                                </svg>
+                            </div>
+                            <div class="product-info">
+                                <div class="product-name">Wireless Earbuds</div>
+                                <div class="product-sku">SKU: AUDIO-004</div>
+                                <div class="product-meta">
+                                    <div class="product-price">XOF 35,000</div>
+                                    <div class="product-stock high">128 in stock</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="fab">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+
+                    <div class="bottom-nav">
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            </svg>
+                            <span>Home</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span>Invoices</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                            <span>Ledger</span>
+                        </div>
+                        <div class="nav-item active">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                            </svg>
+                            <span>Products</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                            <span>More</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">01 - Product List</div>
+        </div>
+
+        <!-- Screen 2: Add Product -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div class="header-title">Add Product</div>
+                            <button class="icon-btn" style="visibility: hidden;"></button>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="input-group">
+                            <label class="input-label">Product Image</label>
+                            <div class="image-upload">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                                <div style="margin-top: var(--space-2); font-size: 14px;">Tap to upload image</div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Product Name</label>
+                            <input type="text" class="input" placeholder="e.g., Premium Cotton T-Shirt" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">SKU</label>
+                            <input type="text" class="input" placeholder="e.g., TSHIRT-001" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Description</label>
+                            <textarea class="input" rows="3" placeholder="Product description..."></textarea>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+                            <div class="input-group">
+                                <label class="input-label">Price (XOF)</label>
+                                <input type="number" class="input" placeholder="0.00" />
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Cost (XOF)</label>
+                                <input type="number" class="input" placeholder="0.00" />
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+                            <div class="input-group">
+                                <label class="input-label">Stock Quantity</label>
+                                <input type="number" class="input" placeholder="0" />
+                            </div>
+                            <div class="input-group">
+                                <label class="input-label">Low Stock Alert</label>
+                                <input type="number" class="input" placeholder="10" />
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Category</label>
+                            <select class="input">
+                                <option>Select category...</option>
+                                <option>Electronics</option>
+                                <option>Clothing</option>
+                                <option>Accessories</option>
+                                <option>Home & Living</option>
+                            </select>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Barcode (Optional)</label>
+                            <input type="text" class="input" placeholder="Scan or enter barcode" />
+                        </div>
+
+                        <div style="display: flex; gap: var(--space-3); margin-top: var(--space-6);">
+                            <button class="btn btn-secondary">Cancel</button>
+                            <button class="btn btn-primary">Save Product</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">02 - Add Product</div>
+        </div>
+    </div>
+</body>
+</html>

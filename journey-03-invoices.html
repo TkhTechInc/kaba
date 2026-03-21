@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Invoices Journey - Kaba Mobile</title>
+    <style>
+        :root {
+            --primary: #5750F1;
+            --stroke: #E6EBF1;
+            --dark: #111928;
+            --dark-5: #6B7280;
+            --green: #22AD5C;
+            --red: #F23030;
+            --yellow: #F59E0B;
+            --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.12);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --text-primary: #111928;
+            --text-secondary: #6B7280;
+            --border-color: #E6EBF1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #F3F4F6;
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+
+        .screen-grid {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .screen {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 393px;
+            height: 852px;
+            margin: 0 auto;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .screen-label {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .screen-content {
+            background: var(--bg-secondary);
+            min-height: 100%;
+            padding-bottom: 80px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--bg-primary);
+            padding: var(--space-6) var(--space-4);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Search */
+        .search-bar {
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background-color: var(--bg-secondary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-secondary);
+        }
+
+        /* Filter Tabs */
+        .filter-tabs {
+            display: flex;
+            gap: var(--space-2);
+            padding: var(--space-4);
+            overflow-x: auto;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+            background: white;
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .filter-tab.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Invoice Cards */
+        .invoice-list {
+            padding: 0 var(--space-4) var(--space-4);
+        }
+
+        .card-invoice {
+            background: white;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: var(--space-4);
+            margin-bottom: var(--space-3);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .card-invoice-left {
+            flex: 1;
+        }
+
+        .card-invoice-number {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        .card-invoice-customer {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .card-invoice-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .card-invoice-right {
+            text-align: right;
+        }
+
+        .card-invoice-amount {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+
+        .badge {
+            display: inline-flex;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background-color: #E9FBF0;
+            color: var(--green);
+        }
+
+        .badge-warning {
+            background-color: #FFFBEB;
+            color: var(--yellow);
+        }
+
+        .badge-danger {
+            background-color: #FEEBEB;
+            color: var(--red);
+        }
+
+        .badge-info {
+            background-color: #E1E8FF;
+            color: #3C50E0;
+        }
+
+        /* Invoice Detail */
+        .detail-section {
+            background: white;
+            margin: var(--space-4);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            box-shadow: var(--shadow-card);
+        }
+
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--space-6);
+        }
+
+        .detail-number {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+
+        .detail-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: var(--space-2);
+        }
+
+        .detail-value {
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: var(--space-4);
+        }
+
+        .line-items {
+            margin-top: var(--space-5);
+        }
+
+        .line-item {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-3) 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .line-item-desc {
+            flex: 1;
+        }
+
+        .line-item-title {
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .line-item-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .line-item-amount {
+            font-weight: 600;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--space-3) 0;
+            font-size: 16px;
+        }
+
+        .total-row.grand {
+            font-size: 20px;
+            font-weight: 700;
+            border-top: 2px solid var(--dark);
+            margin-top: var(--space-2);
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            padding: var(--space-4);
+            display: flex;
+            gap: var(--space-3);
+        }
+
+        .btn {
+            flex: 1;
+            padding: 0.875rem;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-2);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Form */
+        .form-section {
+            padding: var(--space-4);
+        }
+
+        .input-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: white;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(87, 80, 241, 0.1);
+        }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            max-width: 393px;
+            width: 100%;
+            background: white;
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-2) var(--space-4);
+            display: flex;
+            justify-content: space-around;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: var(--space-2);
+            color: var(--text-secondary);
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: calc(50% - 196px + 20px);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(87, 80, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Invoices Journey</h1>
+
+    <div class="screen-grid">
+        <!-- Screen 1: Invoice List -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <div class="header-title">Invoices</div>
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="4" y1="21" x2="4" y2="14"></line>
+                                    <line x1="4" y1="10" x2="4" y2="3"></line>
+                                    <line x1="12" y1="21" x2="12" y2="12"></line>
+                                    <line x1="12" y1="8" x2="12" y2="3"></line>
+                                    <line x1="20" y1="21" x2="20" y2="16"></line>
+                                    <line x1="20" y1="12" x2="20" y2="3"></line>
+                                    <line x1="1" y1="14" x2="7" y2="14"></line>
+                                    <line x1="9" y1="8" x2="15" y2="8"></line>
+                                    <line x1="17" y1="16" x2="23" y2="16"></line>
+                                </svg>
+                            </button>
+                        </div>
+
+                        <div class="search-bar">
+                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                            <input type="search" class="search-input" placeholder="Search invoices..." />
+                        </div>
+                    </div>
+
+                    <div class="filter-tabs">
+                        <button class="filter-tab active">All</button>
+                        <button class="filter-tab">Paid</button>
+                        <button class="filter-tab">Pending</button>
+                        <button class="filter-tab">Overdue</button>
+                        <button class="filter-tab">Draft</button>
+                    </div>
+
+                    <div class="invoice-list">
+                        <div class="card-invoice">
+                            <div class="card-invoice-left">
+                                <div class="card-invoice-number">#INV-001</div>
+                                <div class="card-invoice-customer">Acme Corporation</div>
+                                <div class="card-invoice-date">Mar 21, 2026</div>
+                            </div>
+                            <div class="card-invoice-right">
+                                <div class="card-invoice-amount">XOF 1,250,000</div>
+                                <span class="badge badge-success">Paid</span>
+                            </div>
+                        </div>
+
+                        <div class="card-invoice">
+                            <div class="card-invoice-left">
+                                <div class="card-invoice-number">#INV-002</div>
+                                <div class="card-invoice-customer">Beta Industries</div>
+                                <div class="card-invoice-date">Mar 20, 2026</div>
+                            </div>
+                            <div class="card-invoice-right">
+                                <div class="card-invoice-amount">XOF 750,000</div>
+                                <span class="badge badge-warning">Pending</span>
+                            </div>
+                        </div>
+
+                        <div class="card-invoice">
+                            <div class="card-invoice-left">
+                                <div class="card-invoice-number">#INV-003</div>
+                                <div class="card-invoice-customer">Gamma Solutions</div>
+                                <div class="card-invoice-date">Mar 15, 2026</div>
+                            </div>
+                            <div class="card-invoice-right">
+                                <div class="card-invoice-amount">XOF 2,100,000</div>
+                                <span class="badge badge-danger">Overdue</span>
+                            </div>
+                        </div>
+
+                        <div class="card-invoice">
+                            <div class="card-invoice-left">
+                                <div class="card-invoice-number">#INV-004</div>
+                                <div class="card-invoice-customer">Delta Corp</div>
+                                <div class="card-invoice-date">Mar 18, 2026</div>
+                            </div>
+                            <div class="card-invoice-right">
+                                <div class="card-invoice-amount">XOF 450,000</div>
+                                <span class="badge badge-success">Paid</span>
+                            </div>
+                        </div>
+
+                        <div class="card-invoice">
+                            <div class="card-invoice-left">
+                                <div class="card-invoice-number">#INV-005</div>
+                                <div class="card-invoice-customer">Epsilon Ltd</div>
+                                <div class="card-invoice-date">Mar 19, 2026</div>
+                            </div>
+                            <div class="card-invoice-right">
+                                <div class="card-invoice-amount">XOF 890,000</div>
+                                <span class="badge badge-info">Draft</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="fab">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+
+                    <div class="bottom-nav">
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                            </svg>
+                            <span>Home</span>
+                        </div>
+                        <div class="nav-item active">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <span>Invoices</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <line x1="12" y1="1" x2="12" y2="23"></line>
+                                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                            </svg>
+                            <span>Ledger</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                            </svg>
+                            <span>Products</span>
+                        </div>
+                        <div class="nav-item">
+                            <svg class="nav-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="19" cy="12" r="1"></circle>
+                                <circle cx="5" cy="12" r="1"></circle>
+                            </svg>
+                            <span>More</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">01 - Invoice List</div>
+        </div>
+
+        <!-- Screen 2: Invoice Detail -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <div class="header-title">Invoice Detail</div>
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="5" r="1"></circle>
+                                    <circle cx="12" cy="19" r="1"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="detail-section">
+                        <div class="detail-header">
+                            <div>
+                                <div class="detail-number">#INV-001</div>
+                                <div class="detail-value">Issued: Mar 21, 2026</div>
+                                <div class="detail-value">Due: Apr 20, 2026</div>
+                            </div>
+                            <span class="badge badge-success">Paid</span>
+                        </div>
+
+                        <div>
+                            <div class="detail-label">Bill To</div>
+                            <div class="detail-value" style="font-weight: 600;">Acme Corporation</div>
+                            <div class="detail-value">123 Business Street<br>Cotonou, Benin<br>contact@acme.com</div>
+                        </div>
+
+                        <div class="line-items">
+                            <div class="detail-label">Items</div>
+
+                            <div class="line-item">
+                                <div class="line-item-desc">
+                                    <div class="line-item-title">Website Development</div>
+                                    <div class="line-item-meta">1 × XOF 500,000</div>
+                                </div>
+                                <div class="line-item-amount">XOF 500,000</div>
+                            </div>
+
+                            <div class="line-item">
+                                <div class="line-item-desc">
+                                    <div class="line-item-title">SEO Optimization</div>
+                                    <div class="line-item-meta">1 × XOF 250,000</div>
+                                </div>
+                                <div class="line-item-amount">XOF 250,000</div>
+                            </div>
+
+                            <div class="line-item">
+                                <div class="line-item-desc">
+                                    <div class="line-item-title">Content Creation</div>
+                                    <div class="line-item-meta">5 × XOF 100,000</div>
+                                </div>
+                                <div class="line-item-amount">XOF 500,000</div>
+                            </div>
+
+                            <div style="margin-top: var(--space-4);">
+                                <div class="total-row">
+                                    <span>Subtotal</span>
+                                    <span>XOF 1,250,000</span>
+                                </div>
+                                <div class="total-row">
+                                    <span>Tax (0%)</span>
+                                    <span>XOF 0</span>
+                                </div>
+                                <div class="total-row grand">
+                                    <span>Total</span>
+                                    <span>XOF 1,250,000</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Download
+                        </button>
+                        <button class="btn btn-primary">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">02 - Invoice Detail</div>
+        </div>
+
+        <!-- Screen 3: Create Invoice - Step 1 -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                            <div class="header-title">New Invoice</div>
+                            <button class="icon-btn" style="visibility: hidden;"></button>
+                        </div>
+                    </div>
+
+                    <div style="padding: var(--space-4); background: white; margin-bottom: 1px;">
+                        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
+                            <div style="flex: 1; height: 4px; background: var(--primary); border-radius: 2px;"></div>
+                            <div style="flex: 1; height: 4px; background: var(--border-color); border-radius: 2px;"></div>
+                            <div style="flex: 1; height: 4px; background: var(--border-color); border-radius: 2px;"></div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Step 1 of 3: Customer Details</div>
+                    </div>
+
+                    <div class="form-section" style="background: white;">
+                        <div class="input-group">
+                            <label class="input-label">Select Customer</label>
+                            <input type="text" class="input" placeholder="Search customers..." />
+                        </div>
+
+                        <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-3);">
+                                <div>
+                                    <div style="font-weight: 600; margin-bottom: 0.25rem;">Acme Corporation</div>
+                                    <div style="font-size: 14px; color: var(--text-secondary);">contact@acme.com</div>
+                                </div>
+                                <div style="width: 20px; height: 20px; border: 2px solid var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <div style="width: 12px; height: 12px; background: var(--primary); border-radius: 50%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Invoice Date</label>
+                            <input type="date" class="input" value="2026-03-21" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Due Date</label>
+                            <input type="date" class="input" value="2026-04-20" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Payment Terms (Optional)</label>
+                            <input type="text" class="input" placeholder="Net 30" />
+                        </div>
+                    </div>
+
+                    <div class="action-buttons" style="position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); max-width: 393px; width: 100%; background: white; border-top: 1px solid var(--border-color);">
+                        <button class="btn btn-primary">Next Step</button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">03 - Create Invoice (Step 1)</div>
+        </div>
+
+        <!-- Screen 4: Create Invoice - Step 2 -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="header">
+                        <div class="header-top">
+                            <button class="icon-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="19" y1="12" x2="5" y2="12"></line>
+                                    <polyline points="12 19 5 12 12 5"></polyline>
+                                </svg>
+                            </button>
+                            <div class="header-title">New Invoice</div>
+                            <button class="icon-btn" style="visibility: hidden;"></button>
+                        </div>
+                    </div>
+
+                    <div style="padding: var(--space-4); background: white; margin-bottom: 1px;">
+                        <div style="display: flex; gap: var(--space-2); margin-bottom: var(--space-2);">
+                            <div style="flex: 1; height: 4px; background: var(--primary); border-radius: 2px;"></div>
+                            <div style="flex: 1; height: 4px; background: var(--primary); border-radius: 2px;"></div>
+                            <div style="flex: 1; height: 4px; background: var(--border-color); border-radius: 2px;"></div>
+                        </div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">Step 2 of 3: Add Line Items</div>
+                    </div>
+
+                    <div class="form-section" style="background: white;">
+                        <div style="background: var(--bg-secondary); border-radius: var(--radius-md); padding: var(--space-4); margin-bottom: var(--space-4);">
+                            <div class="input-group">
+                                <label class="input-label">Description</label>
+                                <input type="text" class="input" placeholder="Website Development" />
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3);">
+                                <div class="input-group">
+                                    <label class="input-label">Quantity</label>
+                                    <input type="number" class="input" placeholder="1" />
+                                </div>
+                                <div class="input-group">
+                                    <label class="input-label">Unit Price</label>
+                                    <input type="number" class="input" placeholder="500000" />
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" style="margin-top: var(--space-2);">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                Add Item
+                            </button>
+                        </div>
+
+                        <div class="detail-label">Added Items (2)</div>
+
+                        <div class="line-item">
+                            <div class="line-item-desc">
+                                <div class="line-item-title">Website Development</div>
+                                <div class="line-item-meta">1 × XOF 500,000</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                <div class="line-item-amount">XOF 500,000</div>
+                                <button style="border: none; background: none; color: var(--red); padding: var(--space-2);">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="line-item">
+                            <div class="line-item-desc">
+                                <div class="line-item-title">SEO Optimization</div>
+                                <div class="line-item-meta">1 × XOF 250,000</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: var(--space-2);">
+                                <div class="line-item-amount">XOF 250,000</div>
+                                <button style="border: none; background: none; color: var(--red); padding: var(--space-2);">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="total-row" style="margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--border-color);">
+                            <span style="font-weight: 600;">Subtotal</span>
+                            <span style="font-weight: 700;">XOF 750,000</span>
+                        </div>
+                    </div>
+
+                    <div class="action-buttons" style="position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); max-width: 393px; width: 100%; background: white; border-top: 1px solid var(--border-color);">
+                        <button class="btn btn-primary">Review Invoice</button>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">04 - Create Invoice (Step 2)</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Authentication Journey - Kaba Mobile</title>
+    <style>
+        :root {
+            --primary: #5750F1;
+            --stroke: #E6EBF1;
+            --dark: #111928;
+            --dark-5: #6B7280;
+            --gray-1: #F9FAFB;
+            --green: #22AD5C;
+            --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            --space-8: 2rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.12);
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --text-primary: #111928;
+            --text-secondary: #6B7280;
+            --border-color: #E6EBF1;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: #F3F4F6;
+            color: var(--text-primary);
+            padding: 2rem;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 2rem;
+            color: var(--dark);
+        }
+
+        .screen-grid {
+            display: grid;
+            gap: 3rem;
+        }
+
+        .screen {
+            background: white;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 393px;
+            height: 852px;
+            margin: 0 auto;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+            position: relative;
+        }
+
+        .screen-label {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .screen-content {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: var(--bg-primary);
+        }
+
+        /* Splash Screen */
+        .splash-screen {
+            background: linear-gradient(135deg, var(--primary) 0%, #4641d1 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .splash-logo {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-6);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .splash-logo svg {
+            width: 64px;
+            height: 64px;
+            stroke: var(--primary);
+        }
+
+        .splash-title {
+            font-size: 48px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: var(--space-2);
+        }
+
+        .splash-tagline {
+            font-size: 16px;
+            color: rgba(255,255,255,0.8);
+        }
+
+        /* Sign In/Up Screens */
+        .auth-header {
+            padding: var(--space-8) var(--space-6);
+            text-align: center;
+        }
+
+        .auth-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: var(--space-2);
+        }
+
+        .auth-subtitle {
+            font-size: 16px;
+            color: var(--text-secondary);
+        }
+
+        .auth-form {
+            padding: 0 var(--space-6);
+            flex: 1;
+        }
+
+        .input-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+            color: var(--text-primary);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 48px;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(87, 80, 241, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            min-height: 48px;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .forgot-password {
+            text-align: right;
+            margin-top: var(--space-2);
+            margin-bottom: var(--space-6);
+        }
+
+        .forgot-password a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: var(--space-6) 0;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .divider::before {
+            margin-right: var(--space-4);
+        }
+
+        .divider::after {
+            margin-left: var(--space-4);
+        }
+
+        .auth-footer {
+            padding: var(--space-6);
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .auth-footer a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        /* Success Screen */
+        .success-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8);
+            text-align: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: #E9FBF0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: var(--space-6);
+        }
+
+        .success-icon svg {
+            width: 48px;
+            height: 48px;
+            stroke: var(--green);
+        }
+
+        .success-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: var(--space-3);
+        }
+
+        .success-message {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: var(--space-8);
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <h1>Authentication Journey</h1>
+
+    <div class="screen-grid">
+        <!-- Screen 1: Splash -->
+        <div>
+            <div class="screen">
+                <div class="screen-content splash-screen">
+                    <div class="splash-logo">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="splash-title">Kaba</div>
+                    <div class="splash-tagline">Smart Accounting for Africa</div>
+                </div>
+            </div>
+            <div class="screen-label">01 - Splash Screen</div>
+        </div>
+
+        <!-- Screen 2: Sign In -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="auth-header">
+                        <div class="auth-title">Welcome Back</div>
+                        <div class="auth-subtitle">Sign in to continue</div>
+                    </div>
+
+                    <div class="auth-form">
+                        <div class="input-group">
+                            <label class="input-label">Email Address</label>
+                            <input type="email" class="input" placeholder="name@company.com" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Password</label>
+                            <input type="password" class="input" placeholder="Enter your password" />
+                        </div>
+
+                        <div class="forgot-password">
+                            <a href="#">Forgot Password?</a>
+                        </div>
+
+                        <button class="btn btn-primary">Sign In</button>
+
+                        <div class="divider">Or continue with</div>
+
+                        <button class="btn" style="background: white; border: 1px solid var(--border-color); color: var(--text-primary);">
+                            <svg width="20" height="20" viewBox="0 0 24 24" style="margin-right: 8px;">
+                                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                            </svg>
+                            Sign in with Google
+                        </button>
+                    </div>
+
+                    <div class="auth-footer">
+                        Don't have an account? <a href="#">Sign Up</a>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">02 - Sign In</div>
+        </div>
+
+        <!-- Screen 3: Sign Up -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="auth-header">
+                        <div class="auth-title">Create Account</div>
+                        <div class="auth-subtitle">Get started with Kaba</div>
+                    </div>
+
+                    <div class="auth-form">
+                        <div class="input-group">
+                            <label class="input-label">Full Name</label>
+                            <input type="text" class="input" placeholder="John Doe" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Email Address</label>
+                            <input type="email" class="input" placeholder="name@company.com" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Business Name</label>
+                            <input type="text" class="input" placeholder="Acme Corporation" />
+                        </div>
+
+                        <div class="input-group">
+                            <label class="input-label">Password</label>
+                            <input type="password" class="input" placeholder="Min. 8 characters" />
+                        </div>
+
+                        <button class="btn btn-primary" style="margin-top: var(--space-6);">Create Account</button>
+                    </div>
+
+                    <div class="auth-footer">
+                        Already have an account? <a href="#">Sign In</a>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">03 - Sign Up</div>
+        </div>
+
+        <!-- Screen 4: Forgot Password -->
+        <div>
+            <div class="screen">
+                <div class="screen-content">
+                    <div class="auth-header">
+                        <div class="auth-title">Reset Password</div>
+                        <div class="auth-subtitle">We'll send you a reset link</div>
+                    </div>
+
+                    <div class="auth-form">
+                        <div class="input-group">
+                            <label class="input-label">Email Address</label>
+                            <input type="email" class="input" placeholder="name@company.com" />
+                        </div>
+
+                        <button class="btn btn-primary" style="margin-top: var(--space-6);">Send Reset Link</button>
+
+                        <div style="text-align: center; margin-top: var(--space-6);">
+                            <a href="#" style="color: var(--primary); text-decoration: none; font-weight: 500;">Back to Sign In</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="screen-label">04 - Forgot Password</div>
+        </div>
+
+        <!-- Screen 5: Reset Success -->
+        <div>
+            <div class="screen">
+                <div class="screen-content success-screen">
+                    <div class="success-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="success-title">Check Your Email</div>
+                    <div class="success-message">
+                        We've sent a password reset link to your email address. Please check your inbox and follow the instructions.
+                    </div>
+                    <button class="btn btn-primary">Back to Sign In</button>
+                </div>
+            </div>
+            <div class="screen-label">05 - Reset Success</div>
+        </div>
+    </div>
+</body>
+</html>
