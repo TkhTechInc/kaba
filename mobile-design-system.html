@@ -302,40 +302,55 @@
 
         /* ===== Overview Cards ===== */
         .overview-card {
-            background: linear-gradient(135deg, var(--primary) 0%, #4641d1 100%);
+            background: var(--bg-primary);
             border-radius: var(--radius-lg);
             padding: var(--space-5);
-            color: white;
+            box-shadow: var(--shadow-card);
             margin-bottom: var(--space-4);
+            display: flex;
+            align-items: center;
+            gap: var(--space-4);
+        }
+
+        .overview-card-icon {
+            width: 44px;
+            height: 44px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .overview-card-content {
+            flex: 1;
+            min-width: 0;
         }
 
         .overview-card-label {
             font-size: 14px;
-            opacity: 0.9;
-            margin-bottom: var(--space-2);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-1);
         }
 
         .overview-card-value {
-            font-size: 28px;
+            font-size: 20px;
             font-weight: 700;
-            margin-bottom: var(--space-1);
+            color: var(--text-primary);
+            margin-bottom: 0;
         }
 
         .overview-card-change {
             font-size: 12px;
-            opacity: 0.8;
+            font-weight: 500;
+            margin-top: var(--space-1);
         }
 
-        .overview-card.green {
-            background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
+        .overview-card-change.positive {
+            color: var(--green);
         }
 
-        .overview-card.red {
-            background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
-        }
-
-        .overview-card.blue {
-            background: linear-gradient(135deg, var(--blue) 0%, #5475E5 100%);
+        .overview-card-change.negative {
+            color: var(--red);
         }
 
         /* ===== Navigation ===== */
@@ -634,27 +649,61 @@
         <h2>Overview Cards</h2>
 
         <div class="overview-card">
-            <div class="overview-card-label">Total Revenue</div>
-            <div class="overview-card-value">XOF 2,450,000</div>
-            <div class="overview-card-change">↑ 12% from last month</div>
+            <div class="overview-card-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+            <div class="overview-card-content">
+                <div class="overview-card-label">Total Revenue</div>
+                <div class="overview-card-value">XOF 2,450,000</div>
+                <div class="overview-card-change positive">↑ 12%</div>
+            </div>
         </div>
 
-        <div class="overview-card green">
-            <div class="overview-card-label">Invoices Paid</div>
-            <div class="overview-card-value">24</div>
-            <div class="overview-card-change">↑ 8% from last week</div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <path d="M9 15h6M12 18v-6"></path>
+                </svg>
+            </div>
+            <div class="overview-card-content">
+                <div class="overview-card-label">Invoices Paid</div>
+                <div class="overview-card-value">24</div>
+                <div class="overview-card-change positive">↑ 8%</div>
+            </div>
         </div>
 
-        <div class="overview-card red">
-            <div class="overview-card-label">Pending Payments</div>
-            <div class="overview-card-value">XOF 350,000</div>
-            <div class="overview-card-change">3 invoices overdue</div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+            </div>
+            <div class="overview-card-content">
+                <div class="overview-card-label">Pending Payments</div>
+                <div class="overview-card-value">XOF 350,000</div>
+                <div class="overview-card-change">3 invoices</div>
+            </div>
         </div>
 
-        <div class="overview-card blue">
-            <div class="overview-card-label">Monthly Expenses</div>
-            <div class="overview-card-value">XOF 1,100,000</div>
-            <div class="overview-card-change">↓ 5% from last month</div>
+        <div class="overview-card">
+            <div class="overview-card-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    <line x1="19" y1="5" x2="5" y2="19"></line>
+                </svg>
+            </div>
+            <div class="overview-card-content">
+                <div class="overview-card-label">Monthly Expenses</div>
+                <div class="overview-card-value">XOF 1,100,000</div>
+                <div class="overview-card-change negative">↓ 5%</div>
+            </div>
         </div>
     </div>
 
