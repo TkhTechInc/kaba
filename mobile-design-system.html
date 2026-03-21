@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <title>Kaba Mobile Design System</title>
+    <style>
+        /* ===== CSS Variables from Tailwind Config ===== */
+        :root {
+            /* Colors */
+            --primary: #5750F1;
+            --stroke: #E6EBF1;
+            --dark: #111928;
+            --dark-2: #1F2A37;
+            --dark-3: #374151;
+            --dark-4: #4B5563;
+            --dark-5: #6B7280;
+            --gray-1: #F9FAFB;
+            --gray-2: #F3F4F6;
+            --green: #22AD5C;
+            --green-light: #10B981;
+            --red: #F23030;
+            --red-dark: #E10E0E;
+            --blue: #3C50E0;
+            --yellow: #F59E0B;
+            --yellow-light: #FCD34D;
+
+            /* Typography */
+            --font-sans: "Satoshi", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+            /* Spacing (8px grid) */
+            --space-1: 0.25rem;   /* 4px */
+            --space-2: 0.5rem;    /* 8px */
+            --space-3: 0.75rem;   /* 12px */
+            --space-4: 1rem;      /* 16px */
+            --space-5: 1.25rem;   /* 20px */
+            --space-6: 1.5rem;    /* 24px */
+            --space-8: 2rem;      /* 32px */
+            --space-10: 2.5rem;   /* 40px */
+            --space-12: 3rem;     /* 48px */
+
+            /* Shadows */
+            --shadow-card: 0px 1px 2px 0px rgba(0, 0, 0, 0.12);
+            --shadow-card-2: 0px 8px 13px -3px rgba(0, 0, 0, 0.07);
+
+            /* Border Radius */
+            --radius-sm: 0.375rem;  /* 6px */
+            --radius-md: 0.5rem;    /* 8px */
+            --radius-lg: 0.75rem;   /* 12px */
+            --radius-xl: 1rem;      /* 16px */
+        }
+
+        /* ===== Dark Mode Support ===== */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: var(--dark);
+                --bg-secondary: var(--dark-2);
+                --text-primary: #FFFFFF;
+                --text-secondary: var(--dark-5);
+                --border-color: var(--dark-3);
+            }
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #FFFFFF;
+                --bg-secondary: var(--gray-1);
+                --text-primary: var(--dark);
+                --text-secondary: var(--dark-5);
+                --border-color: var(--stroke);
+            }
+        }
+
+        /* ===== Base Styles ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            max-width: 430px;
+            margin: 0 auto;
+            padding: var(--space-4);
+        }
+
+        /* ===== Typography ===== */
+        h1 { font-size: 32px; line-height: 40px; font-weight: 700; margin-bottom: var(--space-6); }
+        h2 { font-size: 24px; line-height: 32px; font-weight: 700; margin-bottom: var(--space-4); margin-top: var(--space-8); }
+        h3 { font-size: 20px; line-height: 28px; font-weight: 600; margin-bottom: var(--space-3); margin-top: var(--space-6); }
+        p { font-size: 16px; line-height: 24px; margin-bottom: var(--space-4); }
+        .caption { font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+        .label { font-size: 12px; line-height: 16px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* ===== Section Container ===== */
+        .section {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-6);
+            margin-bottom: var(--space-6);
+            box-shadow: var(--shadow-card);
+        }
+
+        .component-grid {
+            display: grid;
+            gap: var(--space-4);
+            margin-top: var(--space-4);
+        }
+
+        /* ===== Buttons ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 48px;
+            width: 100%;
+            gap: var(--space-2);
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:active {
+            background-color: #4641d1;
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-success {
+            background-color: var(--green);
+            color: white;
+        }
+
+        .btn-danger {
+            background-color: var(--red);
+            color: white;
+        }
+
+        .btn-text {
+            background: transparent;
+            color: var(--primary);
+            padding: 0.5rem 1rem;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 14px;
+            min-height: 36px;
+        }
+
+        /* ===== Input Fields ===== */
+        .input-group {
+            margin-bottom: var(--space-4);
+        }
+
+        .input-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: var(--space-2);
+            color: var(--text-primary);
+        }
+
+        .input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+            min-height: 48px;
+        }
+
+        .input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(87, 80, 241, 0.1);
+        }
+
+        .input-error {
+            border-color: var(--red);
+        }
+
+        .input-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: var(--space-1);
+        }
+
+        .input-error-msg {
+            font-size: 12px;
+            color: var(--red);
+            margin-top: var(--space-1);
+        }
+
+        /* ===== Cards ===== */
+        .card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-card);
+            margin-bottom: var(--space-4);
+        }
+
+        .card-invoice {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border: 1px solid var(--border-color);
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-3);
+        }
+
+        .card-invoice-left {
+            flex: 1;
+        }
+
+        .card-invoice-right {
+            text-align: right;
+        }
+
+        .card-invoice-number {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-invoice-customer {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: var(--space-1);
+        }
+
+        .card-invoice-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: var(--space-1);
+        }
+
+        .card-invoice-amount {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* ===== Badges ===== */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-success {
+            background-color: #E9FBF0;
+            color: var(--green);
+        }
+
+        .badge-warning {
+            background-color: #FFFBEB;
+            color: var(--yellow);
+        }
+
+        .badge-danger {
+            background-color: #FEEBEB;
+            color: var(--red);
+        }
+
+        .badge-info {
+            background-color: #E1E8FF;
+            color: var(--blue);
+        }
+
+        /* ===== Overview Cards ===== */
+        .overview-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #4641d1 100%);
+            border-radius: var(--radius-lg);
+            padding: var(--space-5);
+            color: white;
+            margin-bottom: var(--space-4);
+        }
+
+        .overview-card-label {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: var(--space-2);
+        }
+
+        .overview-card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--space-1);
+        }
+
+        .overview-card-change {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .overview-card.green {
+            background: linear-gradient(135deg, var(--green) 0%, var(--green-light) 100%);
+        }
+
+        .overview-card.red {
+            background: linear-gradient(135deg, var(--red) 0%, var(--red-dark) 100%);
+        }
+
+        .overview-card.blue {
+            background: linear-gradient(135deg, var(--blue) 0%, #5475E5 100%);
+        }
+
+        /* ===== Navigation ===== */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--bg-primary);
+            border-top: 1px solid var(--border-color);
+            padding: var(--space-2) var(--space-4);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            max-width: 430px;
+            margin: 0 auto;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: var(--space-1);
+            padding: var(--space-2);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 11px;
+            font-weight: 500;
+            min-width: 60px;
+            transition: color 0.2s;
+        }
+
+        .nav-item.active {
+            color: var(--primary);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ===== List Items ===== */
+        .list-item {
+            display: flex;
+            align-items: center;
+            padding: var(--space-4);
+            background: var(--bg-primary);
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .list-item:active {
+            background-color: var(--bg-secondary);
+        }
+
+        .list-item-content {
+            flex: 1;
+        }
+
+        .list-item-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--space-1);
+        }
+
+        .list-item-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .list-item-chevron {
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-secondary);
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* ===== FAB (Floating Action Button) ===== */
+        .fab {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(87, 80, 241, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fab:active {
+            transform: scale(0.95);
+        }
+
+        /* ===== Search Bar ===== */
+        .search-bar {
+            position: relative;
+            margin-bottom: var(--space-4);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            font-size: 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 20px;
+            height: 20px;
+            stroke: var(--text-secondary);
+        }
+
+        /* ===== Color Swatches ===== */
+        .color-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: var(--space-3);
+        }
+
+        .color-swatch {
+            text-align: center;
+        }
+
+        .color-box {
+            width: 100%;
+            height: 60px;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-2);
+            border: 1px solid var(--border-color);
+        }
+
+        .color-name {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: var(--space-1);
+        }
+
+        .color-value {
+            font-size: 10px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        /* ===== Utility Classes ===== */
+        .mt-4 { margin-top: var(--space-4); }
+        .mb-4 { margin-bottom: var(--space-4); }
+        .pb-20 { padding-bottom: 5rem; }
+
+        /* ===== Loading State ===== */
+        .skeleton {
+            background: linear-gradient(90deg, var(--bg-secondary) 25%, var(--border-color) 50%, var(--bg-secondary) 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: var(--radius-md);
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        .skeleton-text {
+            height: 16px;
+            margin-bottom: var(--space-2);
+        }
+
+        .skeleton-text.large {
+            height: 24px;
+        }
+    </style>
+</head>
+<body class="pb-20">
+
+    <!-- Header -->
+    <h1>🎨 Kaba Mobile Design System</h1>
+    <p class="caption">Interactive component showcase for mobile app development</p>
+
+    <!-- Colors Section -->
+    <div class="section">
+        <h2>Colors</h2>
+        <div class="color-grid">
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--primary);"></div>
+                <div class="color-name">Primary</div>
+                <div class="color-value">#5750F1</div>
+            </div>
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--green);"></div>
+                <div class="color-name">Success</div>
+                <div class="color-value">#22AD5C</div>
+            </div>
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--red);"></div>
+                <div class="color-name">Danger</div>
+                <div class="color-value">#F23030</div>
+            </div>
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--yellow);"></div>
+                <div class="color-name">Warning</div>
+                <div class="color-value">#F59E0B</div>
+            </div>
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--blue);"></div>
+                <div class="color-name">Info</div>
+                <div class="color-value">#3C50E0</div>
+            </div>
+            <div class="color-swatch">
+                <div class="color-box" style="background-color: var(--dark);"></div>
+                <div class="color-name">Text</div>
+                <div class="color-value">#111928</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Typography Section -->
+    <div class="section">
+        <h2>Typography</h2>
+        <h1>Heading 1 - 32px Bold</h1>
+        <h2>Heading 2 - 24px Bold</h2>
+        <h3>Heading 3 - 20px SemiBold</h3>
+        <p>Body Text - 16px Regular</p>
+        <p class="caption">Caption - 14px Regular</p>
+        <p class="label">Label - 12px Medium</p>
+    </div>
+
+    <!-- Buttons Section -->
+    <div class="section">
+        <h2>Buttons</h2>
+        <div class="component-grid">
+            <button class="btn btn-primary">Primary Button</button>
+            <button class="btn btn-secondary">Secondary Button</button>
+            <button class="btn btn-success">Success Button</button>
+            <button class="btn btn-danger">Danger Button</button>
+            <button class="btn btn-text">Text Button</button>
+            <button class="btn btn-primary btn-small">Small Button</button>
+        </div>
+    </div>
+
+    <!-- Input Fields Section -->
+    <div class="section">
+        <h2>Input Fields</h2>
+
+        <div class="input-group">
+            <label class="input-label">Email Address</label>
+            <input type="email" class="input" placeholder="name@example.com" />
+            <p class="input-hint">We'll never share your email</p>
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Amount</label>
+            <input type="number" class="input" placeholder="0.00" value="1250" />
+        </div>
+
+        <div class="input-group">
+            <label class="input-label">Password</label>
+            <input type="password" class="input input-error" placeholder="Enter password" />
+            <p class="input-error-msg">Password must be at least 8 characters</p>
+        </div>
+    </div>
+
+    <!-- Badges Section -->
+    <div class="section">
+        <h2>Status Badges</h2>
+        <div style="display: flex; gap: var(--space-2); flex-wrap: wrap;">
+            <span class="badge badge-success">Paid</span>
+            <span class="badge badge-warning">Pending</span>
+            <span class="badge badge-danger">Overdue</span>
+            <span class="badge badge-info">Draft</span>
+        </div>
+    </div>
+
+    <!-- Overview Cards Section -->
+    <div class="section">
+        <h2>Overview Cards</h2>
+
+        <div class="overview-card">
+            <div class="overview-card-label">Total Revenue</div>
+            <div class="overview-card-value">XOF 2,450,000</div>
+            <div class="overview-card-change">↑ 12% from last month</div>
+        </div>
+
+        <div class="overview-card green">
+            <div class="overview-card-label">Invoices Paid</div>
+            <div class="overview-card-value">24</div>
+            <div class="overview-card-change">↑ 8% from last week</div>
+        </div>
+
+        <div class="overview-card red">
+            <div class="overview-card-label">Pending Payments</div>
+            <div class="overview-card-value">XOF 350,000</div>
+            <div class="overview-card-change">3 invoices overdue</div>
+        </div>
+
+        <div class="overview-card blue">
+            <div class="overview-card-label">Monthly Expenses</div>
+            <div class="overview-card-value">XOF 1,100,000</div>
+            <div class="overview-card-change">↓ 5% from last month</div>
+        </div>
+    </div>
+
+    <!-- Invoice Cards Section -->
+    <div class="section">
+        <h2>Invoice List Items</h2>
+
+        <div class="card-invoice">
+            <div class="card-invoice-left">
+                <div class="card-invoice-number">#INV-001</div>
+                <div class="card-invoice-customer">Acme Corporation</div>
+                <div class="card-invoice-date">Mar 21, 2026</div>
+            </div>
+            <div class="card-invoice-right">
+                <div class="card-invoice-amount">XOF 1,250,000</div>
+                <span class="badge badge-success">Paid</span>
+            </div>
+        </div>
+
+        <div class="card-invoice">
+            <div class="card-invoice-left">
+                <div class="card-invoice-number">#INV-002</div>
+                <div class="card-invoice-customer">Beta Industries</div>
+                <div class="card-invoice-date">Mar 20, 2026</div>
+            </div>
+            <div class="card-invoice-right">
+                <div class="card-invoice-amount">XOF 750,000</div>
+                <span class="badge badge-warning">Pending</span>
+            </div>
+        </div>
+
+        <div class="card-invoice">
+            <div class="card-invoice-left">
+                <div class="card-invoice-number">#INV-003</div>
+                <div class="card-invoice-customer">Gamma Solutions</div>
+                <div class="card-invoice-date">Mar 15, 2026</div>
+            </div>
+            <div class="card-invoice-right">
+                <div class="card-invoice-amount">XOF 2,100,000</div>
+                <span class="badge badge-danger">Overdue</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar Section -->
+    <div class="section">
+        <h2>Search</h2>
+        <div class="search-bar">
+            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <input type="search" class="search-input" placeholder="Search invoices, customers..." />
+        </div>
+    </div>
+
+    <!-- List Items Section -->
+    <div class="section">
+        <h2>Settings List</h2>
+
+        <div class="list-item">
+            <div class="list-item-content">
+                <div class="list-item-title">Profile Settings</div>
+                <div class="list-item-subtitle">Update your personal information</div>
+            </div>
+            <svg class="list-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </div>
+
+        <div class="list-item">
+            <div class="list-item-content">
+                <div class="list-item-title">Team Management</div>
+                <div class="list-item-subtitle">Manage team members and roles</div>
+            </div>
+            <svg class="list-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </div>
+
+        <div class="list-item">
+            <div class="list-item-content">
+                <div class="list-item-title">Notifications</div>
+                <div class="list-item-subtitle">Configure notification preferences</div>
+            </div>
+            <svg class="list-item-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        </div>
+    </div>
+
+    <!-- Loading States Section -->
+    <div class="section">
+        <h2>Loading States (Skeleton)</h2>
+        <div class="card">
+            <div class="skeleton skeleton-text large"></div>
+            <div class="skeleton skeleton-text"></div>
+            <div class="skeleton skeleton-text" style="width: 60%;"></div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <a href="#" class="nav-item active">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Home</span>
+        </a>
+
+        <a href="#" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            <span>Invoices</span>
+        </a>
+
+        <a href="#" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <line x1="12" y1="1" x2="12" y2="23"></line>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+            </svg>
+            <span>Ledger</span>
+        </a>
+
+        <a href="#" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+            <span>Products</span>
+        </a>
+
+        <a href="#" class="nav-item">
+            <svg class="nav-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M12 1v6m0 6v6"></path>
+                <path d="m17 7-3 3-3-3m0 10 3-3 3 3"></path>
+            </svg>
+            <span>More</span>
+        </a>
+    </nav>
+
+    <!-- FAB -->
+    <button class="fab" onclick="alert('Create new invoice')">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+        </svg>
+    </button>
+
+    <script>
+        // Add smooth scroll behavior
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        });
+
+        // Simulate touch feedback
+        document.querySelectorAll('.btn, .card-invoice, .list-item').forEach(el => {
+            el.addEventListener('touchstart', function() {
+                this.style.opacity = '0.7';
+            });
+            el.addEventListener('touchend', function() {
+                this.style.opacity = '1';
+            });
+        });
+
+        // Log component interactions
+        console.log('🎨 Kaba Mobile Design System loaded');
+        console.log('📱 Viewport width:', window.innerWidth);
+        console.log('🎯 Design for: 375px (iPhone SE) to 430px (iPhone Pro Max)');
+    </script>
+
+</body>
+</html>
