@@ -6,11 +6,13 @@ import { LedgerServiceStack } from './stacks/LedgerServiceStack';
 import { ReceiptsStorageStack } from './stacks/ReceiptsStorageStack';
 import { InvoicesServiceStack } from './stacks/InvoicesServiceStack';
 import { InventoryServiceStack } from './stacks/InventoryServiceStack';
+import { PayrollServiceStack } from './stacks/PayrollServiceStack';
 import { AuditLogsStack } from './stacks/AuditLogsStack';
 import { UsersServiceStack } from './stacks/UsersServiceStack';
 import { KabaApiStack } from './stacks/KabaApiStack';
 import { IdempotencyStack } from './stacks/IdempotencyStack';
 import { AgentSessionsStack } from './stacks/AgentSessionsStack';
+import { MonitoringStack } from './stacks/MonitoringStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 
 const app = new cdk.App();
@@ -87,6 +89,13 @@ const inventoryStack = new InventoryServiceStack(app, `Kaba-InventoryService-${e
   config: envConfig,
 });
 
+const payrollStack = new PayrollServiceStack(app, `Kaba-PayrollService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Kaba - Payroll DynamoDB table',
+  config: envConfig,
+});
+
 const auditLogsStack = new AuditLogsStack(app, `Kaba-AuditLogs-${environment}`, {
   ...commonProps,
   environment,
@@ -122,7 +131,9 @@ const apiStack = new KabaApiStack(app, `Kaba-Api-${environment}`, {
   config: envConfig,
   ledgerTable: ledgerStack.ledgerTable,
   invoicesTable: invoicesStack.invoicesTable,
+  platformPaymentsTable: invoicesStack.platformPaymentsTable,
   inventoryTable: inventoryStack.inventoryTable,
+  payrollTable: payrollStack.payrollTable,
   auditLogsTable: auditLogsStack.auditLogsTable,
   usersTable: usersStack.usersTable,
   idempotencyTable: idempotencyStack.idempotencyTable,
@@ -135,9 +146,23 @@ apiStack.addDependency(ledgerStack);
 apiStack.addDependency(receiptsStack);
 apiStack.addDependency(invoicesStack);
 apiStack.addDependency(inventoryStack);
+apiStack.addDependency(payrollStack);
 apiStack.addDependency(auditLogsStack);
 apiStack.addDependency(usersStack);
 apiStack.addDependency(idempotencyStack);
 apiStack.addDependency(agentSessionsStack);
+
+const monitoringStack = new MonitoringStack(app, `Kaba-Monitoring-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Kaba - CloudWatch alarms, dashboard, Slack alerts',
+  config: envConfig,
+  ledgerTable: ledgerStack.ledgerTable,
+  usersTable: usersStack.usersTable,
+  invoicesTable: invoicesStack.invoicesTable,
+  apiGateway: apiStack.restApi,
+  kabaApiFunction: apiStack.apiLambda,
+});
+monitoringStack.addDependency(apiStack);
 
 app.synth();

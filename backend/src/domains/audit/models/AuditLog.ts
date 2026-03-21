@@ -28,7 +28,18 @@ export type AuditAction =
   | 'access.revoke'
   // Compliance
   | 'compliance.export'
-  | 'compliance.erasure';
+  | 'compliance.erasure'
+  // Admin actions
+  | 'admin.tier.update'
+  | 'admin.user.create'
+  | 'admin.user.role.update'
+  | 'admin.user.delete'
+  | 'admin.feature.update'
+  // Payroll
+  | 'payroll.employee.create'
+  | 'payroll.pay_run.create'
+  | 'payroll.pay_run.finalize'
+  | 'payroll.pay_run.pay';
 
 export interface AuditLog {
   id: string;

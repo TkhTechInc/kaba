@@ -54,6 +54,7 @@ import { RegulatoryModule } from '@/domains/regulatory/RegulatoryModule';
 import { ChatModule } from '@/domains/chat/ChatModule';
 import { StorefrontModule } from '@/domains/storefront/StorefrontModule';
 import { SupplierModule } from '@/domains/suppliers/SupplierModule';
+import { PayrollModule } from '@/domains/payroll/PayrollModule';
 import { MobileModule } from '@/domains/mobile/MobileModule';
 import { McpModule } from '@/domains/mcp/McpModule';
 import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
@@ -93,6 +94,7 @@ import { ApiKeyAuthGuard } from './common/guards/api-key-auth.guard';
     RegulatoryModule,
     StorefrontModule,
     SupplierModule,
+    PayrollModule,
     MobileModule,
     McpModule,
   ],
