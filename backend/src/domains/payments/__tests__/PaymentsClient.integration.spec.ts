@@ -193,6 +193,8 @@ describe('PaymentsClient integration (mocked TKH Payments)', () => {
           expect(body.amount).toBe(15000);
           expect(body.currency).toBe('XOF');
           expect(body.externalId).toContain('qb-');
+          expect(body.appId).toBe('kaba');
+          expect(body.referenceId).toBe('qb-biz-001-sup-001-entry-001');
           return true;
         })
         .reply(200, { success: true, transactionId: 'disburse-tx-001' });
@@ -206,6 +208,28 @@ describe('PaymentsClient integration (mocked TKH Payments)', () => {
 
       expect(result.success).toBe(true);
       expect(result.transactionId).toBe('disburse-tx-001');
+    });
+
+    it('sends appId, referenceId, country when provided', async () => {
+      nock(BASE_URL)
+        .post('/disbursements', (body) => {
+          expect(body.appId).toBe('kaba');
+          expect(body.referenceId).toBe('payrun-123');
+          expect(body.country).toBe('BJ');
+          return true;
+        })
+        .reply(200, { success: true, transactionId: 'disb-2' });
+
+      const result = await client.disburse({
+        phone: '+22961234567',
+        amount: 50000,
+        currency: 'XOF',
+        externalId: 'payroll-pr1-emp1',
+        referenceId: 'payrun-123',
+        country: 'BJ',
+      });
+
+      expect(result.success).toBe(true);
     });
 
     it('returns error when disbursement fails', async () => {

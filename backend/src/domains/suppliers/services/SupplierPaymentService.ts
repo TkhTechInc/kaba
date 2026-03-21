@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SupplierRepository } from '../repositories/SupplierRepository';
 import { LedgerService } from '@/domains/ledger/services/LedgerService';
 import { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
+import { BusinessRepository } from '@/domains/business/BusinessRepository';
 import { NotFoundError } from '@/shared/errors/DomainError';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class SupplierPaymentService {
     private readonly supplierRepo: SupplierRepository,
     private readonly ledgerService: LedgerService,
     private readonly paymentsClient: PaymentsClient,
+    private readonly businessRepo: BusinessRepository,
   ) {}
 
   async paySupplier(
@@ -36,11 +38,14 @@ export class SupplierPaymentService {
     const momoPhone = supplier.momoPhone ?? supplier.phone;
     if (momoPhone?.trim()) {
       const externalId = `qb-${businessId}-${supplierId}-${entry.id}`;
+      const business = await this.businessRepo.getById(businessId);
       const result = await this.paymentsClient.disburse({
         phone: momoPhone,
         amount,
         currency,
         externalId,
+        referenceId: `${supplierId}-${entry.id}`,
+        country: business?.countryCode,
       });
       if (!result.success && result.error) {
         console.warn(`[SupplierPaymentService] MoMo disbursement failed for supplier ${supplierId}: ${result.error}`);

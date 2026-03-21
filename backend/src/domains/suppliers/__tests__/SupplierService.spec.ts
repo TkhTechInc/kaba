@@ -6,6 +6,7 @@ import { NotFoundError } from '@/shared/errors/DomainError';
 import type { LedgerService } from '@/domains/ledger/services/LedgerService';
 import type { LedgerEntry } from '@/domains/ledger/models/LedgerEntry';
 import type { PaymentsClient } from '@/domains/payments/services/PaymentsClient';
+import type { BusinessRepository } from '@/domains/business/BusinessRepository';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -229,12 +230,16 @@ describe('SupplierPaymentService', () => {
     const repo = makeMockRepo();
     const ledger = makeMockLedgerService();
     const paymentsClient = makeMockPaymentsClient();
+    const businessRepo = {
+      getById: jest.fn().mockResolvedValue({ countryCode: 'NG' }),
+    } as unknown as BusinessRepository;
     const service = new SupplierPaymentService(
       repo,
       ledger as unknown as LedgerService,
       paymentsClient,
+      businessRepo,
     );
-    return { repo, ledger, paymentsClient, service };
+    return { repo, ledger, paymentsClient, businessRepo, service };
   }
 
   function makeLedgerEntry(overrides: Partial<LedgerEntry> = {}): LedgerEntry {
@@ -333,6 +338,8 @@ describe('SupplierPaymentService', () => {
       amount: 25000,
       currency: 'XOF',
       externalId: 'qb-biz-ng-001-sup-001-entry-xyz',
+      referenceId: 'sup-001-entry-xyz',
+      country: 'NG',
     });
   });
 
@@ -348,6 +355,8 @@ describe('SupplierPaymentService', () => {
         phone: '+2348012345678',
         amount: 10000,
         currency: 'NGN',
+        referenceId: 'sup-001-entry-abc',
+        country: 'NG',
       }),
     );
     expect((paymentsClient.disburse as jest.Mock).mock.calls[0][0].externalId).toContain('qb-biz-ng-001-sup-001-entry-abc');

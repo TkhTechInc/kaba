@@ -211,6 +211,9 @@ export class PayrollService {
     if (!payRun) throw new NotFoundError('PayRun', payRunId);
     if (payRun.status !== 'finalized') throw new ValidationError(`Pay run must be finalized (status: ${payRun.status})`);
 
+    const business = await this.businessRepo.getById(businessId);
+    const country = business?.countryCode ?? 'BJ';
+
     const lines = await this.payRunLineRepo.listByPayRun(businessId, payRunId);
     const employees = await Promise.all(
       lines.map((l) => this.employeeRepo.findById(businessId, l.employeeId)),
@@ -228,6 +231,8 @@ export class PayrollService {
         amount: line.netPay,
         currency: payRun.currency,
         externalId: `payroll-${payRunId}-${line.employeeId}`,
+        referenceId: payRunId,
+        country,
       });
       if (result.success) {
         await this.payRunLineRepo.updatePaymentStatus(businessId, payRunId, line.employeeId, 'paid');

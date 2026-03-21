@@ -424,18 +424,31 @@ export class PaymentsClient {
   }
 
   /**
-   * Disburse to mobile money (e.g. supplier payout).
+   * Disburse to mobile money (e.g. supplier payout, payroll).
+   * TKH Payments requires appId and referenceId for reconciliation.
    */
   async disburse(params: {
     phone: string;
     amount: number;
     currency: string;
     externalId: string;
+    appId?: string;
+    referenceId?: string;
+    country?: string;
   }): Promise<{ success: boolean; transactionId?: string; error?: string }> {
     try {
+      const body = {
+        phone: params.phone,
+        amount: params.amount,
+        currency: params.currency,
+        externalId: params.externalId,
+        appId: params.appId ?? 'kaba',
+        referenceId: params.referenceId ?? params.externalId,
+        ...(params.country && { country: params.country }),
+      };
       const data = (await this.fetch('/disbursements', {
         method: 'POST',
-        body: params,
+        body,
       })) as { success?: boolean; transactionId?: string; error?: string };
 
       return {

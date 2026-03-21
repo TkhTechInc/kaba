@@ -194,6 +194,9 @@ or
 | `amount` | number | yes | Amount in minor units |
 | `currency` | string | yes | ISO 4217 (e.g. XOF) |
 | `externalId` | string | yes | Idempotency / reference ID |
+| `appId` | string | yes | TKH app ID (e.g. kaba) |
+| `referenceId` | string | yes | Domain object ID for reconciliation |
+| `country` | string | no | ISO 3166-1 alpha-2 for gateway selection |
 
 **Response (200):**
 
